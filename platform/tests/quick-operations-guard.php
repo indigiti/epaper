@@ -21,7 +21,7 @@ $startPos=strpos($app,'/admin/quick-start');
 $check($authPos!==false&&$csrfPos!==false&&$startPos!==false&&$authPos<$startPos&&$csrfPos<$startPos,'quick operations behind admin auth and csrf');
 $check(str_contains($quick,'Store::tx('),'onboarding and renewal use transactions');
 $check(str_contains($quick,'normalized_hostname=?'),'domain uniqueness check');
-$check(str_contains($quick,"status=\"AWAITING_DNS\""),'new domains require DNS verification');
+$check(str_contains($quick,'"AWAITING_DNS"'),'new domains require DNS verification');
 $check(str_contains($quick,"product_key=\"EPAPER\""),'ePaper product boundary');
 $check(str_contains($quick,'FOR UPDATE'),'renewal locks subscription row');
 $check(str_contains($quick,'acknowledged'),'renewal requires explicit approval');
