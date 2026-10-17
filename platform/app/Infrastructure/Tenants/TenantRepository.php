@@ -22,6 +22,7 @@ final class TenantRepository
             }
             if($status==='REMOVED')
                 Store::exec('UPDATE domains SET status="REMOVED",is_primary=0,updated_at=NOW(6) WHERE product_tenant_guid=?',[Uuid::toBinary($guid)]);
+            \Digiti\Application\Integration\CacheInvalidationOutbox::stageForTenant($guid);
             return array_column($domains,'hostname');
         });
     }
