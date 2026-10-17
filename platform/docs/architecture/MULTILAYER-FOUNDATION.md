@@ -55,3 +55,26 @@ The dedicated root GitHub Actions workflow also performs PHP syntax checking. Th
 ### Redis outage limiter improvement
 
 `Core/RateLimiter` now uses a single MariaDB atomic upsert for counters, replacing a read-before-write race. A concurrent SELECT may conservatively deny requests early but should not grant excess requests based on stale counts. Validate with real parallel MariaDB/PHP workers on staging; no such stress acceptance is implied by the source CI checks.
+
+## Phase 4 — Admin subscription/tenant and atomic usage layers
+
+**Incremental draft changes; not merged or deployed.**
+
+- `Application/Subscriptions/ManageSubscription` and `Infrastructure/Subscriptions/SubscriptionRepository` own activation and update. Tenant+plan product must match and all parent entities must be active; concurrent activations serialize on a tenant lock and an already-active subscription is rejected. The Admin form uses an explicit subscription `version`; stale POSTs cannot overwrite another admin's changes.
+- `Domain/Subscriptions/SubscriptionAccessPolicy` and `Application/Subscriptions/SubscriptionAccess` derive effective access freshly from subscription, parent entity statuses and billing period. FULL is never granted for expired, cancelled, inactive, past-due or grace-only conditions. The existing `/internal/v1/tenants/{guid}/access` shape is retained; `/entitlements` denies plan grants without FULL access.
+- `Application/Tenants/ManageTenant`, `Domain/Tenants/TenantLifecyclePolicy` and `Infrastructure/Tenants/TenantRepository` now handle tenant edit/status/remove atomically. Removed tenants cannot be reactivated through stale forms. Related domains become REMOVED and are no longer primary; Platform Redis domain and entitlement cache entries are evicted after commit.
+- `Application/Metering/RecordUsage`, `Domain/Metering/UsagePolicy`, `Infrastructure/Metering/UsageRepository` replace read-before-write usage increments with bounded-decimal, product-bound atomic UPSERT. Historical usage messages are not idempotent; repeated delivery with different request IDs can still increment twice until a proper event ledger/idempotency key is added. This is intentionally an outstanding requirement.
+
+### Tests
+
+Pure policy and static contract tests cover subscription, tenant lifecycle, and usage. The disposable MariaDB fixture covers one-current-subscription constraint, incorrect product/plan pairing, optimistic version conflict, expired and parent-suspended access, tenant/domain deactivation, and metering correction/product boundaries.
+
+### Remaining high-risk boundaries
+
+1. **ePaper-side cache staleness**: separate ePaper `DomainResolver` and `Entitlements` caches can continue serving cached values until TTL, even after Platform changes. Build authenticated cross-process revocation invalidation or an acceptable bounded fail-closed policy before claiming immediate suspension.
+2. **Usage idempotency/concurrency**: atomic counter UPSERT prevents lost increments, but there is no message/event idempotency ledger. Add event GUID and uniqueness contract in the next schema migration; test parallel worker transactions.
+3. **Other Admin CRUD modules**: organisation, user, product, application, domain, service-account, feature and pricing workflows remain mixed with view/rendering logic in `app/Admin/Crud.php`. Phase 4 only extracts tenant/subscription write paths.
+4. **Financial provider**: external checkout creation, refunds/chargebacks and provider-side reconciliation remain incomplete.
+5. **Operations and security**: private configuration migration, credential rotation/all-ref history cleanup, separate Platform backup and isolated restore, staged DigiOps two-app deployment, real browser tests.
+
+See issues #2, #21, #22. Never deploy this draft directly onto the previously tracked runtime configuration.
