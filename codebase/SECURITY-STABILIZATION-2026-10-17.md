@@ -19,3 +19,12 @@ This branch removes runtime secrets and installation state from the **current so
 - Confirm publisher/admin workflows, upload/process/publish and offline reader on a staging replica.
 - Existing generated media and upload assets remain tracked in this branch: **do not delete or move them without first migrating/backing up live content and verifying storage paths**. The new ignore rules prevent future accidental additions; current tracked media requires a separate planned migration.
 - The root workflow tests PHP and web assets; Android release signing, browser visual QA and Cloudways live acceptance are separate mandatory gates.
+
+## Phase 2 hardening
+
+- `InstallerGuard` blocks setup whenever either `config/config.php`, an operator-provided `EPDI_CONFIG_PATH`, or `storage/installed.lock` exists. Removal of the lock alone no longer reopens setup. Installer GET and POST are no-store and noindex.
+- Install attempts require a 32+ character secret via `EPDI_INSTALL_TOKEN` or `config/install.token`. New config and lock writes request 0600 file permissions.
+- `EPDI_CONFIG_PATH` may point to a private PHP configuration file **outside the Git checkout**. Set it consistently for web PHP-FPM, queue workers, cron and CLI commands. `EPDI_RUNTIME_PATH` likewise relocates queue/media settings; Infrastructure Dashboard writes to that same path. The target directories must already exist and be writable if settings editing is required.
+- Provision and test the external configuration **before deploying** removal of the old tracked config. Do not allow Git checkout or deployment synchronization to delete the only production copy.
+- Role authorization is now method-aware: editor/operator processing pages are read-only, processing actions have exact path patterns, and Publisher Admin cannot use global recovery or queue repair. Direct-route tests cover bypass-shaped URLs.
+- This code-level hardening cannot replace authenticated staging tests or production secret rotation/history cleanup.
