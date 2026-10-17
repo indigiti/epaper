@@ -107,5 +107,42 @@ $check($recovered['outbox']>=2,'expired in-flight outbox receipts recovered');
 $check(Store::value('SELECT status FROM outbox_events WHERE outbox_event_guid=?',[$bin($lease)])==='PENDING','crashed receipt restored for retry');
 $check(Store::value('SELECT status FROM outbox_events WHERE outbox_event_guid=?',[$bin($exhausted)])==='FAILED','attempt limit moves receipt to failed queue');
 
+// Subscription Admin CRUD and authoritative access behavior (same disposable MariaDB).
+$plan=$id();
+Store::exec('INSERT INTO plans(plan_guid,product_guid,plan_key,name,status,created_at,updated_at) VALUES(?,?,"CI_BUSINESS","CI Business","ACTIVE",NOW(6),NOW(6))',[$bin($plan),$bin($product)]);
+$subscription=\Digiti\Application\Subscriptions\ManageSubscription::activate($tenant,$plan);
+$check(\Digiti\Core\Uuid::isValid($subscription),'Admin activation returns subscription GUID');
+$check(\Digiti\Application\Subscriptions\SubscriptionAccess::payload($tenant)['service_access_state']==='FULL','new active subscription grants full access');
+try{\Digiti\Application\Subscriptions\ManageSubscription::activate($tenant,$plan);$duplicateSubscriptionDenied=false;}
+catch(\DomainException){$duplicateSubscriptionDenied=true;}
+$check($duplicateSubscriptionDenied,'duplicate concurrent-active subscription refused');
+
+$otherProduct=$id();$otherPlan=$id();
+Store::exec('INSERT INTO products(product_guid,product_key,name,status,created_at,updated_at) VALUES(?,"CI_OTHER_PRODUCT","CI Other Product","ACTIVE",NOW(6),NOW(6))',[$bin($otherProduct)]);
+Store::exec('INSERT INTO plans(plan_guid,product_guid,plan_key,name,status,created_at,updated_at) VALUES(?,?,"CI_OTHER_PLAN","CI Other Plan","ACTIVE",NOW(6),NOW(6))',[$bin($otherPlan),$bin($otherProduct)]);
+try{\Digiti\Application\Subscriptions\ManageSubscription::activate($tenant,$otherPlan);$crossProductDenied=false;}
+catch(\DomainException){$crossProductDenied=true;}
+$check($crossProductDenied,'wrong-product plan rejected');
+
+$future='2030-12-31T12:00';
+$fields=[
+    'version'=>'1','status'=>'ACTIVE','billing_state'=>'PAST_DUE',
+    'service_access_state'=>'FULL','current_period_end'=>$future
+];
+\Digiti\Application\Subscriptions\ManageSubscription::update($subscription,$fields);
+$check(\Digiti\Application\Subscriptions\SubscriptionAccess::payload($tenant)['service_access_state']==='RESTRICTED','past-due access downgraded even when stored FULL');
+try{\Digiti\Application\Subscriptions\ManageSubscription::update($subscription,$fields);$staleDenied=false;}
+catch(\DomainException){$staleDenied=true;}
+$check($staleDenied,'stale Admin subscription form cannot overwrite newer edit');
+$fields['version']='2';$fields['billing_state']='ACTIVE';
+\Digiti\Application\Subscriptions\ManageSubscription::update($subscription,$fields);
+$check(\Digiti\Application\Subscriptions\SubscriptionAccess::payload($tenant)['service_access_state']==='FULL','active billing restores effective full access');
+
+Store::exec('UPDATE organisations SET status="SUSPENDED" WHERE organisation_guid=?',[$bin($organisation)]);
+$check(\Digiti\Application\Subscriptions\SubscriptionAccess::payload($tenant)['service_access_state']==='BLOCKED','parent organisation suspension blocks access without waiting on cache');
+Store::exec('UPDATE organisations SET status="ACTIVE" WHERE organisation_guid=?',[$bin($organisation)]);
+Store::exec('UPDATE subscriptions SET current_period_end=DATE_SUB(NOW(6), INTERVAL 1 MINUTE) WHERE subscription_guid=?',[$bin($subscription)]);
+$check(\Digiti\Application\Subscriptions\SubscriptionAccess::payload($tenant)['service_access_state']==='BLOCKED','period expiry blocks access despite stored FULL');
+
 echo "MariaDB billing integration checks complete.\n";
 exit($fail?1:0);
