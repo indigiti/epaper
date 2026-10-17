@@ -41,9 +41,17 @@ final class DomainResolver
     }
     private static function tenantInfo(string $tenant,bool $allowLocal): array
     {
-        $ttl=max(5,min(30,(int)Config::get('platform.tenant_cache_ttl',15)));$cached=RedisStore::getJson('tenant-meta:v2:'.$tenant)?:self::fileCacheGet('tenant-meta:v2:'.$tenant);if($cached)return$cached;
-        if($allowLocal){$local=self::localTenant($tenant);if($local){RedisStore::setJson('tenant-meta:v2:'.$tenant,$local,$ttl);self::fileCacheSet('tenant-meta:v2:'.$tenant,$local,$ttl);return$local;}}
-        try{$info=self::remoteTenant($tenant);if($info){RedisStore::setJson('tenant-meta:v2:'.$tenant,$info,$ttl);self::fileCacheSet('tenant-meta:v2:'.$tenant,$info,$ttl);}return$info;}catch(\Throwable){return $allowLocal?(self::localTenant($tenant)?:[]):[];}
+        // Local database rows describe historical ePaper content; they are NEVER
+        // authoritative grants after a Platform outage or tenant suspension.
+        $ttl=max(5,min(30,(int)Config::get('platform.tenant_cache_ttl',15)));
+        $cached=RedisStore::getJson('tenant-meta:v2:'.$tenant)?:self::fileCacheGet('tenant-meta:v2:'.$tenant);
+        if($cached)return $cached;
+        $info=self::remoteTenant($tenant); // Throws on transport/API failure (fail closed).
+        if(($info['status']??null)!=='ACTIVE')
+            throw new \RuntimeException('Publisher tenant is not active');
+        RedisStore::setJson('tenant-meta:v2:'.$tenant,$info,$ttl);
+        self::fileCacheSet('tenant-meta:v2:'.$tenant,$info,$ttl);
+        return $info;
     }
     private static function remoteTenant(string $tenant): array
     {
