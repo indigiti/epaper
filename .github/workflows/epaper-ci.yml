@@ -60,8 +60,8 @@ jobs:
       - name: Build and verify slim release ZIP
         run: |
           set -euo pipefail
-          artifact="$(mktemp -u /tmp/epdi-slim-ci-XXXXXXXX.zip)"
-          trap 'rm -f "$artifact"' EXIT
+          artifact="${RUNNER_TEMP}/epdi-slim-staging.zip"
+          test ! -e "$artifact"
           php bin/slim-release-zip.php --output="$artifact"
           php bin/slim-release-zip.php --verify="$artifact"
           php tests/slim-release-zip.php
@@ -69,3 +69,10 @@ jobs:
         run: php tests/public-uploads-safety.php
       - name: Run current release regression suite
         run: php bin/release-check.php
+      - name: Upload staging-only slim ZIP artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: epdi-slim-staging-${{ github.sha }}
+          path: ${{ runner.temp }}/epdi-slim-staging.zip
+          if-no-files-found: error
+          retention-days: 7
