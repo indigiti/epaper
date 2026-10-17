@@ -1,0 +1,24 @@
+# Digiti Platform v1.0.0 Release Checklist
+
+- [x] No production credentials in package
+- [x] Installer lock implemented
+- [x] UUIDv7/BINARY(16) baseline
+- [x] Platform Admin separated from organisation membership
+- [x] Host normalization and global domain uniqueness
+- [x] Product/application/product-tenant registry
+- [x] Service-account scoped token authentication
+- [x] OAuth code + PKCE and redirect registry
+- [x] Persistent identity sessions and MFA foundation
+- [x] Audited one-time impersonation grants
+- [x] Billing state separated from service-access state
+- [x] Entitlements and usage/remaining limits
+- [x] DNS/edge domain lifecycle
+- [x] Webhook receipt/dedupe/provider signatures
+- [x] Audit/Error Center
+- [x] Outbox/jobs/worker/scheduler
+- [x] Health endpoints
+- [x] PHP syntax/static regression suite passed
+- [ ] Fresh MariaDB install on target Cloudways environment
+- [ ] Redis live connectivity on target Cloudways environment
+- [ ] Cloudflare Custom Hostname live test if Cloudflare provider enabled
+- [ ] Razorpay/Stripe live merchant sandbox test before enabling those providers
