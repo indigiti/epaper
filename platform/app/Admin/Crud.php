@@ -90,39 +90,83 @@ final class Crud
     private static function organisationEdit(string $guid,string $method): never
     {
         $r=Store::one('SELECT organisation_guid,organisation_code,legal_name,display_name,status FROM organisations WHERE organisation_guid=?',[self::guidBin($guid)]);if(!$r)throw new \RuntimeException('Organisation not found.');
-        if($method==='POST'){$code=strtoupper(preg_replace('/[^A-Z0-9_]+/','_',strtoupper(trim($_POST['code']??''))));$name=trim($_POST['display_name']??'');if(!$code||!$name)throw new \InvalidArgumentException('Code and display name are required.');$status=self::allowed($_POST['status']??'ACTIVE',['ACTIVE','SUSPENDED','REMOVED'],'ACTIVE');Store::exec('UPDATE organisations SET organisation_code=?,legal_name=?,display_name=?,status=?,updated_at=NOW(6) WHERE organisation_guid=?',[$code,trim($_POST['legal_name']??$name),$name,$status,self::guidBin($guid)]);self::invalidateDomainsBy('organisation_guid',$guid);Audit::log('organisation.update','organisation',$guid);self::redirect('/admin/organisations','Organisation updated.');}
+        if($method==='POST'){
+            \Digiti\Application\Admin\RegistryMutations::organisation('edit',$guid,$_POST);
+            self::redirect('/admin/organisations','Organisation updated.');
+        }
         $body='<section class="card"><h2>Edit organisation</h2><form method="post" class="form-grid">'.self::csrf().'<label>Code<input name="code" value="'.self::e($r['organisation_code']).'" required></label><label>Display name<input name="display_name" value="'.self::e($r['display_name']).'" required></label><label>Legal name<input name="legal_name" value="'.self::e($r['legal_name']).'"></label><label>Status<select name="status">'.self::option('ACTIVE','ACTIVE',$r['status']).self::option('SUSPENDED','SUSPENDED',$r['status']).self::option('REMOVED','REMOVED',$r['status']).'</select></label><div class="form-action"><button class="primary">Update organisation</button><a class="button" href="/admin/organisations">Cancel</a></div></form></section>';View::layout('Edit Organisation',$body,['subtitle'=>$r['organisation_code']]);
     }
-    private static function organisationStatus(string $guid,string $method): never { if($method!=='POST')Http::redirect('/admin/organisations');$status=self::allowed($_POST['status']??'SUSPENDED',['ACTIVE','SUSPENDED'],'SUSPENDED');Store::exec('UPDATE organisations SET status=?,updated_at=NOW(6) WHERE organisation_guid=?',[$status,self::guidBin($guid)]);self::invalidateDomainsBy('organisation_guid',$guid);Audit::log('organisation.status','organisation',$guid,'SUCCESS',['status'=>$status]);self::redirect('/admin/organisations','Organisation status updated.'); }
-    private static function organisationRemove(string $guid,string $method): never { if($method!=='POST')Http::redirect('/admin/organisations');Store::exec('UPDATE organisations SET status="REMOVED",updated_at=NOW(6) WHERE organisation_guid=?',[self::guidBin($guid)]);Store::exec('UPDATE memberships SET status="REMOVED",updated_at=NOW(6) WHERE organisation_guid=?',[self::guidBin($guid)]);Store::exec('UPDATE product_tenants SET status="REMOVED",updated_at=NOW(6) WHERE organisation_guid=?',[self::guidBin($guid)]);Store::exec('UPDATE domains SET status="REMOVED",is_primary=0,updated_at=NOW(6) WHERE organisation_guid=?',[self::guidBin($guid)]);self::invalidateDomainsBy('organisation_guid',$guid);Audit::log('organisation.remove','organisation',$guid);self::redirect('/admin/organisations','Organisation removed from active registry. Historical data was preserved.'); }
+    private static function organisationStatus(string $guid,string $method): never {
+        if($method!=='POST')Http::redirect('/admin/organisations');
+        \Digiti\Application\Admin\RegistryMutations::organisation('status',$guid,$_POST);
+        self::redirect('/admin/organisations','Organisation status updated.');
+    }
+    private static function organisationRemove(string $guid,string $method): never {
+        if($method!=='POST')Http::redirect('/admin/organisations');
+        \Digiti\Application\Admin\RegistryMutations::organisation('remove',$guid,$_POST);
+        self::redirect('/admin/organisations','Organisation removed from active registry. Historical data was preserved.');
+    }
 
     private static function userEdit(string $guid,string $method): never
     {
         $r=Store::one('SELECT user_guid,email,display_name,status,mfa_enabled FROM platform_users WHERE user_guid=?',[self::guidBin($guid)]);if(!$r)throw new \RuntimeException('User not found.');
-        if($method==='POST'){$email=strtolower(trim($_POST['email']??''));if(!filter_var($email,FILTER_VALIDATE_EMAIL))throw new \InvalidArgumentException('Valid email required.');$name=trim($_POST['display_name']??'');$status=self::allowed($_POST['status']??'ACTIVE',['ACTIVE','SUSPENDED','REMOVED'],'ACTIVE');Store::exec('UPDATE platform_users SET email=?,display_name=?,status=?,updated_at=NOW(6) WHERE user_guid=?',[$email,$name,$status,self::guidBin($guid)]);$new=(string)($_POST['new_password']??'');if($new!==''){if(strlen($new)<10)throw new \InvalidArgumentException('New password must be at least 10 characters.');Store::exec('UPDATE platform_users SET password_hash=?,updated_at=NOW(6) WHERE user_guid=?',[password_hash($new,PASSWORD_DEFAULT),self::guidBin($guid)]);}Audit::log('user.update','platform_user',$guid);self::redirect('/admin/users','User updated.');}
+        if($method==='POST'){
+            \Digiti\Application\Admin\RegistryMutations::user('edit',$guid,$_POST);
+            self::redirect('/admin/users','User updated.');
+        }
         $memberships=Store::all('SELECT m.membership_guid,m.role_key,m.status,o.display_name organisation FROM memberships m JOIN organisations o ON o.organisation_guid=m.organisation_guid WHERE m.user_guid=? ORDER BY o.display_name',[self::guidBin($guid)]);$m='';foreach($memberships as$x)$m.='<tr><td>'.self::e($x['organisation']).'</td><td>'.self::e($x['role_key']).'</td><td>'.self::status($x['status']).'</td></tr>';if(!$m)$m='<tr><td colspan="3" class="muted">No memberships.</td></tr>';
         $body='<section class="card"><h2>Edit global user</h2><form method="post" class="form-grid">'.self::csrf().'<label>Name<input name="display_name" value="'.self::e($r['display_name']).'" required></label><label>Email<input type="email" name="email" value="'.self::e($r['email']).'" required></label><label>Status<select name="status">'.self::option('ACTIVE','ACTIVE',$r['status']).self::option('SUSPENDED','SUSPENDED',$r['status']).self::option('REMOVED','REMOVED',$r['status']).'</select></label><label>New password <span class="muted">optional</span><input type="password" name="new_password" minlength="10"></label><div class="form-action"><button class="primary">Update user</button><a class="button" href="/admin/users">Cancel</a></div></form></section><section class="card"><h2>Memberships</h2><div class="table-wrap"><table><thead><tr><th>Organisation</th><th>Role</th><th>Status</th></tr></thead><tbody>'.$m.'</tbody></table></div></section>';View::layout('Edit User',$body,['subtitle'=>$r['email']]);
     }
-    private static function userStatus(string $guid,string $method): never { if($method!=='POST')Http::redirect('/admin/users');$status=self::allowed($_POST['status']??'SUSPENDED',['ACTIVE','SUSPENDED'],'SUSPENDED');Store::exec('UPDATE platform_users SET status=?,updated_at=NOW(6) WHERE user_guid=?',[$status,self::guidBin($guid)]);Audit::log('user.status','platform_user',$guid);self::redirect('/admin/users','User status updated.'); }
-    private static function userRemove(string $guid,string $method): never { if($method!=='POST')Http::redirect('/admin/users');Store::exec('UPDATE platform_users SET status="REMOVED",updated_at=NOW(6) WHERE user_guid=?',[self::guidBin($guid)]);Store::exec('UPDATE memberships SET status="REMOVED",updated_at=NOW(6) WHERE user_guid=?',[self::guidBin($guid)]);Audit::log('user.remove','platform_user',$guid);self::redirect('/admin/users','User removed. Identity history was preserved.'); }
+    private static function userStatus(string $guid,string $method): never {
+        if($method!=='POST')Http::redirect('/admin/users');
+        \Digiti\Application\Admin\RegistryMutations::user('status',$guid,$_POST);
+        self::redirect('/admin/users','User status updated.');
+    }
+    private static function userRemove(string $guid,string $method): never {
+        if($method!=='POST')Http::redirect('/admin/users');
+        \Digiti\Application\Admin\RegistryMutations::user('remove',$guid,$_POST);
+        self::redirect('/admin/users','User removed. Identity history was preserved.');
+    }
 
     private static function productEdit(string $guid,string $method): never
     {
         $r=Store::one('SELECT product_guid,product_key,name,status,description FROM products WHERE product_guid=?',[self::guidBin($guid)]);if(!$r)throw new \RuntimeException('Product not found.');
-        if($method==='POST'){$name=trim($_POST['name']??'');if(!$name)throw new \InvalidArgumentException('Product name is required.');$status=self::allowed($_POST['status']??'ACTIVE',['ACTIVE','SUSPENDED','REMOVED'],'ACTIVE');Store::exec('UPDATE products SET name=?,description=?,status=?,updated_at=NOW(6) WHERE product_guid=?',[$name,trim($_POST['description']??''),$status,self::guidBin($guid)]);self::invalidateDomainsBy('product_guid',$guid);Audit::log('product.update','product',$guid,'SUCCESS',['name'=>$name,'status'=>$status]);self::redirect('/admin/products','Product updated.');}
+        if($method==='POST'){
+            \Digiti\Application\Admin\RegistryMutations::product('edit',$guid,$_POST);
+            self::redirect('/admin/products','Product updated.');
+        }
         $body='<section class="card"><h2>Edit product</h2><form method="post" class="form-grid">'.self::csrf().'<label>Product key<input value="'.self::e($r['product_key']).'" readonly><small>Stable integration key; create a new product instead of changing this key.</small></label><label>Name<input name="name" value="'.self::e($r['name']).'" required></label><label class="wide">Description<textarea name="description" rows="4">'.self::e($r['description']).'</textarea></label><label>Status<select name="status">'.self::option('ACTIVE','ACTIVE',$r['status']).self::option('SUSPENDED','SUSPENDED',$r['status']).self::option('REMOVED','REMOVED',$r['status']).'</select></label><div class="form-action"><button class="primary">Update product</button><a class="button" href="/admin/products">Cancel</a></div></form></section>';View::layout('Edit Product',$body,['subtitle'=>$r['product_key']]);
     }
-    private static function productStatus(string $guid,string $method): never { if($method!=='POST')Http::redirect('/admin/products');$status=self::allowed($_POST['status']??'SUSPENDED',['ACTIVE','SUSPENDED'],'SUSPENDED');Store::exec('UPDATE products SET status=?,updated_at=NOW(6) WHERE product_guid=?',[$status,self::guidBin($guid)]);self::invalidateDomainsBy('product_guid',$guid);Audit::log('product.status','product',$guid);self::redirect('/admin/products','Product status updated.'); }
-    private static function productRemove(string $guid,string $method): never { if($method!=='POST')Http::redirect('/admin/products');Store::exec('UPDATE products SET status="REMOVED",updated_at=NOW(6) WHERE product_guid=?',[self::guidBin($guid)]);Store::exec('UPDATE applications SET status="REMOVED",updated_at=NOW(6) WHERE product_guid=?',[self::guidBin($guid)]);Store::exec('UPDATE product_tenants SET status="REMOVED",updated_at=NOW(6) WHERE product_guid=?',[self::guidBin($guid)]);Store::exec('UPDATE domains SET status="REMOVED",is_primary=0,updated_at=NOW(6) WHERE product_guid=?',[self::guidBin($guid)]);Store::exec('UPDATE service_accounts SET status="REMOVED" WHERE product_guid=?',[self::guidBin($guid)]);self::invalidateDomainsBy('product_guid',$guid);Audit::log('product.remove','product',$guid);self::redirect('/admin/products','Product removed from active registry. Related records were deactivated, not deleted.'); }
+    private static function productStatus(string $guid,string $method): never {
+        if($method!=='POST')Http::redirect('/admin/products');
+        \Digiti\Application\Admin\RegistryMutations::product('status',$guid,$_POST);
+        self::redirect('/admin/products','Product status updated.');
+    }
+    private static function productRemove(string $guid,string $method): never {
+        if($method!=='POST')Http::redirect('/admin/products');
+        \Digiti\Application\Admin\RegistryMutations::product('remove',$guid,$_POST);
+        self::redirect('/admin/products','Product removed from active registry. Related records were deactivated, not deleted.');
+    }
 
     private static function applicationEdit(string $guid,string $method): never
     {
         $r=Store::one('SELECT application_guid,product_guid,application_key,name,base_url,admin_url,health_url,callback_url,oauth_client_id,integration_mode,status,current_version FROM applications WHERE application_guid=?',[self::guidBin($guid)]);if(!$r)throw new \RuntimeException('Application not found.');
-        if($method==='POST'){$base=rtrim(trim($_POST['base_url']??''),'/');if(!filter_var($base,FILTER_VALIDATE_URL))throw new \InvalidArgumentException('Valid base URL required.');$callback=trim($_POST['callback_url']??'')?:null;$status=self::allowed($_POST['status']??'ACTIVE',['ACTIVE','SUSPENDED','REMOVED'],'ACTIVE');Store::exec('UPDATE applications SET name=?,base_url=?,admin_url=?,health_url=?,callback_url=?,integration_mode=?,status=?,updated_at=NOW(6) WHERE application_guid=?',[trim($_POST['name']??''),$base,trim($_POST['admin_url']??'')?:null,trim($_POST['health_url']??'')?:null,$callback,self::allowed($_POST['integration_mode']??'REMOTE_API',['REMOTE_API','LOCAL_MODULE','INTERNAL_API'],'REMOTE_API'),$status,self::guidBin($guid)]);if($callback)Store::exec('INSERT INTO application_redirect_uris(redirect_guid,application_guid,redirect_uri,status,created_at) VALUES(?,?,?,"ACTIVE",NOW(6)) ON DUPLICATE KEY UPDATE status="ACTIVE"',[self::guidBin(Uuid::v7()),self::guidBin($guid),$callback]);self::invalidateDomainsBy('application_guid',$guid);Audit::log('application.update','application',$guid);self::redirect('/admin/applications','Application updated.');}
+        if($method==='POST'){
+            \Digiti\Application\Admin\RegistryMutations::application('edit',$guid,$_POST);
+            self::redirect('/admin/applications','Application updated.');
+        }
         $body='<section class="card"><h2>Edit application</h2><form method="post" class="form-grid">'.self::csrf().'<label>Application key<input value="'.self::e($r['application_key']).'" readonly></label><label>Name<input name="name" value="'.self::e($r['name']).'" required></label><label>Base URL<input name="base_url" type="url" value="'.self::e($r['base_url']).'" required></label><label>Admin URL<input name="admin_url" type="url" value="'.self::e($r['admin_url']).'"></label><label>Health URL<input name="health_url" type="url" value="'.self::e($r['health_url']).'"></label><label>OAuth callback<input name="callback_url" type="url" value="'.self::e($r['callback_url']).'"></label><label>Integration mode<select name="integration_mode">'.self::option('REMOTE_API','REMOTE_API',$r['integration_mode']).self::option('INTERNAL_API','INTERNAL_API',$r['integration_mode']).self::option('LOCAL_MODULE','LOCAL_MODULE',$r['integration_mode']).'</select></label><label>Status<select name="status">'.self::option('ACTIVE','ACTIVE',$r['status']).self::option('SUSPENDED','SUSPENDED',$r['status']).self::option('REMOVED','REMOVED',$r['status']).'</select></label><div class="form-action"><button class="primary">Update application</button><a class="button" href="/admin/applications">Cancel</a></div></form><p class="muted">OAuth Client ID: <code>'.self::e($r['oauth_client_id']).'</code> · Current version: '.self::e($r['current_version']??'—').'</p></section>';View::layout('Edit Application',$body,['subtitle'=>$r['application_key']]);
     }
-    private static function applicationStatus(string $guid,string $method): never { if($method!=='POST')Http::redirect('/admin/applications');$status=self::allowed($_POST['status']??'SUSPENDED',['ACTIVE','SUSPENDED'],'SUSPENDED');Store::exec('UPDATE applications SET status=?,updated_at=NOW(6) WHERE application_guid=?',[$status,self::guidBin($guid)]);self::invalidateDomainsBy('application_guid',$guid);Audit::log('application.status','application',$guid);self::redirect('/admin/applications','Application status updated.'); }
-    private static function applicationRemove(string $guid,string $method): never { if($method!=='POST')Http::redirect('/admin/applications');Store::exec('UPDATE applications SET status="REMOVED",updated_at=NOW(6) WHERE application_guid=?',[self::guidBin($guid)]);Store::exec('UPDATE application_redirect_uris SET status="REMOVED" WHERE application_guid=?',[self::guidBin($guid)]);self::invalidateDomainsBy('application_guid',$guid);Audit::log('application.remove','application',$guid);self::redirect('/admin/applications','Application removed from active registry.'); }
+    private static function applicationStatus(string $guid,string $method): never {
+        if($method!=='POST')Http::redirect('/admin/applications');
+        \Digiti\Application\Admin\RegistryMutations::application('status',$guid,$_POST);
+        self::redirect('/admin/applications','Application status updated.');
+    }
+    private static function applicationRemove(string $guid,string $method): never {
+        if($method!=='POST')Http::redirect('/admin/applications');
+        \Digiti\Application\Admin\RegistryMutations::application('remove',$guid,$_POST);
+        self::redirect('/admin/applications','Application removed from active registry.');
+    }
 
     private static function tenantEdit(string $guid,string $method): never
     {
@@ -162,40 +206,86 @@ final class Crud
     private static function serviceAccountEdit(string $guid,string $method): never
     {
         $r=Store::one('SELECT service_account_guid,name,scopes,status,last_used_at FROM service_accounts WHERE service_account_guid=?',[self::guidBin($guid)]);if(!$r)throw new \RuntimeException('Service account not found.');
-        if($method==='POST'){$scopes=array_values(array_filter(array_map('trim',explode(',',$_POST['scopes']??''))));$status=self::allowed($_POST['status']??'ACTIVE',['ACTIVE','REVOKED','REMOVED'],'ACTIVE');Store::exec('UPDATE service_accounts SET name=?,scopes=?,status=? WHERE service_account_guid=?',[trim($_POST['name']??''),json_encode($scopes),$status,self::guidBin($guid)]);Audit::log('service_account.update','service_account',$guid);self::redirect('/admin/service-accounts','Service account updated.');}
+        if($method==='POST'){
+            \Digiti\Application\Admin\RegistryMutations::serviceAccount('edit',$guid,$_POST);
+            self::redirect('/admin/service-accounts','Service account updated.');
+        }
         $scopes=json_decode($r['scopes']?:'[]',true);$body='<section class="card"><h2>Edit service account</h2><form method="post" class="form-grid">'.self::csrf().'<label>Name<input name="name" value="'.self::e($r['name']).'" required></label><label>Status<select name="status">'.self::option('ACTIVE','ACTIVE',$r['status']).self::option('REVOKED','REVOKED',$r['status']).self::option('REMOVED','REMOVED',$r['status']).'</select></label><label class="wide">Scopes<input name="scopes" value="'.self::e(implode(',',is_array($scopes)?$scopes:[])).'" required></label><div class="form-action"><button class="primary">Update service account</button><a class="button" href="/admin/service-accounts">Cancel</a></div></form><p class="muted">Last used: '.self::e($r['last_used_at']??'Never').'</p></section>';View::layout('Edit Service Account',$body);
     }
-    private static function serviceAccountStatus(string $guid,string $method): never { if($method!=='POST')Http::redirect('/admin/service-accounts');$status=self::allowed($_POST['status']??'REVOKED',['ACTIVE','REVOKED'],'REVOKED');Store::exec('UPDATE service_accounts SET status=? WHERE service_account_guid=?',[$status,self::guidBin($guid)]);Audit::log('service_account.status','service_account',$guid);self::redirect('/admin/service-accounts','Service account status updated.'); }
-    private static function serviceAccountRotate(string $guid,string $method): never { if($method!=='POST')Http::redirect('/admin/service-accounts');$token='dgt_'.rtrim(strtr(base64_encode(random_bytes(36)),'+/','-_'),'=');Store::exec('UPDATE service_accounts SET token_hash=?,status="ACTIVE",rotated_at=NOW(6) WHERE service_account_guid=?',[hash('sha256',$token,true),self::guidBin($guid)]);Audit::log('service_account.rotate','service_account',$guid);self::redirect('/admin/service-accounts','NEW SERVICE TOKEN — copy now: '.$token); }
-    private static function serviceAccountRemove(string $guid,string $method): never { if($method!=='POST')Http::redirect('/admin/service-accounts');Store::exec('UPDATE service_accounts SET status="REMOVED" WHERE service_account_guid=?',[self::guidBin($guid)]);Audit::log('service_account.remove','service_account',$guid);self::redirect('/admin/service-accounts','Service account removed/revoked.'); }
+    private static function serviceAccountStatus(string $guid,string $method): never {
+        if($method!=='POST')Http::redirect('/admin/service-accounts');
+        \Digiti\Application\Admin\RegistryMutations::serviceAccount('status',$guid,$_POST);
+        self::redirect('/admin/service-accounts','Service account status updated.');
+    }
+    private static function serviceAccountRotate(string $guid,string $method): never {
+        if($method!=='POST')Http::redirect('/admin/service-accounts');
+        $token=\Digiti\Application\Admin\RegistryMutations::serviceAccount('rotate',$guid,$_POST);
+        self::redirect('/admin/service-accounts','NEW SERVICE TOKEN — copy now: '.$token);
+    }
+    private static function serviceAccountRemove(string $guid,string $method): never {
+        if($method!=='POST')Http::redirect('/admin/service-accounts');
+        \Digiti\Application\Admin\RegistryMutations::serviceAccount('remove',$guid,$_POST);
+        self::redirect('/admin/service-accounts','Service account removed/revoked.');
+    }
 
     private static function featureNew(?string $unused,string $method): never
     {
         $products=Store::all('SELECT product_guid,name FROM products WHERE status="ACTIVE" ORDER BY name');
-        if($method==='POST'){$key=strtoupper(trim($_POST['feature_key']??''));if(!preg_match('/^[A-Z0-9_.-]{3,128}$/',$key))throw new \InvalidArgumentException('Feature key format is invalid.');$guid=Uuid::v7();Store::exec('INSERT INTO features(feature_guid,product_guid,feature_key,name,feature_type,unit,created_at) VALUES(?,?,?,?,?,?,NOW(6))',[self::guidBin($guid),!empty($_POST['product_guid'])?self::guidBin($_POST['product_guid']):null,$key,trim($_POST['name']??''),self::allowed($_POST['feature_type']??'BOOLEAN',['BOOLEAN','LIMIT','CONFIG'],'BOOLEAN'),trim($_POST['unit']??'')?:null]);Audit::log('feature.create','feature',$guid);self::redirect('/admin/commercial','Feature added.');}
+        if($method==='POST'){
+            \Digiti\Application\Admin\RegistryMutations::feature('create',null,$_POST);
+            self::redirect('/admin/commercial','Feature added.');
+        }
         $body='<section class="card"><h2>Add feature</h2><form method="post" class="form-grid">'.self::csrf().'<label>Product'.self::selectRows('product_guid',$products,'product_guid','name',null,false).'</label><label>Feature key<input name="feature_key" placeholder="EPAPER.NEW_FEATURE" required></label><label>Name<input name="name" required></label><label>Type<select name="feature_type"><option>BOOLEAN</option><option>LIMIT</option><option>CONFIG</option></select></label><label>Unit<input name="unit" placeholder="count / GB / requests"></label><div class="form-action"><button class="primary">Add feature</button><a class="button" href="/admin/commercial">Cancel</a></div></form></section>';View::layout('Add Feature',$body);
     }
     private static function featureEdit(string $guid,string $method): never
     {
-        $r=Store::one('SELECT f.feature_guid,f.feature_key,f.name,f.feature_type,f.unit,p.name product FROM features f LEFT JOIN products p ON p.product_guid=f.product_guid WHERE f.feature_guid=?',[self::guidBin($guid)]);if(!$r)throw new \RuntimeException('Feature not found.');if($method==='POST'){Store::exec('UPDATE features SET name=?,feature_type=?,unit=? WHERE feature_guid=?',[trim($_POST['name']??''),self::allowed($_POST['feature_type']??'BOOLEAN',['BOOLEAN','LIMIT','CONFIG'],'BOOLEAN'),trim($_POST['unit']??'')?:null,self::guidBin($guid)]);Audit::log('feature.update','feature',$guid);self::redirect('/admin/commercial','Feature updated.');}$body='<section class="card"><h2>Edit feature</h2><form method="post" class="form-grid">'.self::csrf().'<label>Feature key<input value="'.self::e($r['feature_key']).'" readonly></label><label>Product<input value="'.self::e($r['product']??'Platform').'" readonly></label><label>Name<input name="name" value="'.self::e($r['name']).'" required></label><label>Type<select name="feature_type">'.self::option('BOOLEAN','BOOLEAN',$r['feature_type']).self::option('LIMIT','LIMIT',$r['feature_type']).self::option('CONFIG','CONFIG',$r['feature_type']).'</select></label><label>Unit<input name="unit" value="'.self::e($r['unit']).'"></label><div class="form-action"><button class="primary">Update feature</button><a class="button" href="/admin/commercial">Cancel</a></div></form></section>';View::layout('Edit Feature',$body);
+        $r=Store::one('SELECT f.feature_guid,f.feature_key,f.name,f.feature_type,f.unit,p.name product FROM features f LEFT JOIN products p ON p.product_guid=f.product_guid WHERE f.feature_guid=?',[self::guidBin($guid)]);if(!$r)throw new \RuntimeException('Feature not found.');if($method==='POST'){
+            \Digiti\Application\Admin\RegistryMutations::feature('edit',$guid,$_POST);
+            self::redirect('/admin/commercial','Feature updated.');
+        }$body='<section class="card"><h2>Edit feature</h2><form method="post" class="form-grid">'.self::csrf().'<label>Feature key<input value="'.self::e($r['feature_key']).'" readonly></label><label>Product<input value="'.self::e($r['product']??'Platform').'" readonly></label><label>Name<input name="name" value="'.self::e($r['name']).'" required></label><label>Type<select name="feature_type">'.self::option('BOOLEAN','BOOLEAN',$r['feature_type']).self::option('LIMIT','LIMIT',$r['feature_type']).self::option('CONFIG','CONFIG',$r['feature_type']).'</select></label><label>Unit<input name="unit" value="'.self::e($r['unit']).'"></label><div class="form-action"><button class="primary">Update feature</button><a class="button" href="/admin/commercial">Cancel</a></div></form></section>';View::layout('Edit Feature',$body);
     }
-    private static function featureRemove(string $guid,string $method): never { if($method!=='POST')Http::redirect('/admin/commercial');$deps=(int)Store::value('SELECT (SELECT COUNT(*) FROM plan_features WHERE feature_guid=?)+(SELECT COUNT(*) FROM entitlement_grants WHERE feature_guid=?)+(SELECT COUNT(*) FROM usage_meters WHERE feature_guid=?)',[self::guidBin($guid),self::guidBin($guid),self::guidBin($guid)]);if($deps>0)throw new \RuntimeException('Feature is already referenced by plans, grants or usage and cannot be deleted. Remove those references first.');Store::exec('DELETE FROM features WHERE feature_guid=?',[self::guidBin($guid)]);Audit::log('feature.remove','feature',$guid);self::redirect('/admin/commercial','Feature deleted.'); }
+    private static function featureRemove(string $guid,string $method): never {
+        if($method!=='POST')Http::redirect('/admin/commercial');
+        \Digiti\Application\Admin\RegistryMutations::feature('remove',$guid,$_POST);
+        self::redirect('/admin/commercial','Feature deleted.');
+    }
 
     private static function planNew(?string $unused,string $method): never
     {
-        $products=Store::all('SELECT product_guid,name FROM products WHERE status="ACTIVE" ORDER BY name');if($method==='POST'){$key=strtoupper(preg_replace('/[^A-Z0-9_]+/','_',trim($_POST['plan_key']??'')));$guid=Uuid::v7();Store::exec('INSERT INTO plans(plan_guid,product_guid,plan_key,name,status,created_at,updated_at) VALUES(?,?,?, ?,"ACTIVE",NOW(6),NOW(6))',[self::guidBin($guid),self::guidBin($_POST['product_guid']),$key,trim($_POST['name']??'')]);Audit::log('plan.create','plan',$guid);self::redirect('/admin/commercial','Plan added.');}$body='<section class="card"><h2>Add plan</h2><form method="post" class="form-grid">'.self::csrf().'<label>Product'.self::selectRows('product_guid',$products,'product_guid','name').'</label><label>Plan key<input name="plan_key" placeholder="BUSINESS" required></label><label>Name<input name="name" required></label><div class="form-action"><button class="primary">Add plan</button><a class="button" href="/admin/commercial">Cancel</a></div></form></section>';View::layout('Add Plan',$body);
+        $products=Store::all('SELECT product_guid,name FROM products WHERE status="ACTIVE" ORDER BY name');if($method==='POST'){
+            \Digiti\Application\Admin\RegistryMutations::plan('create',null,$_POST);
+            self::redirect('/admin/commercial','Plan added.');
+        }$body='<section class="card"><h2>Add plan</h2><form method="post" class="form-grid">'.self::csrf().'<label>Product'.self::selectRows('product_guid',$products,'product_guid','name').'</label><label>Plan key<input name="plan_key" placeholder="BUSINESS" required></label><label>Name<input name="name" required></label><div class="form-action"><button class="primary">Add plan</button><a class="button" href="/admin/commercial">Cancel</a></div></form></section>';View::layout('Add Plan',$body);
     }
     private static function planEdit(string $guid,string $method): never
     {
-        $r=Store::one('SELECT pl.plan_guid,pl.plan_key,pl.name,pl.status,p.name product FROM plans pl JOIN products p ON p.product_guid=pl.product_guid WHERE pl.plan_guid=?',[self::guidBin($guid)]);if(!$r)throw new \RuntimeException('Plan not found.');if($method==='POST'){$status=self::allowed($_POST['status']??'ACTIVE',['ACTIVE','SUSPENDED','REMOVED'],'ACTIVE');Store::exec('UPDATE plans SET name=?,status=?,updated_at=NOW(6) WHERE plan_guid=?',[trim($_POST['name']??''),$status,self::guidBin($guid)]);Audit::log('plan.update','plan',$guid);self::redirect('/admin/commercial','Plan updated.');}$body='<section class="card"><h2>Edit plan</h2><form method="post" class="form-grid">'.self::csrf().'<label>Product<input value="'.self::e($r['product']).'" readonly></label><label>Plan key<input value="'.self::e($r['plan_key']).'" readonly></label><label>Name<input name="name" value="'.self::e($r['name']).'" required></label><label>Status<select name="status">'.self::option('ACTIVE','ACTIVE',$r['status']).self::option('SUSPENDED','SUSPENDED',$r['status']).self::option('REMOVED','REMOVED',$r['status']).'</select></label><div class="form-action"><button class="primary">Update plan</button><a class="button" href="/admin/commercial">Cancel</a></div></form></section>';View::layout('Edit Plan',$body);
+        $r=Store::one('SELECT pl.plan_guid,pl.plan_key,pl.name,pl.status,p.name product FROM plans pl JOIN products p ON p.product_guid=pl.product_guid WHERE pl.plan_guid=?',[self::guidBin($guid)]);if(!$r)throw new \RuntimeException('Plan not found.');if($method==='POST'){
+            \Digiti\Application\Admin\RegistryMutations::plan('edit',$guid,$_POST);
+            self::redirect('/admin/commercial','Plan updated.');
+        }$body='<section class="card"><h2>Edit plan</h2><form method="post" class="form-grid">'.self::csrf().'<label>Product<input value="'.self::e($r['product']).'" readonly></label><label>Plan key<input value="'.self::e($r['plan_key']).'" readonly></label><label>Name<input name="name" value="'.self::e($r['name']).'" required></label><label>Status<select name="status">'.self::option('ACTIVE','ACTIVE',$r['status']).self::option('SUSPENDED','SUSPENDED',$r['status']).self::option('REMOVED','REMOVED',$r['status']).'</select></label><div class="form-action"><button class="primary">Update plan</button><a class="button" href="/admin/commercial">Cancel</a></div></form></section>';View::layout('Edit Plan',$body);
     }
-    private static function planStatus(string $guid,string $method): never { if($method!=='POST')Http::redirect('/admin/commercial');$status=self::allowed($_POST['status']??'SUSPENDED',['ACTIVE','SUSPENDED'],'SUSPENDED');Store::exec('UPDATE plans SET status=?,updated_at=NOW(6) WHERE plan_guid=?',[$status,self::guidBin($guid)]);Audit::log('plan.status','plan',$guid);self::redirect('/admin/commercial','Plan status updated.'); }
-    private static function planRemove(string $guid,string $method): never { if($method!=='POST')Http::redirect('/admin/commercial');Store::exec('UPDATE plans SET status="REMOVED",updated_at=NOW(6) WHERE plan_guid=?',[self::guidBin($guid)]);Store::exec('UPDATE prices SET status="REMOVED" WHERE plan_guid=?',[self::guidBin($guid)]);Audit::log('plan.remove','plan',$guid);self::redirect('/admin/commercial','Plan removed from new sales. Historical subscriptions remain intact.'); }
+    private static function planStatus(string $guid,string $method): never {
+        if($method!=='POST')Http::redirect('/admin/commercial');
+        \Digiti\Application\Admin\RegistryMutations::plan('status',$guid,$_POST);
+        self::redirect('/admin/commercial','Plan status updated.');
+    }
+    private static function planRemove(string $guid,string $method): never {
+        if($method!=='POST')Http::redirect('/admin/commercial');
+        \Digiti\Application\Admin\RegistryMutations::plan('remove',$guid,$_POST);
+        self::redirect('/admin/commercial','Plan removed from new sales. Historical subscriptions remain intact.');
+    }
     private static function priceNew(string $planGuid,string $method): never
     {
-        $plan=Store::one('SELECT pl.plan_guid,pl.name,p.name product FROM plans pl JOIN products p ON p.product_guid=pl.product_guid WHERE pl.plan_guid=?',[self::guidBin($planGuid)]);if(!$plan)throw new \RuntimeException('Plan not found.');if($method==='POST'){$amount=(int)round(((float)($_POST['amount']??0))*100);if($amount<0)throw new \InvalidArgumentException('Price must be zero or greater.');$guid=Uuid::v7();Store::exec('INSERT INTO prices(price_guid,plan_guid,currency,amount_minor,billing_interval,interval_count,status,created_at) VALUES(?,?,?,?,?, ?,"ACTIVE",NOW(6))',[self::guidBin($guid),self::guidBin($planGuid),strtoupper(trim($_POST['currency']??'INR')),$amount,self::allowed($_POST['billing_interval']??'MONTH',['MONTH','YEAR','WEEK','DAY'],'MONTH'),max(1,(int)($_POST['interval_count']??1))]);Audit::log('price.create','price',$guid);self::redirect('/admin/commercial','New immutable price added.');}$body='<section class="card"><h2>Add price</h2><p>'.self::e($plan['product']).' — '.self::e($plan['name']).'</p><form method="post" class="form-grid">'.self::csrf().'<label>Currency<input name="currency" value="INR" maxlength="3" required></label><label>Amount<input name="amount" type="number" step="0.01" min="0" required></label><label>Interval<select name="billing_interval"><option>MONTH</option><option>YEAR</option><option>WEEK</option><option>DAY</option></select></label><label>Interval count<input name="interval_count" type="number" min="1" value="1" required></label><div class="form-action"><button class="primary">Add price</button><a class="button" href="/admin/commercial">Cancel</a></div></form><p class="muted">Prices are immutable after creation. Deactivate a price and add a new one instead of changing historical commercial terms.</p></section>';View::layout('Add Price',$body);
+        $plan=Store::one('SELECT pl.plan_guid,pl.name,p.name product FROM plans pl JOIN products p ON p.product_guid=pl.product_guid WHERE pl.plan_guid=?',[self::guidBin($planGuid)]);if(!$plan)throw new \RuntimeException('Plan not found.');if($method==='POST'){
+            \Digiti\Application\Admin\RegistryMutations::price('create',$planGuid,$_POST);
+            self::redirect('/admin/commercial','New immutable price added.');
+        }$body='<section class="card"><h2>Add price</h2><p>'.self::e($plan['product']).' — '.self::e($plan['name']).'</p><form method="post" class="form-grid">'.self::csrf().'<label>Currency<input name="currency" value="INR" maxlength="3" required></label><label>Amount<input name="amount" type="number" step="0.01" min="0" required></label><label>Interval<select name="billing_interval"><option>MONTH</option><option>YEAR</option><option>WEEK</option><option>DAY</option></select></label><label>Interval count<input name="interval_count" type="number" min="1" value="1" required></label><div class="form-action"><button class="primary">Add price</button><a class="button" href="/admin/commercial">Cancel</a></div></form><p class="muted">Prices are immutable after creation. Deactivate a price and add a new one instead of changing historical commercial terms.</p></section>';View::layout('Add Price',$body);
     }
-    private static function priceStatus(string $guid,string $method): never { if($method!=='POST')Http::redirect('/admin/commercial');$status=self::allowed($_POST['status']??'SUSPENDED',['ACTIVE','SUSPENDED','REMOVED'],'SUSPENDED');Store::exec('UPDATE prices SET status=? WHERE price_guid=?',[$status,self::guidBin($guid)]);Audit::log('price.status','price',$guid);self::redirect('/admin/commercial','Price status updated.'); }
+    private static function priceStatus(string $guid,string $method): never {
+        if($method!=='POST')Http::redirect('/admin/commercial');
+        \Digiti\Application\Admin\RegistryMutations::price('status',$guid,$_POST);
+        self::redirect('/admin/commercial','Price status updated.');
+    }
 
     private static function subscriptionEdit(string $guid,string $method): never
     {
