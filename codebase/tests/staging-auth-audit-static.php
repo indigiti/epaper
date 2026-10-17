@@ -14,7 +14,7 @@ $guard=[
  'five role matrix'=>'PUBLISHER_ADMIN',
  'no-store header check'=>"'no-store'",
  'identity separation markers'=>'reader B excludes reader A marker',
- 'incomplete tests do not return success'=>"$incomplete?2:0",
+ 'incomplete tests do not return success'=>'$incomplete?2:0',
 ];
 foreach($guard as$name=>$needle)if(!str_contains($s,$needle)){
  fwrite(STDERR,"FAIL staging auth static: $name\n");exit(1);

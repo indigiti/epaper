@@ -43,6 +43,7 @@ const network=async(request,options)=>{
 };
 const context={self:{
   location:{origin},
+  clients:{claim:async()=>{}},
   addEventListener(name,handler){handlers[name]=handler;}
 }, caches:cache,fetch:network,URL,Promise,console};
 vm.runInNewContext(sw,context,{filename:'service-worker.js',timeout:2000});
