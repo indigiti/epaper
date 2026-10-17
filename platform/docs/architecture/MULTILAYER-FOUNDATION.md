@@ -45,3 +45,13 @@ The dedicated root GitHub Actions workflow also performs PHP syntax checking. Th
 3. Split Admin CRUD routes into one controller per module; add field-level authorization.
 4. Build contract tests against ePaper's PlatformClient and authenticated browser tests across multiple product tenants.
 5. Complete private config, security key rotation, all-ref history remediation and dedicated deploy packaging before production.
+
+### Second slice: database-authoritative domain routing
+
+`App::resolveDomain` delegates to `Application/Routing/ResolveDomain`, `Domain/Routing/DomainResolutionPolicy`, and `Infrastructure/Routing/DomainRepository`. Domain mapping is checked directly in MariaDB for each **control-plane** resolution rather than trusting cached Platform domain entries. This prevents the control-plane API from returning a cached mapping after domain or parent status changes. The policy verifies matching organisation/product relationships and product-bound service-account scope. Historical `ok:true,cached:true` responses are no longer produced by this Platform endpoint; successful responses carry `cached:false`.
+
+**Important operational limit:** ePaper's own `DomainResolver` caches mappings for its configured TTL (600 seconds by default); this change alone cannot guarantee instant tenant/domain revocation at the product edge. Add a signed/validated cache invalidation or bounded-staleness fail-closed policy as a separate integration gate.
+
+### Redis outage limiter improvement
+
+`Core/RateLimiter` now uses a single MariaDB atomic upsert for counters, replacing a read-before-write race. A concurrent SELECT may conservatively deny requests early but should not grant excess requests based on stale counts. Validate with real parallel MariaDB/PHP workers on staging; no such stress acceptance is implied by the source CI checks.
