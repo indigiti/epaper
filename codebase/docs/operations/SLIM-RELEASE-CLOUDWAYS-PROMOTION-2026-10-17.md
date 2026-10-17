@@ -8,6 +8,21 @@ The operator reports that an application ZIP, MariaDB and media were backed up, 
 
 The Cloudways/DigiOps deployment driver is **not accessible to GitHub Actions** and has not been inspected by this change. Do not push this branch into the current live Cloudways checkout or trigger any deployment automation from merging the PR.
 
+## Confirmed DigiOps implementation compatibility finding (source inspection, 17 October 2026)
+
+The current public source in [`indigiti/DigiOps`](https://github.com/indigiti/DigiOps) was inspected, including:
+- `app/php/src/Deploy/ReleaseManager.php`: `detectPayloads()` only promotes `public/`, `dist/`, or a ZIP root with `index.html`/`index.php`; `validatePayload()` requires an entry point directly in its public payload.
+- `app/php/src/Deploy/AtomicReleaseSwitcher.php`: public payload replaces the entire configured public-target directory, and the previous directory is subsequently deleted.
+- `agent/digiops-agent.php`: remote target uses the same public atomic-directory replacement pattern; private payload, where used, is copied separately.
+
+**Confirmed source-level incompatibility:** The `bin/slim-release-zip.php` artifact contains `public_html/index.php` alongside `app/`, `bin/`, `vendor/` and `config/`, but lacks a top-level `index.php` or `public/index.php`. The present DigiOps public payload detection would treat its ZIP root as the public payload and reject it with `ENTRYPOINT_MISSING`. **Do not upload the current ePaper staging ZIP through the DigiOps Deploy action.**
+
+Further, ePaper's `public_html/index.php` currently loads `dirname(__DIR__).'/app/bootstrap.php'`, relying on the nested Cloudways webroot. A naive split into DigiOps `public/` and `private/` would break that bootstrap reference and does not automatically preserve worker/cron paths. Replacing the DigiOps public target can also drop `public_html/uploads/` branding unless it is already safely external and reconnected after each release. A backing Cloudways restore can recover data, but does not solve this packaging contract.
+
+**Before DigiOps can deploy ePaper**: record the exact DigiOps project public/private target paths and Cloudways webroot; create a dedicated ePaper-compatible split artifact/loader with no secrets or media; test private code overlay, bootstrapping, persistent media/public-upload remounting and worker paths; exercise **both** DigiOps local and remote deployment modes on disposable Cloudways staging; compare protected asset hashes before/after deploy and rollback. None of this is claimed complete here.
+
+The current package is only a **standalone Cloudways PHP application-root staging ZIP**. All final-head CI source checks and archive verification must remain green. Until the adapter and host environment are verified, the real DigiOps deployment driver gate is **FAILED / NOT READY**, not implicitly passed.
+
 ## What changed in source
 
 - `php bin/slim-release-zip.php --output=/private/build/epdi-slim.zip` builds a ZIP from tracked runtime code with a package-level SHA-256 manifest. Package members are relative to the **application root**, not `codebase/`.
