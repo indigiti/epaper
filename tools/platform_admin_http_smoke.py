@@ -74,15 +74,18 @@ check(bool(token),"Admin domain forms include CSRF")
 status,header,response=req("/admin/domains",{"hostname":"ci-http-added.example.invalid"})
 check(status==419 and "CSRF_INVALID" in response,"Admin domain POST without CSRF rejected")
 
-def selected(name):
+def options(name):
     match=re.search(r'<select name="'+re.escape(name)+r'"[^>]*>(.*?)</select>',domain_html,re.S)
     check(bool(match),"Domain selection exists: "+name)
-    options=re.findall(r'<option value="([0-9a-f-]{36})"',match.group(1))
-    check(bool(options),"Domain selection has active options: "+name)
-    return options[0]
+    items=re.findall(r'<option value="([0-9a-f-]{36})" data-product="([0-9a-f-]{36})"',match.group(1))
+    check(bool(items),"Domain options carry product relationship: "+name)
+    return items
 
-tenant=selected("product_tenant_guid")
-app=selected("application_guid")
+tenant_options=options("product_tenant_guid")
+app_options=options("application_guid")
+pairs=[(tv,av) for tv,tp in tenant_options for av,ap in app_options if tp==ap]
+check(bool(pairs),"Domain picker has a matching tenant/application product pair")
+tenant,app=pairs[0]
 status,header,response=req("/admin/domains",{
     "_csrf":token,"product_tenant_guid":tenant,"application_guid":app,
     "hostname":"ci-http-added.example.invalid"
