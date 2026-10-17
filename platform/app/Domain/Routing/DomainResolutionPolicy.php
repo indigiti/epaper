@@ -7,7 +7,7 @@ final class DomainResolutionPolicy
 {
     public static function denyReason(array $domain,array $service): ?string
     {
-        if(!in_array((string)($domain['status']??''),['ROUTING_VALID','SSL_PROVISIONING','ACTIVE'],true))
+        if(($domain['status']??null)!=='ACTIVE')
             return 'DOMAIN_NOT_ACTIVE';
         foreach(['product_status','application_status','tenant_status','organisation_status'] as $name) {
             if(($domain[$name]??null)!=='ACTIVE')return 'DOMAIN_NOT_ACTIVE';
