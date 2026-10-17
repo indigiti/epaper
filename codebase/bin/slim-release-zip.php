@@ -20,6 +20,19 @@ try {
     echo json_encode($result, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES).PHP_EOL;
 } catch (Throwable $e) {
     // Do not disclose private file locations or credential-containing ZIP members.
-    fwrite(STDERR, "Slim ZIP build/verification failed; inspect private build diagnostics.\n");
+    $safeReasons = [
+        "PHP ZIP extension required", "Output must be a new ZIP outside the source repository",
+        "Git index cannot be read", "Git index enumeration failed", "Unsafe Git path",
+        "Confidential or privileged file detected in release selection",
+        "Release file missing, unreadable or symlinked", "Release file hash unavailable",
+        "Missing required runtime file", "Could not create ZIP", "Could not add release file",
+        "Could not add release manifest", "Could not finalize ZIP", "Archive unavailable",
+        "Invalid archive", "Release manifest missing", "Untrusted manifest schema or assertions",
+        "Invalid manifest entry", "Required entry absent", "Unsafe or duplicate ZIP entry",
+        "Unexpected ZIP entry", "Archive contains symlink", "Release entry integrity mismatch",
+        "Missing or extra ZIP entries",
+    ];
+    $reason = in_array($e->getMessage(), $safeReasons, true) ? $e->getMessage() : "internal packaging error";
+    fwrite(STDERR, "Slim ZIP build/verification failed: ".$reason.".\n");
     exit(1);
 }
