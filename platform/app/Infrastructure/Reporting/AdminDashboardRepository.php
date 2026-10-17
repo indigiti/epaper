@@ -10,7 +10,7 @@ final class AdminDashboardRepository
     public static function counts(): array
     {
         $row=Store::one('SELECT
-          (SELECT COUNT(*) FROM organisations WHERE status<>"PURGED") organisations,
+          (SELECT COUNT(*) FROM organisations WHERE status="ACTIVE") organisations,
           (SELECT COUNT(*) FROM product_tenants WHERE status="ACTIVE") tenants,
           (SELECT COUNT(*) FROM domains WHERE status="ACTIVE") domains,
           (SELECT COUNT(*) FROM subscriptions WHERE status IN ("ACTIVE","PAST_DUE","GRACE_PERIOD")) subscriptions');
