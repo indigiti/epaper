@@ -70,7 +70,7 @@ final class App
     }
     private function select(string $name,array $rows,string $valueKey,string $labelKey,?string $selected=null): string
     {
-        $h='<select name="'.$this->e($name).'" required><option value="">Select…</option>';foreach($rows as$r){$v=(string)$r[$valueKey];$h.='<option value="'.$this->e($v).'"'.($selected===$v?' selected':'').'>'.$this->e($r[$labelKey]).'</option>';}$h.='</select>';return $h;
+        $h='<select name="'.$this->e($name).'" required><option value="">Select…</option>';foreach($rows as$r){$v=(string)$r[$valueKey];$h.='<option value="'.$this->e($v).'"'.(isset($r['product_guid'])?' data-product="'.$this->e($r['product_guid']).'"':'').($selected===$v?' selected':'').'>'.$this->e($r[$labelKey]).'</option>';}$h.='</select>';return $h;
     }
 
     private function login(string $method): never
@@ -125,10 +125,18 @@ final class App
     {
         $tenants=Store::all('SELECT pt.product_tenant_guid,CONCAT(o.display_name," — ",p.name) label,pt.organisation_guid,pt.product_guid FROM product_tenants pt JOIN organisations o ON o.organisation_guid=pt.organisation_guid JOIN products p ON p.product_guid=pt.product_guid WHERE pt.status="ACTIVE" AND o.status="ACTIVE" AND p.status="ACTIVE" ORDER BY o.display_name');
         $apps=Store::all('SELECT application_guid,product_guid,name FROM applications WHERE status="ACTIVE" ORDER BY name');
+        $formError='';
         if($method==='POST'){
-            $receipt=\Digiti\Application\Admin\RegistryCreates::domain($_POST);
-            View::flash('Domain added. Configure CNAME to '.Config::get('app.domains_target').' or TXT _digiti-verification.'.$receipt['host'].' = '.$receipt['token'].'. After verification, activate the domain to enable routing.');
-            Http::redirect('/admin/domains');
+            try{
+                $receipt=\Digiti\Application\Admin\RegistryCreates::domain($_POST);
+                View::flash('Domain added. Configure CNAME to '.Config::get('app.domains_target').' or TXT _digiti-verification.'.$receipt['host'].' = '.$receipt['token'].'. After verification, activate the domain to enable routing.');
+                Http::redirect('/admin/domains');
+            }catch(\InvalidArgumentException|\DomainException $e){
+                $formError=$e->getMessage();
+            }catch(\PDOException $e){
+                if((string)$e->getCode()!=='23000')throw $e;
+                $formError='This hostname is already registered or its application was changed. Check and retry.';
+            }
         }
         $items=Store::all('SELECT d.domain_guid,d.hostname,d.status,d.is_primary,d.verification_token,d.last_checked_at,d.edge_metadata,o.display_name organisation,p.name product,a.name application FROM domains d JOIN organisations o ON o.organisation_guid=d.organisation_guid JOIN products p ON p.product_guid=d.product_guid JOIN applications a ON a.application_guid=d.application_guid ORDER BY d.created_at DESC');
         $rows=[];
@@ -150,13 +158,15 @@ final class App
             $actions.='</div>';
             $rows[]=[$this->e($r['hostname']),$this->e($r['organisation']),$this->e($r['product']),$this->status($status),$r['is_primary']?'Yes':'No','<code>'.$this->e($r['verification_token']).'</code>',$actions];
         }
-        $form='<section class="card"><h2>Add customer domain</h2><form method="post" class="form-grid">'.$this->csrf()
+        $form='<section class="card"><h2>Add customer domain</h2>'.($formError!==''?'<div class="alert danger">'.$this->e($formError).'</div>':'').'<form method="post" class="form-grid">'.$this->csrf()
             .'<label>Product tenant'.$this->select('product_tenant_guid',$tenants,'product_tenant_guid','label').'</label>'
             .'<label>Application'.$this->select('application_guid',$apps,'application_guid','name').'</label>'
             .'<label>Hostname<input name="hostname" placeholder="epaper.punemirror.com" required></label>'
             .'<div class="form-action"><button class="primary">Add domain</button></div></form>'
             .'<p class="muted">CNAME target: <code>'.$this->e(Config::get('app.domains_target')).'</code>. New domains remain inactive until DNS verification and administrator activation. Set primary after activation using Edit. A suspended domain can resume verification; domain-name registration renewal must be handled at the registrar.</p></section>';
-        View::layout('Domains',$form.'<section class="card"><h2>Domain registry</h2>'.$this->table(['Hostname','Organisation','Product','Status','Primary','Verification Token','Action'],$rows).'</section>',['subtitle'=>'Approve, verify, activate, suspend and resume tenant hostnames']);
+        // Only show applications belonging to the selected tenant's product.
+        $filter='<script>(function(){const t=document.querySelector(\'select[name="product_tenant_guid"]\');const a=document.querySelector(\'select[name="application_guid"]\');if(!t||!a)return;function refresh(){const product=t.selectedOptions[0]?.dataset.product||"";for(const option of a.options){if(!option.value)continue;const match=product!==""&&option.dataset.product===product;option.disabled=!match;option.hidden=!match;}if(a.selectedOptions[0]?.disabled)a.value="";}t.addEventListener("change",refresh);refresh();})();</script>';
+        View::layout('Domains',$form.$filter.'<section class="card"><h2>Domain registry</h2>'.$this->table(['Hostname','Organisation','Product','Status','Primary','Verification Token','Action'],$rows).'</section>',['subtitle'=>'Approve, verify, activate, suspend and resume tenant hostnames']);
     }
 
     private function verifyDomain(string $guid): never
