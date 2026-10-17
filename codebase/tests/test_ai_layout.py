@@ -61,7 +61,7 @@ class LayoutContractTest(unittest.TestCase):
 
     def test_reject_cross_page_id_mismatch(self):
         source = ocr()
-        source["words"][0]["id"] = "not-a-uuid"
+        source["words"][0]["id"] = ocr(page=PAGE2)["words"][0]["id"]
         with self.assertRaises(OcrContractError):
             propose_regions(source)
 
