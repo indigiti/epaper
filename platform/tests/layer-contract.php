@@ -12,6 +12,12 @@ $check(str_contains($service,'activeMemberships('),'use case scopes membership')
 $check(str_contains($repository,'AND organisation_guid=?'),'repository only loads tenant org memberships');
 $check(str_contains($oauth,'AND used_at IS NULL AND expires_at>NOW(6)'),'atomic one-time OAuth code exchange');
 $check(str_contains($oauth,'!==1'),'OAuth rejects already used code');
+$resolver=file_get_contents($root.'/app/Application/Routing/ResolveDomain.php');
+$routingPolicy=file_get_contents($root.'/app/Domain/Routing/DomainResolutionPolicy.php');
+$check(str_contains($app,'ResolveDomain::execute('),'controller delegates domain resolver');
+$check(str_contains($resolver,'DomainResolutionPolicy::denyReason('),'domain use case guards policy');
+$check(str_contains($routingPolicy,"'application_product_guid'")&&str_contains($routingPolicy,"'tenant_organisation_guid'"),'domain policy enforces relational binding');
+$check(!str_contains($app,"RedisStore::getJson('domain:"),'domain response revalidates rather than trusts stale cache');
 $check(!is_file($root.'/config/config.php'),'repository has no runtime secrets');
 $check(!is_file($root.'/storage/install.lock'),'repository has no installation lock');
 $manifest=json_decode(file_get_contents($root.'/manifest.json'),true);
