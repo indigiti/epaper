@@ -1,0 +1,84 @@
+name: Isolated Staging Acceptance — Disposable Fixtures Only
+on:
+  push:
+    branches: [audit/platform-multilayer-20261017]
+    paths:
+      - 'platform/**'
+      - 'codebase/app/**'
+      - 'tools/**'
+      - '.github/workflows/staging-acceptance-ci.yml'
+  pull_request:
+    paths:
+      - 'platform/**'
+      - 'codebase/app/**'
+      - 'tools/**'
+      - '.github/workflows/staging-acceptance-ci.yml'
+permissions:
+  contents: read
+jobs:
+  safe-benchmark-harness:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify benchmark target safety and percentile calculations (offline)
+        run: python3 -m unittest discover -s tools -p 'test_staging_http_benchmark.py' -v
+      - name: Verify deployment source tree does not contain runtime credentials
+        run: |
+          set -euo pipefail
+          test ! -e platform/config/config.php
+          test ! -e platform/storage/install.lock
+          test ! -e codebase/config/config.php
+          test ! -e codebase/config/runtime.php
+  signed-receiver-http:
+    runs-on: ubuntu-latest
+    services:
+      mariadb:
+        image: mariadb:10.11
+        env:
+          MARIADB_ROOT_PASSWORD: ci_fixture_root_only
+          MARIADB_DATABASE: epaper_receiver_ci
+          MARIADB_USER: epaper_receiver_ci
+          MARIADB_PASSWORD: ci_fixture_pass_only
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="healthcheck.sh --connect --innodb_initialized"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: pdo_mysql, mbstring, json, openssl, curl
+          coverage: none
+      - name: Prepare disposable receiver-only database and private fixture configuration
+        run: |
+          set -euo pipefail
+          mysql --host=127.0.0.1 --port=3306 --user=epaper_receiver_ci --password=ci_fixture_pass_only epaper_receiver_ci -e 'CREATE TABLE ep_system_state (state_key VARCHAR(120) NOT NULL PRIMARY KEY, state_value LONGTEXT NULL, updated_at DATETIME(6) NOT NULL) ENGINE=InnoDB;'
+          mkdir -p codebase/config codebase/storage/cache/control-plane
+          cat > codebase/config/config.php <<'PHP'
+          <?php
+          return [
+            'app'=>['env'=>'test','url'=>'http://127.0.0.1:8095','timezone'=>'UTC','key'=>str_repeat('a',64)],
+            'db'=>['host'=>'127.0.0.1','port'=>3306,'name'=>'epaper_receiver_ci','user'=>'epaper_receiver_ci','pass'=>'ci_fixture_pass_only'],
+            'redis'=>['enabled'=>false],
+            'platform'=>['invalidation_secret'=>'ci_epaper_receiver_secret_fixture_123456789'],
+            'queue'=>['driver'=>'database']
+          ];
+          PHP
+      - name: Exercise signed HTTP route including replay rejection
+        env:
+          EPDI_RECEIVER_CI_ONLY: disposable-ci
+          EPDI_RECEIVER_FIXTURE_BASE: http://127.0.0.1:8095
+          EPDI_RECEIVER_FIXTURE_SECRET: ci_epaper_receiver_secret_fixture_123456789
+        run: |
+          set -euo pipefail
+          php -S 127.0.0.1:8095 -t codebase/public_html codebase/public_html/index.php >/tmp/epaper-fixture-server.log 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid" 2>/dev/null || true' EXIT
+          python3 tools/test_invalidation_http.py
+      - name: Validate one durable receipt despite HTTP replay
+        run: |
+          mysql --host=127.0.0.1 --port=3306 --user=epaper_receiver_ci --password=ci_fixture_pass_only epaper_receiver_ci -N -e "SELECT COUNT(*) FROM ep_system_state WHERE state_key LIKE 'platform-invalidation:%'" | grep -qx '1'
