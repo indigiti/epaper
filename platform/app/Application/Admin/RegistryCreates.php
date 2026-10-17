@@ -92,9 +92,9 @@ final class RegistryCreates
             $application=Store::one('SELECT product_guid FROM applications WHERE application_guid=? AND status="ACTIVE"',[self::bin($app)]);
             if(!$row||!$application||$application['product_guid']!==$row['product_guid'])
                 throw new \DomainException('Application/product/tenant mismatch');
-            Store::exec('INSERT INTO domains(domain_guid,organisation_guid,product_guid,application_guid,product_tenant_guid,hostname,normalized_hostname,domain_type,status,is_primary,verification_token,created_at,updated_at) VALUES(?,?,?,?,?,?,?,"CUSTOMER_CUSTOM","AWAITING_DNS",?,?,NOW(6),NOW(6))',[
+            Store::exec('INSERT INTO domains(domain_guid,organisation_guid,product_guid,application_guid,product_tenant_guid,hostname,normalized_hostname,domain_type,status,is_primary,verification_token,created_at,updated_at) VALUES(?,?,?,?,?,?,?,"CUSTOMER_CUSTOM","AWAITING_DNS",0,?,NOW(6),NOW(6))',[
                 self::bin($guid),self::bin($row['organisation_guid']),self::bin($row['product_guid']),self::bin($app),self::bin($tenant),
-                $host,$host,!empty($input['is_primary'])?1:0,$token]);
+                $host,$host,$token]);
             Store::exec('INSERT INTO application_redirect_uris(redirect_guid,application_guid,redirect_uri,status,created_at) VALUES(?,?,?,"ACTIVE",NOW(6)) ON DUPLICATE KEY UPDATE status="ACTIVE"',[self::bin(Uuid::v7()),self::bin($app),'https://'.$host.'/auth/callback']);
             CacheInvalidationOutbox::stageForTenant($tenant);
         });
