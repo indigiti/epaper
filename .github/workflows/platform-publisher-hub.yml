@@ -1,0 +1,36 @@
+name: Platform Publisher Hub Checks
+on:
+  pull_request:
+    paths:
+      - 'platform/**'
+      - '.github/workflows/platform-publisher-hub.yml'
+  push:
+    branches:
+      - feature/platform-quick-operations-20261017
+    paths:
+      - 'platform/**'
+      - '.github/workflows/platform-publisher-hub.yml'
+permissions:
+  contents: read
+jobs:
+  php-platform:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        php: ['8.3', '8.4']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: pdo_mysql, mbstring, openssl, json
+          coverage: none
+      - name: PHP syntax lint
+        run: |
+          set -euo pipefail
+          find platform/app platform/bin platform/public_html platform/tests -type f -name '*.php' -print0 | xargs -0 -n1 php -l > /tmp/platform-lint.txt
+          tail -10 /tmp/platform-lint.txt
+      - name: Core API smoke
+        run: php platform/tests/core-smoke.php
+      - name: Publisher hub contract checks
+        run: php platform/tests/quick-operations-guard.php
