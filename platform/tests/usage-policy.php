@@ -7,7 +7,7 @@ $fail=[];$check=static function(bool $ok,string $name)use(&$fail):void{
 };
 foreach([['1','1'],['0.0001','0.0001'],['-1.25','-1.25'],[1.5,'1.5000'],[0,'0.0000']] as [$input,$out])
     $check(Policy::delta($input)===$out,"valid bounded usage $out");
-foreach([INF,NAN,'1e10','1000000000','0.00001','NaN',[],null,'-9999999999'] as $input) {
+foreach([INF,NAN,0.00001,'1e10','1000000000','0.00001','NaN',[],null,'-9999999999'] as $input) {
     try{Policy::delta($input);$reject=false;}catch(InvalidArgumentException){$reject=true;}
     $check($reject,'invalid/unsafe metering quantity denied');
 }
