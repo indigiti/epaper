@@ -164,26 +164,53 @@ final class SlimReleaseZip
                 if (!isset($expected[$name])) throw new \RuntimeException('Required entry absent');
             }
             $seen = [];
+            $seenFiles = [];
             for ($i = 0; $i < $zip->numFiles; $i++) {
                 $name = $zip->getNameIndex($i);
-                if (!is_string($name) || !self::safeName($name) || isset($seen[$name])) {
+                if (!is_string($name) || isset($seen[$name])) {
+                    throw new \RuntimeException('Unsafe or duplicate ZIP entry');
+                }
+                $isDir = str_ends_with($name, '/');
+                $canonical = $isDir ? substr($name, 0, -1) : $name;
+                if (($name !== self::MANIFEST && !self::safeName($canonical))
+                    || ($isDir && $canonical === self::MANIFEST)) {
                     throw new \RuntimeException('Unsafe or duplicate ZIP entry');
                 }
                 $seen[$name] = true;
-                if ($name === self::MANIFEST) continue;
-                if (!isset($expected[$name])) throw new \RuntimeException('Unexpected ZIP entry');
                 $opsys = 0; $attr = 0;
                 if ($zip->getExternalAttributesIndex($i, $opsys, $attr)
                     && ((($attr >> 16) & 0170000) === 0120000)) {
                     throw new \RuntimeException('Archive contains symlink');
                 }
+                if ($isDir) {
+                    $allowedDirectory = $canonical === '__epdi'
+                        || str_starts_with(self::MANIFEST, $canonical.'/');
+                    if (!$allowedDirectory) {
+                        foreach (array_keys($expected) as $expectedName) {
+                            if (str_starts_with($expectedName, $canonical.'/')) {
+                                $allowedDirectory = true;
+                                break;
+                            }
+                        }
+                    }
+                    $stat = $zip->statIndex($i);
+                    if (!$allowedDirectory || !is_array($stat) || ($stat['size'] ?? -1) !== 0) {
+                        throw new \RuntimeException('Unexpected ZIP entry');
+                    }
+                    continue;
+                }
+                $seenFiles[$name] = true;
+                if ($name === self::MANIFEST) continue;
+                if (!isset($expected[$name])) throw new \RuntimeException('Unexpected ZIP entry');
                 $data = $zip->getFromIndex($i);
                 if (!is_string($data) || strlen($data) !== $expected[$name]['bytes']
                     || !hash_equals($expected[$name]['sha256'], hash('sha256', $data))) {
                     throw new \RuntimeException('Release entry integrity mismatch');
                 }
             }
-            if (count($seen) !== count($expected) + 1) throw new \RuntimeException('Missing or extra ZIP entries');
+            if (count($seenFiles) !== count($expected) + 1) {
+                throw new \RuntimeException('Missing or extra ZIP entries');
+            }
             return [
                 'ok' => true,
                 'schema' => $manifest['schema'],
