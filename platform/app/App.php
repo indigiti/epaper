@@ -130,11 +130,15 @@ final class App
 
     private function verifyDomain(string $guid): never
     {
-        $d=Store::one('SELECT domain_guid,hostname,verification_token,status,edge_metadata FROM domains WHERE domain_guid=?',[Uuid::toBinary($guid)]);if(!$d)throw new \RuntimeException('Domain not found');if($d['status']==='REMOVED')throw new \DomainException('Removed domain cannot be verified.');$result=DomainTools::verifyDns($d['hostname'],$d['verification_token']);$status='AWAITING_DNS';$edge=[];if($result['verified']){try{$edge=EdgeProviderFactory::make()->provision($d['hostname'],json_decode($d['edge_metadata']?:'{}',true)?:[]);$status=$edge['status']??'ROUTING_VALID';}catch(\Throwable$e){$status='ROUTING_VALID';$edge=['provider_error'=>$e->getMessage()];}}Store::exec('UPDATE domains SET status=?,dns_metadata=?,edge_metadata=?,verified_at=IF(?<>"AWAITING_DNS",COALESCE(verified_at,NOW(6)),verified_at),last_checked_at=NOW(6),updated_at=NOW(6) WHERE domain_guid=? AND status<>"REMOVED"',[$status,json_encode($result),json_encode($edge),$status,Uuid::toBinary($guid)]);RedisStore::del('domain:'.$d['hostname']);Audit::log('domain.verify','domain',$guid,$result['verified']?'SUCCESS':'FAILED',$result+['edge'=>$edge]);View::flash($result['verified']?'DNS verified. Edge/TLS status: '.$status:'DNS not verified yet.');Http::redirect('/admin/domains');
+        $result=\Digiti\Application\Routing\ManageDomain::verify($guid);
+        View::flash($result['verified']?'DNS verified. Edge/TLS status: '.$result['status']:'DNS not verified yet.');
+        Http::redirect('/admin/domains');
     }
     private function activateDomain(string $guid): never
     {
-        $d=Store::one('SELECT domain_guid,hostname,status FROM domains WHERE domain_guid=?',[Uuid::toBinary($guid)]);if(!$d)throw new \RuntimeException('Domain not found');if(!in_array($d['status'],['ROUTING_VALID','SSL_PROVISIONING'],true))throw new \RuntimeException('Domain is not ready for activation');$updated=Store::exec('UPDATE domains SET status="ACTIVE",ssl_ready_at=COALESCE(ssl_ready_at,NOW(6)),activated_at=COALESCE(activated_at,NOW(6)),updated_at=NOW(6) WHERE domain_guid=? AND status IN ("ROUTING_VALID","SSL_PROVISIONING")',[Uuid::toBinary($guid)]);if($updated!==1)throw new \DomainException('Domain state changed; verify DNS again.');RedisStore::del('domain:'.$d['hostname']);Audit::log('domain.activate','domain',$guid);View::flash('Domain activated.');Http::redirect('/admin/domains');
+        \Digiti\Application\Routing\ManageDomain::activate($guid);
+        View::flash('Domain activated.');
+        Http::redirect('/admin/domains');
     }
 
     private function serviceAccounts(string $method): never
