@@ -32,3 +32,7 @@ This branch removes runtime secrets and installation state from the **current so
 ## Source-tracking recurrence guard
 
 `php bin/secret-path-guard.php` fails closed if sensitive filenames are committed, including `.env*`, `config/config.php`, `config/runtime.php`, installer lock/token, privileged hotfix scripts, credential key bundles and cloud service-account JSON. The guard runs in CI; an independent policy regression test covers detection and safe exceptions. It warns about legacy tracked storage rather than deleting production newspaper assets. **It checks filenames, not the full commit history, live credential validity or arbitrary secrets hidden inside unrelated files.**
+
+## Phase 3 — operator cutover verification
+
+See `SECURITY-CUTOVER-RUNBOOK.md` and `SECURITY-CUTOVER-ATTESTATION.md`. `php bin/security-cutover-preflight.php --json` checks private configuration location/permissions and basic credential presence, without disclosing values. It cannot independently rotate credentials, verify Cloudways backups, prove key migration, or rewrite old Git history. All such release gates remain operator-owned.
