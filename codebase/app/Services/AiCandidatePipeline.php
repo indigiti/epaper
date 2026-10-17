@@ -38,7 +38,7 @@ final class AiCandidatePipeline
             'languages'=>$languages,
             'hocr'=>$hocr,
         ];
-        if(!preg_match('/^[A-Za-z0-9_+,-]{1,80}$/',$languages))throw new \\RuntimeException('Invalid OCR engine language');
+        if(!preg_match('/^[A-Za-z0-9_+,-]{1,80}$/',$languages))throw new \RuntimeException('Invalid OCR engine language');
         $data=json_encode($input,JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES|JSON_THROW_ON_ERROR);
         if(strlen($data)>18*1024*1024)throw new \RuntimeException('Candidate input JSON too large');
         $tmp=$root.'/storage/tmp/ai-candidates';
