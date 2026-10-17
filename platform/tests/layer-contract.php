@@ -18,6 +18,9 @@ $check(str_contains($app,'ResolveDomain::execute('),'controller delegates domain
 $check(str_contains($resolver,'DomainResolutionPolicy::denyReason('),'domain use case guards policy');
 $check(str_contains($routingPolicy,"'application_product_guid'")&&str_contains($routingPolicy,"'tenant_organisation_guid'"),'domain policy enforces relational binding');
 $check(!str_contains($app,"RedisStore::getJson('domain:"),'domain response revalidates rather than trusts stale cache');
+$limiter=file_get_contents($root.'/app/Core/RateLimiter.php');
+$check(str_contains($limiter,'ON DUPLICATE KEY UPDATE')&&str_contains($limiter,'hit_count=IF('),'database rate-limit fallback uses atomic upsert');
+$check(!str_contains($limiter,'Store::one('),'rate limiter has no pre-write DB read race');
 $check(!is_file($root.'/config/config.php'),'repository has no runtime secrets');
 $check(!is_file($root.'/storage/install.lock'),'repository has no installation lock');
 $manifest=json_decode(file_get_contents($root.'/manifest.json'),true);
