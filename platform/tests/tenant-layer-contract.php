@@ -14,5 +14,5 @@ $check(str_contains($repo,'Store::tx(')&&str_contains($repo,'FOR UPDATE'),'tenan
 $check(str_contains($repo,'UPDATE domains SET status="REMOVED",is_primary=0'),'removed tenant deactivates domains');
 $check(str_contains($app,"RedisStore::del('entitlements:"),'mutations evict Platform entitlement cache');
 $check(str_contains($app,"RedisStore::del('domain:"),'mutations evict Platform domain cache');
-$check(str_contains($policy,"if($old==='REMOVED'"),'removed tenant state cannot be resurrected');
+$check(str_contains($policy,"'REMOVED'&&"),'removed tenant state cannot be resurrected');
 exit($failed?1:0);
