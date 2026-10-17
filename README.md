@@ -10,6 +10,7 @@ Multi-tenant digital newspaper publishing, ePaper reading, OCR, clipping, archiv
 - [Application architecture and module ownership](codebase/docs/architecture/MODULE-MAP.md)
 - [Developer workflow and safety boundaries](codebase/docs/development/README.md)
 - [Operational release and recovery documents](codebase/docs/operations/README.md)
+- [Slim ZIP artifact and Cloudways staging promotion gate](codebase/docs/operations/SLIM-RELEASE-CLOUDWAYS-PROMOTION-2026-10-17.md)
 - [Historical releases and immutable manifest policy](codebase/docs/releases/README.md)
 - [Security notes and remediation work](codebase/docs/security/SECURITY-CUTOVER-RUNBOOK.md)
 
@@ -27,7 +28,7 @@ codebase/
   public_html/           Only intended public web document root
   tests/                 Regression tests and fixtures
   release/               Historical versioned release evidence
-  storage/               Runtime content — legacy files still tracked, migration blocked
+  storage/               Placeholder-only in slim PR; persistent runtime data must remain external
   vendor/                Legacy tracked Composer dependencies
   VERSION                Product version consumed by release checks
   SHA256SUMS             Historical v2.0.2.1 integrity record
