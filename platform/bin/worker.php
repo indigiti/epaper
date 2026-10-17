@@ -21,6 +21,12 @@ function processOne(string $worker): bool {
                         throw new \RuntimeException('Webhook event identifier missing');
                     \Digiti\Application\Billing\ReconcileWebhook::execute($event['outbox_event_guid'],$webhookGuid);
                     break;
+                case 'cache.invalidate':
+                    \Digiti\Infrastructure\Integration\InvalidationDelivery::send($payload);
+                    // Only acknowledge after an authenticated receiver response.
+                    $count=Store::exec('UPDATE outbox_events SET status="PROCESSED",processed_at=NOW(6) WHERE outbox_event_guid=? AND status="PROCESSING"',[Uuid::toBinary($event['outbox_event_guid'])]);
+                    if($count!==1)throw new \RuntimeException('Invalidation outbox lease lost');
+                    break;
                 default:
                     // Unsupported events must not be falsely acknowledged as delivered.
                     throw new \RuntimeException('No outbox handler for event type: '.$event['event_type']);
