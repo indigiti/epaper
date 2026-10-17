@@ -6,7 +6,7 @@ use Digiti\Core\{Store,Uuid};
 use Digiti\Application\Billing\WebhookFailure;
 
 /** Atomic event receipt/outbox insertion, protected by provider event ID uniqueness. */
-final class WebhookRepository
+class WebhookRepository
 {
     public function receive(string $provider,string $reference,string $raw): bool
     {
