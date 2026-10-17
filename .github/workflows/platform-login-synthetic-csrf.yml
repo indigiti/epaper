@@ -1,0 +1,27 @@
+name: Platform Login Synthetic CSRF Handshake
+on:
+  push:
+    branches: [audit/platform-multilayer-20261017]
+    paths:
+      - '.github/workflows/platform-login-synthetic-csrf.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  single-synthetic-login:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check script syntax
+        run: python3 -m py_compile tools/platform_login_synthetic_csrf.py
+      - name: Single GET-POST with unregistered test identity (no real credentials)
+        run: python3 tools/platform_login_synthetic_csrf.py
+      - name: Save safe diagnostic report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: platform-login-synthetic-csrf-report
+          path: platform-login-synthetic-csrf.json
+          if-no-files-found: ignore
+          retention-days: 7
