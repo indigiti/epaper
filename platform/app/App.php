@@ -130,7 +130,7 @@ final class App
             View::flash('Domain added. Configure CNAME to '.Config::get('app.domains_target').' or TXT _digiti-verification.'.$receipt['host'].' = '.$receipt['token'].'. After verification, activate the domain to enable routing.');
             Http::redirect('/admin/domains');
         }
-        $items=Store::all('SELECT d.domain_guid,d.hostname,d.status,d.is_primary,d.verification_token,d.last_checked_at,o.display_name organisation,p.name product,a.name application FROM domains d JOIN organisations o ON o.organisation_guid=d.organisation_guid JOIN products p ON p.product_guid=d.product_guid JOIN applications a ON a.application_guid=d.application_guid ORDER BY d.created_at DESC');
+        $items=Store::all('SELECT d.domain_guid,d.hostname,d.status,d.is_primary,d.verification_token,d.last_checked_at,d.edge_metadata,o.display_name organisation,p.name product,a.name application FROM domains d JOIN organisations o ON o.organisation_guid=d.organisation_guid JOIN products p ON p.product_guid=d.product_guid JOIN applications a ON a.application_guid=d.application_guid ORDER BY d.created_at DESC');
         $rows=[];
         foreach($items as $r){
             $guid=$this->e($r['domain_guid']);$status=$r['status'];$base='/admin/domains/'.$guid;
@@ -141,7 +141,8 @@ final class App
                     $actions.='<form class="inline-form" method="post" action="'.$base.'/resume">'.$this->csrf().'<button class="small">Resume verification</button></form>';
                 else {
                     $actions.='<form class="inline-form" method="post" action="'.$base.'/verify">'.$this->csrf().'<button class="small">Verify DNS</button></form>';
-                    if(in_array($status,['ROUTING_VALID','SSL_PROVISIONING'],true))
+                    $edge=json_decode((string)($r['edge_metadata']??''),true);
+                    if(\Digiti\Domain\Routing\DomainLifecyclePolicy::canActivate((string)$status,is_array($edge)?$edge:[]))
                         $actions.='<form class="inline-form" method="post" action="'.$base.'/activate">'.$this->csrf().'<button class="small">Activate</button></form>';
                 }
                 $actions.='<form class="inline-form" method="post" action="'.$base.'/remove">'.$this->csrf().'<button class="small danger">Remove</button></form>';
