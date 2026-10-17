@@ -1,6 +1,0 @@
-SQLSTATE[HY000]: General error: 2006 MySQL server has gone away
-{
-    "ok": true,
-    "pages": 15,
-    "job_guid": "01a05ec2-c1cc-72dd-85fd-d9a2a19c436d"
-}

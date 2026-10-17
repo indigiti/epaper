@@ -1,17 +1,21 @@
-# Historical release and checksum preservation
+# Release history and source organization
 
-The application root currently contains versioned `UPDATE-*`, `BUILD-MANIFEST-*`, `RELEASE-CHECK-*`, `ROLLBACK-*`, and `INSTALL-*` files, often mirrored under `release/`.
+## Modern navigation
 
-These documents are **historical release evidence**, not new active developer documentation. **Do not bulk-move or delete them yet.**
+Older version-specific documents previously filled the application root. The [complete old-to-new path index](LEGACY-ROOT-INDEX.md) records each move. Browse the [categorized archive](archive/README.md) or the untouched [original release-evidence directory](../../release/).
 
-Why: `SHA256SUMS` at application root lists their exact relative file paths and hashes; older upgrade instructions and release artifacts refer to those filenames. Moving them without a new release artifact and integrity migration would invalidate `sha256sum -c SHA256SUMS` path checks and potentially a deployment process.
+Some historical documents already existed in `release/` with exactly the same Git blob SHA; their redundant copies at the source root were removed. Unique older notes and backup copies of PHP/JS/CSS source are retained in `archive/` without being placed in executable directories.
 
-## Follow-on archive migration (requires a new verified release)
+The active, pinned documents needed by the existing source and build guards are deliberately kept in `codebase/`. Archived Git tags also retain the original historical file layout.
 
-1. Inventory which files and scripts reference each pinned document and historical release path.
-2. Generate an immutable baseline copy of the old manifest and a separate versioned new checksum manifest for the NEW release; do not relabel an old historical checksum manifest as current.
-3. Migrate historic notes to `docs/releases/archive/<version>/` only after updating all hard-coded references and validating the packaging toolchain.
-4. Exercise a clean checkout, Composer dependencies, all release tests, Android packaging, worker invocations and full staging deployment before publishing the new artifact.
-5. Preserve old release evidence in Git tags and release archives rather than mutating prior release history.
+## Checksums and deployment scope
 
-The current reorganization moves only **active, post-release security documentation not present in the historical SHA256SUMS**. It does not move PHP runtime modules, migration scripts, published PDFs, media, stored clipping files or pinned historical documents.
+The unchanged `../../SHA256SUMS` lists paths and hashes for an **older full v2.0.2.1 release**. It is **not valid** for the proposed slim checkout; it was already incompatible when tracked runtime storage was removed in PR #17. Do not change historical checksum values to make them appear valid again.
+
+A separate build tool, `../../bin/slim-release-zip.php`, creates an integrity-checked, source-only staging ZIP and intentionally excludes archived documentation, runtime storage and public uploads. It is **not** live Cloudways deployment approval.
+
+Historical hardcoded links can point to former root filenames. Use the linked [legacy path index](LEGACY-ROOT-INDEX.md), the unmodified historical tags, or the old distribution package to reproduce a historical release.
+
+## Before production
+
+Do not merge or deploy this stacked cleanup until the existing security incident, credential rotation, history remediation, complete same-driver Cloudways staging rehearsal and rollback acceptance have been performed. The [staging promotion checklist](../operations/SLIM-RELEASE-CLOUDWAYS-PROMOTION-2026-10-17.md) is the operator runbook.

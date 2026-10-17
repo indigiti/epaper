@@ -17,7 +17,7 @@ jobs:
       - uses: shivammathur/setup-php@v2
         with:
           php-version: '8.3'
-          extensions: mbstring, pdo_mysql, json, sockets, openssl, fileinfo
+          extensions: mbstring, pdo_mysql, json, sockets, openssl, fileinfo, zip
           coverage: none
       - name: Reject production runtime data tracked by Git
         working-directory: .
@@ -32,6 +32,12 @@ jobs:
         run: php bin/secret-path-guard.php
       - name: Verify repository organization and unchanged entry points
         run: php tests/repository-layout-static.php
+      - name: Reject tracked runtime-generated customer files
+        run: php tests/runtime-storage-git-hygiene.php
+      - name: Assert old release notes retain original Git blobs
+        run: php tests/legacy-archive-layout.php
+      - name: Generate deterministic source-only manifest summary
+        run: php bin/build-source-manifest.php --summary
       - name: Composer dependency validation
         run: |
           composer validate --no-check-publish
@@ -51,5 +57,24 @@ jobs:
           node --check tests/browser-cache-isolation.cjs
           node --check bin/staging-browser-isolation.cjs
           node tests/browser-cache-isolation.cjs
+      - name: Run disposable release activation and rollback simulation
+        run: php tests/slim-release-activation.php
+      - name: Build and verify slim release ZIP
+        run: |
+          set -euo pipefail
+          artifact="${RUNNER_TEMP}/epdi-slim-staging.zip"
+          test ! -e "$artifact"
+          php bin/slim-release-zip.php --output="$artifact"
+          php bin/slim-release-zip.php --verify="$artifact"
+          php tests/slim-release-zip.php
+      - name: Check persistent public uploads fixture
+        run: php tests/public-uploads-safety.php
       - name: Run current release regression suite
         run: php bin/release-check.php
+      - name: Upload staging-only slim ZIP artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: epdi-slim-staging-${{ github.sha }}
+          path: ${{ runner.temp }}/epdi-slim-staging.zip
+          if-no-files-found: error
+          retention-days: 7

@@ -4,12 +4,19 @@ Multi-tenant digital newspaper publishing, ePaper reading, OCR, clipping, archiv
 
 > **Release note:** The current deployed application is not certified by this repository alone. Security remediation remains in draft [PR #1](https://github.com/indigiti/epaper/pull/1). [Security issue #2](https://github.com/indigiti/epaper/issues/2) requires live staging, verified recovery backup, credential rotation and Git-history cleanup before production promotion.
 
+## Find your way around the cleaned repository
+
+The [application source directory](codebase/) now has **39 top-level entries instead of 209**. It contains the actual PHP application and its supporting directories, not hundreds of duplicated historical notes. Use [source navigation](codebase/README.md) for components and [the archived old-path index](codebase/docs/releases/LEGACY-ROOT-INDEX.md) for former root-level filenames.
+
+This cleanup is staged in [PR #18](https://github.com/indigiti/epaper/pull/18) on top of #17. It is deliberately not merged to `main` while deployment safety and exposed-credential remediation remain open.
+
 ## Start here
 
 - [Documentation and functional area guide](codebase/docs/README.md)
 - [Application architecture and module ownership](codebase/docs/architecture/MODULE-MAP.md)
 - [Developer workflow and safety boundaries](codebase/docs/development/README.md)
 - [Operational release and recovery documents](codebase/docs/operations/README.md)
+- [Slim ZIP artifact and Cloudways staging promotion gate](codebase/docs/operations/SLIM-RELEASE-CLOUDWAYS-PROMOTION-2026-10-17.md)
 - [Historical releases and immutable manifest policy](codebase/docs/releases/README.md)
 - [Security notes and remediation work](codebase/docs/security/SECURITY-CUTOVER-RUNBOOK.md)
 
@@ -27,7 +34,7 @@ codebase/
   public_html/           Only intended public web document root
   tests/                 Regression tests and fixtures
   release/               Historical versioned release evidence
-  storage/               Runtime content — legacy files still tracked, migration blocked
+  storage/               Placeholder-only in slim PR; persistent runtime data must remain external
   vendor/                Legacy tracked Composer dependencies
   VERSION                Product version consumed by release checks
   SHA256SUMS             Historical v2.0.2.1 integrity record
