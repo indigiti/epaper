@@ -1,6 +1,6 @@
 # Historical release notes archive
 
-Release-specific documentation removed from the crowded `codebase/` root is organized here by function. See [complete old-path index](../../LEGACY-ROOT-INDEX.md) for every source → destination map.
+Release-specific documentation removed from the crowded `codebase/` root is organized here by function. See [complete old-path index](../LEGACY-ROOT-INDEX.md) for every source → destination map.
 
 - `build-manifests/` — historical build manifests
 - `release-checks/` — historical regression outputs
