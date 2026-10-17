@@ -70,5 +70,15 @@ $receipt->receive('stripe',$unknownEvent,$rawUnknown);
 $check(ReconcileWebhook::execute($unknownOutbox,$unknownWebhook)==='REVIEW_REQUIRED','unmatched provider reference never auto-settles');
 $check((int)Store::value('SELECT COUNT(*) FROM webhook_events WHERE processing_status="REVIEW_REQUIRED"')===2,'exception review queue retains both cases');
 
+// Recover a crashed processing lease without pretending the webhook was processed.
+$lease=$id();
+Store::exec('INSERT INTO outbox_events(outbox_event_guid,event_type,payload,status,attempts,available_at,created_at) VALUES(?,"payment.webhook.received",?,"PROCESSING",2,DATE_SUB(NOW(6),INTERVAL 1 MINUTE),NOW(6))',[$bin($lease),'{}']);
+$exhausted=$id();
+Store::exec('INSERT INTO outbox_events(outbox_event_guid,event_type,payload,status,attempts,available_at,created_at) VALUES(?,"payment.webhook.received",?,"PROCESSING",5,DATE_SUB(NOW(6),INTERVAL 1 MINUTE),NOW(6))',[$bin($exhausted),'{}']);
+$recovered=\\Digiti\\Application\\Operations\\QueueLeaseRecovery::recover();
+$check($recovered['outbox']>=2,'expired in-flight outbox receipts recovered');
+$check(Store::value('SELECT status FROM outbox_events WHERE outbox_event_guid=?',[$bin($lease)])==='PENDING','crashed receipt restored for retry');
+$check(Store::value('SELECT status FROM outbox_events WHERE outbox_event_guid=?',[$bin($exhausted)])==='FAILED','attempt limit moves receipt to failed queue');
+
 echo "MariaDB billing integration checks complete.\n";
 exit($fail?1:0);
