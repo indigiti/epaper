@@ -31,8 +31,9 @@ def tracked_files(root: pathlib.Path) -> list[str]:
     return [p.decode("utf-8") for p in raw.split(b"\0") if p]
 
 
-def inspect(root: pathlib.Path, paths: list[str]) -> tuple[dict, list[str]]:
+def inspect(root: pathlib.Path, paths: list[str]) -> tuple[dict, list[str], dict]:
     errors = []
+    warnings: dict = {}
     source: dict = {}
     for name, config in APPS.items():
         prefix = config.get("root", name) + "/"
@@ -41,15 +42,22 @@ def inspect(root: pathlib.Path, paths: list[str]) -> tuple[dict, list[str]]:
             if not tracked.startswith(prefix):
                 continue
             inner = tracked[len(prefix):]
-            # Runtime data is never a deployable source, even if tracked by mistake.
-            unsafe = (inner in ("config/config.php", "config/runtime.php", "storage/install.lock")
-                      or inner.startswith(("storage/", "public_html/uploads/", "vendor/"))
-                      or (inner.startswith("config/") and inner not in config["files"]))
-            if unsafe:
-                errors.append(f"{name}: forbidden tracked runtime file: {inner}")
-            if not (any(inner.startswith(p) for p in config["directories"]) or inner in config["files"]):
+            # Private config is a hard failure. Existing historical vendored/media
+            # files are quarantined from the source candidate and reported as debt;
+            # untracking them before persistent-data migration can DELETE live assets.
+            private = (inner in ("config/config.php", "config/runtime.php", "storage/install.lock")
+                       or (inner.startswith("config/") and inner not in config["files"]))
+            if private:
+                errors.append(f"{name}: private runtime config/lock is tracked: {inner}")
                 continue
-            if unsafe:
+            excluded = ("vendor" if inner.startswith("vendor/") else
+                        "storage" if inner.startswith("storage/") and inner != "storage/.gitkeep" else
+                        "uploads" if inner.startswith("public_html/uploads/") else None)
+            if excluded is not None:
+                summary = warnings.setdefault(name, {"vendor": 0, "storage": 0, "uploads": 0})
+                summary[excluded] += 1
+                continue
+            if not (any(inner.startswith(p) for p in config["directories"]) or inner in config["files"]):
                 continue
             full = root / tracked
             if not full.is_file() or full.is_symlink():
@@ -68,7 +76,7 @@ def inspect(root: pathlib.Path, paths: list[str]) -> tuple[dict, list[str]]:
             "total_bytes": sum(row["bytes"] for row in chosen.values()),
             "files": dict(sorted(chosen.items())),
         }
-    return source, errors
+    return source, errors, warnings
 
 
 def main() -> int:
@@ -79,7 +87,7 @@ def main() -> int:
     root = pathlib.Path(args.repo_root).resolve()
     output = pathlib.Path(args.output_dir).resolve()
     try:
-        inventory, errors = inspect(root, tracked_files(root))
+        inventory, errors, warnings = inspect(root, tracked_files(root))
     except (subprocess.CalledProcessError, OSError) as exc:
         print(f"FAIL unable to read repository source: {type(exc).__name__}", file=sys.stderr)
         return 2
@@ -87,6 +95,8 @@ def main() -> int:
               "generated_at_utc": datetime.now(timezone.utc).isoformat(),
               "production_deployment_approved": False,
               "requires_private_config_and_restore": True,
+              "historical_runtime_media_cleanup_pending": any(sum(v.values()) for v in warnings.values()),
+              "excluded_tracked_runtime_counts": warnings,
               "components": {name: {k: v for k, v in content.items() if k != "files"} for name, content in inventory.items()},
               "errors": errors}
     if not errors:
