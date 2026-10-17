@@ -6,12 +6,22 @@ on:
       - 'platform/**'
       - 'codebase/app/**'
       - 'tools/**'
+      - 'codebase/config/**'
+      - 'codebase/storage/**'
+      - 'codebase/.gitignore'
+      - 'platform/config/**'
+      - 'platform/storage/**'
       - '.github/workflows/staging-acceptance-ci.yml'
   pull_request:
     paths:
       - 'platform/**'
       - 'codebase/app/**'
       - 'tools/**'
+      - 'codebase/config/**'
+      - 'codebase/storage/**'
+      - 'codebase/.gitignore'
+      - 'platform/config/**'
+      - 'platform/storage/**'
       - '.github/workflows/staging-acceptance-ci.yml'
 permissions:
   contents: read
@@ -22,6 +32,22 @@ jobs:
       - uses: actions/checkout@v4
       - name: Verify benchmark target safety and percentile calculations (offline)
         run: python3 -m unittest discover -s tools -p 'test_staging_http_benchmark.py' -v
+      - name: Build separate Platform/ePaper source-only SHA256 manifests
+        run: python3 tools/release_source_preflight.py --repo-root . --output-dir /tmp/epdi-source-candidates
+      - name: Verify source manifests contain distinct document roots
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          root=Path('/tmp/epdi-source-candidates')
+          p=json.loads((root/'platform-source-manifest.json').read_text())
+          e=json.loads((root/'epaper-source-manifest.json').read_text())
+          assert p['document_root']=='platform/public_html'
+          assert e['document_root']=='codebase/public_html'
+          assert p['source_only_do_not_deploy'] and e['source_only_do_not_deploy']
+          assert p['file_count']>10 and e['file_count']>10
+          print('PASS — independent source manifests, no runtime configurations packaged')
+          PY
       - name: Verify deployment source tree does not contain runtime credentials
         run: |
           set -euo pipefail
