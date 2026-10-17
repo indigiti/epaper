@@ -41,6 +41,7 @@ jobs:
           php platform/tests/usage-policy.php
           php platform/tests/usage-layer-contract.php
           php platform/tests/commercial-catalog-contract.php
+          php platform/tests/performance-contract.php
           php platform/tests/layer-contract.php
           php platform/tests/build-guard.php
           php platform/tests/admin-crud-guard.php
