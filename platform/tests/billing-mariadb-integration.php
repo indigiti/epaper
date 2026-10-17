@@ -158,6 +158,19 @@ $check((float)Store::value('SELECT used_value FROM usage_meters WHERE product_te
 try{\Digiti\Application\Metering\RecordUsage::execute($tenant,['feature_key'=>'ci_other_pages','delta'=>'1','period_key'=>'2026-10']);$meterCrossProductDenied=false;}
 catch(\DomainException){$meterCrossProductDenied=true;}
 $check($meterCrossProductDenied,'cross-product feature usage denied');
+// Stable event GUID gives at-most-once metering even if HTTP client retries.
+$stableEvent=$id();
+$eventPayload=['feature_key'=>'ci_pdf_pages','delta'=>'3.5','period_key'=>'2026-11','event_guid'=>$stableEvent];
+$check(\Digiti\Application\Metering\RecordUsage::execute($tenant,$eventPayload)===true,'first usage event applied');
+$check(\Digiti\Application\Metering\RecordUsage::execute($tenant,$eventPayload)===false,'same usage event retried without increment');
+$check((float)Store::value('SELECT used_value FROM usage_meters WHERE product_tenant_guid=? AND feature_guid=? AND period_key="2026-11"',[$bin($tenant),$bin($featureId)])===3.5,'usage counter changed exactly once');
+$eventPayload['delta']='7.0';
+try{\Digiti\Application\Metering\RecordUsage::execute($tenant,$eventPayload);$conflict=false;}
+catch(\DomainException $e){$conflict=$e->getMessage()==='USAGE_EVENT_CONFLICT';}
+$check($conflict,'reused usage ID with changed delta rejected');
+$check((float)Store::value('SELECT used_value FROM usage_meters WHERE product_tenant_guid=? AND feature_guid=? AND period_key="2026-11"',[$bin($tenant),$bin($featureId)])===3.5,'rejected conflicting event never updates usage');
+$check((int)Store::value('SELECT COUNT(*) FROM usage_events WHERE event_guid=?',[$bin($stableEvent)])===1,'one persisted event ledger record');
+
 
 // Tenant lifecycle with live foreign-key related domain, in isolated CI database.
 Store::exec('UPDATE subscriptions SET current_period_end=DATE_ADD(NOW(6), INTERVAL 1 MONTH) WHERE subscription_guid=?',[$bin($subscription)]);
