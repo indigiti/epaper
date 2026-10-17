@@ -72,3 +72,16 @@ a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible{ou
 @media(max-width:700px){.quick-hero{flex-direction:column;align-items:flex-start;padding:24px}.quick-tiles{gap:10px}.quick-tile{padding:15px;min-height:125px}.quick-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.section-heading{align-items:flex-start;flex-direction:column}.quick-panel{padding:17px}.quick-form-card{padding:20px}.quick-table{min-width:620px}.subnav .nav-label{display:none}.topbar nav{gap:2px}.hero-btn{width:100%}}
 @media(max-width:400px){.quick-tiles{grid-template-columns:1fr}.quick-tile{min-height:auto}}
 @media(prefers-reduced-motion:reduce){.quick-tile{transition:none}.quick-tile:hover{transform:none}}
+
+.quick-domain-head{display:flex;align-items:center;justify-content:space-between;gap:14px;border:1px solid var(--border);border-radius:19px;background:var(--surface);padding:24px;margin:0 0 20px}
+.quick-domain-head h2{font-size:25px;margin:4px 0}
+.quick-domain-head p{margin:0;color:var(--muted)}
+.quick-steps{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+.quick-steps .card{margin:0;box-shadow:none}
+.quick-steps h2{margin:7px 0;font-size:18px}
+.quick-steps p{font-size:13px;line-height:1.65}
+.dns-record{display:grid;gap:6px;border:1px solid var(--border);background:var(--surface2);border-radius:10px;margin:10px 0;padding:11px}
+.dns-record span{font-weight:800;font-size:10px;color:var(--muted)}
+.dns-record code{font-size:12px;line-height:1.6}
+@media(max-width:1000px){.quick-steps{grid-template-columns:1fr}}
+@media(max-width:600px){.quick-domain-head{flex-direction:column;align-items:flex-start}}
