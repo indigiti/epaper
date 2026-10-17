@@ -4,7 +4,7 @@ $root=require dirname(__DIR__).'/app/bootstrap.php';
 use Digiti\Application\Integration\CacheInvalidationOutbox;
 use Digiti\Core\{Config,Store,Uuid};
 
-if((string)Config::get('app.env','production')==='production'||getenv('EPDI_STAGING_INVALIDATION')!=='allow'){
+if(!in_array((string)Config::get('app.env','production'),['staging','test','development'],true)||getenv('EPDI_STAGING_INVALIDATION')!=='allow'){
     fwrite(STDERR,"Denied. Staging only: set app.env=staging and EPDI_STAGING_INVALIDATION=allow.\n");
     exit(2);
 }
