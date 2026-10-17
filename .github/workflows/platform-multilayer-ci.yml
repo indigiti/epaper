@@ -100,3 +100,14 @@ jobs:
         run: |
           php platform/tests/billing-mariadb-integration.php
           php platform/tests/domain-mariadb-integration.php
+      - name: Disposable Platform authenticated HTTP navigation
+        env:
+          EPDI_BILLING_INTEGRATION: disposable-ci
+        run: |
+          set -euo pipefail
+          php platform/tests/seed-admin-http.php
+          php -S 127.0.0.1:8097 -t platform/public_html platform/public_html/index.php >/tmp/ci-platform-admin-http.log 2>&1 &
+          pid=$!
+          trap 'kill "$pid" 2>/dev/null || true' EXIT
+          python3 tools/platform_admin_http_smoke.py
+
