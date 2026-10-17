@@ -219,6 +219,8 @@ final class SlimReleaseZip
                 'archive_sha256' => hash_file('sha256', $archive),
                 'production_deployment_approved' => false,
                 'cloudways_deployment_rehearsed' => false,
+                'artifact_layout' => 'cloudways-php-application-root',
+                'digiops_direct_deployment_compatible' => false,
             ];
         } finally {
             $zip->close();
