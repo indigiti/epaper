@@ -21,14 +21,23 @@ final class Http
     }
     public static function csrf(): string
     {
-        if (session_status() !== PHP_SESSION_ACTIVE) session_start();
+        Auth::start(); // Always use the named, secure Platform session.
         if (empty($_SESSION['_csrf'])) $_SESSION['_csrf']=bin2hex(random_bytes(24));
         return $_SESSION['_csrf'];
     }
     public static function verifyCsrf(): void
     {
-        if (session_status() !== PHP_SESSION_ACTIVE) session_start();
-        $token=$_POST['_csrf']??($_SERVER['HTTP_X_CSRF_TOKEN']??'');
-        if (!$token || empty($_SESSION['_csrf']) || !hash_equals($_SESSION['_csrf'],$token)) self::json(['ok'=>false,'code'=>'CSRF_INVALID','message'=>'Invalid CSRF token','request_guid'=>self::requestGuid()],419);
+        Auth::start(); // Do not silently open a default PHPSESSID session.
+        $raw=$_POST['_csrf']??($_SERVER['HTTP_X_CSRF_TOKEN']??'');
+        $token=is_string($raw)?$raw:'';
+        $expected=$_SESSION['_csrf']??null;
+        if ($token!=='' && is_string($expected) && $expected!=='' && hash_equals($expected,$token)) return;
+        // Log only the rejection category and request GUID, never session IDs, tokens or passwords.
+        $path=parse_url($_SERVER['REQUEST_URI']??'',PHP_URL_PATH);
+        if ($path==='/login') {
+            $reason=$token===''?'missing_form_token':(!is_string($expected)||$expected===''?'missing_session_token':'token_mismatch');
+            error_log('Digiti Platform login CSRF rejected: reason='.$reason.' request_guid='.self::requestGuid());
+        }
+        self::json(['ok'=>false,'code'=>'CSRF_INVALID','message'=>'Invalid CSRF token','request_guid'=>self::requestGuid()],419);
     }
 }
