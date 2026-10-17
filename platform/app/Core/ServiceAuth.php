@@ -15,4 +15,21 @@ final class ServiceAuth
         Store::exec('UPDATE service_accounts SET last_used_at=NOW(6) WHERE service_account_guid=?',[Uuid::toBinary($row['service_account_guid'])]);
         return $row;
     }
+    /**
+     * Verify both the granted scope and that the requested active tenant belongs
+     * to the product bound to this machine credential.
+     */
+    public static function requireTenantScope(string $scope,string $tenantGuid): array
+    {
+        $service=self::requireScope($scope);
+        try {$binary=Uuid::toBinary($tenantGuid);}
+        catch (\Throwable) {Http::json(['ok'=>false,'code'=>'TENANT_NOT_FOUND'],404);}
+        $product=Store::value('SELECT product_guid FROM product_tenants WHERE product_tenant_guid=? AND status="ACTIVE" LIMIT 1',[$binary]);
+        $productGuid=is_string($product)?Uuid::fromBinary($product):null;
+        if(!$productGuid||empty($service['product_guid'])
+            ||!hash_equals((string)$service['product_guid'],(string)$productGuid))
+            Http::json(['ok'=>false,'code'=>'TENANT_NOT_FOUND'],404);
+        return $service;
+    }
+
 }

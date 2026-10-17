@@ -1,6 +1,6 @@
 <?php
 namespace EpaperSaas\Services;
-use EpaperSaas\Core\{Config,Http,RedisStore,RequestContext};
+use EpaperSaas\Core\{Config,Http,RedisStore,RequestContext,Uuid};
 final class PlatformClient
 {
     private static ?self $self=null;
@@ -20,7 +20,20 @@ final class PlatformClient
     public function verifyMembership(string $user,string $org): array{return $this->call('POST','/internal/v1/memberships/verify',['user_guid'=>$user,'organisation_guid'=>$org]);}
     public function exchangeAuth(string $code,string $verifier): array{$d=$this->call('POST','/internal/v1/auth/token',['code'=>$code,'code_verifier'=>$verifier,'client_id'=>Config::get('platform.oauth_client_id')]);return$d['identity']??[];}
     public function directAuth(string $tenant,string $email,string $password,string $totp=''): array{$d=$this->call('POST','/internal/v1/auth/direct',['client_id'=>Config::get('platform.oauth_client_id'),'product_tenant_guid'=>$tenant,'email'=>$email,'password'=>$password,'totp'=>$totp]);return$d['identity']??[];}
-    public function usage(string $tenant,string $feature,float $delta,string $period=''): void{try{$this->call('POST','/internal/v1/usage',['product_tenant_guid'=>$tenant,'feature_key'=>$feature,'delta'=>$delta,'period_key'=>$period?:gmdate('Y-m')]);}catch(\Throwable){}}
+    /**
+     * Pass a stable event GUID for retries; omitted GUID keeps older callers compatible.
+     * A new GUID per invocation is NOT enough to deduplicate repeat business events.
+     */
+    public function usage(string $tenant,string $feature,float $delta,string $period='',string $eventGuid=''): void
+    {
+        try {
+            $this->call('POST','/internal/v1/usage',[
+                'product_tenant_guid'=>$tenant,'feature_key'=>$feature,'delta'=>$delta,
+                'period_key'=>$period?:gmdate('Y-m'),
+                'event_guid'=>$eventGuid!==''?$eventGuid:Uuid::v7()
+            ]);
+        }catch(\Throwable){}
+    }
     public function heartbeat(array $metrics=[]): bool{try{$this->call('POST','/internal/v1/heartbeats',['application_key'=>Config::get('platform.application_key','city_epaper'),'environment'=>Config::get('app.environment','production'),'version'=>trim((string)@file_get_contents(dirname(__DIR__,2).'/VERSION')),'status'=>'ONLINE','metrics'=>$metrics]);return true;}catch(\Throwable){return false;}}
     public function audit(array $d): void{try{$this->call('POST','/internal/v1/audit',$d);}catch(\Throwable){}}
     public function error(array $d): void{try{$this->call('POST','/internal/v1/errors',$d);}catch(\Throwable){}}

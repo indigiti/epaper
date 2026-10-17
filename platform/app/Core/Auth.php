@@ -8,7 +8,11 @@ final class Auth
         if (session_status() === PHP_SESSION_ACTIVE) return;
         session_name('digiti_platform');
         session_set_cookie_params(['httponly'=>true,'secure'=>!empty($_SERVER['HTTPS']),'samesite'=>'Lax','path'=>'/']);
-        session_start();
+        // A missing/unwritable PHP session store must fail closed, not masquerade as CSRF failure.
+        if (!@session_start() || session_status() !== PHP_SESSION_ACTIVE) {
+            error_log('Digiti Platform: PHP session initialization failed; check PHP-FPM session.save_path and permissions');
+            throw new \RuntimeException('Session unavailable. Check PHP session storage.');
+        }
     }
     public static function admin(): ?array
     {

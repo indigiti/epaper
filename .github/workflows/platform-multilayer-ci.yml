@@ -1,0 +1,113 @@
+name: Digiti Platform Security and Layers
+on:
+  push:
+    branches: [main, audit/platform-multilayer-20261017]
+    paths:
+      - 'platform/**'
+      - '.github/workflows/platform-multilayer-ci.yml'
+  pull_request:
+    paths:
+      - 'platform/**'
+      - '.github/workflows/platform-multilayer-ci.yml'
+permissions:
+  contents: read
+jobs:
+  platform:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: pdo_mysql, openssl, json, curl, mbstring, intl
+          coverage: none
+      - name: PHP syntax
+        run: |
+          find platform/app platform/bin platform/public_html platform/tests -type f -name '*.php' -print0 | xargs -0 -n1 php -l > /tmp/platform-php-lint.log
+      - name: Unit, contract and release-guard checks
+        run: |
+          set -euo pipefail
+          php platform/tests/core-smoke.php
+          php platform/tests/session-csrf-roundtrip.php
+          php platform/tests/multilayer-policy.php
+          php platform/tests/domain-resolution-policy.php
+          php platform/tests/domain-lifecycle.php
+          php platform/tests/domain-lifecycle-contract.php
+          php platform/tests/epaper-api-contract.php
+          php platform/tests/billing-webhooks.php
+          php platform/tests/billing-layer-contract.php
+          php platform/tests/billing-money.php
+          php platform/tests/subscription-policy.php
+          php platform/tests/subscription-layer-contract.php
+          php platform/tests/tenant-lifecycle-policy.php
+          php platform/tests/tenant-layer-contract.php
+          php platform/tests/usage-policy.php
+          php platform/tests/usage-layer-contract.php
+          php platform/tests/commercial-catalog-contract.php
+          php platform/tests/performance-contract.php
+          php platform/tests/invalidation-admin-contract.php
+          php platform/tests/layer-contract.php
+          php platform/tests/build-guard.php
+          php platform/tests/admin-crud-guard.php
+      - name: Protected runtime files must be absent from release source
+        run: |
+          test ! -f platform/config/config.php
+          test ! -f platform/storage/install.lock
+  billing-mariadb:
+    runs-on: ubuntu-latest
+    services:
+      mariadb:
+        image: mariadb:10.11
+        env:
+          MARIADB_ROOT_PASSWORD: ci_root_fixture_only
+          MARIADB_DATABASE: platform_ci
+          MARIADB_USER: platform_ci
+          MARIADB_PASSWORD: ci_user_fixture_only
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="healthcheck.sh --connect --innodb_initialized"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: pdo_mysql, openssl, json
+          coverage: none
+      - name: Disposable private config (CI only)
+        run: |
+          cat > platform/config/config.php <<'PHP'
+          <?php
+          return [
+              'app'=>['name'=>'CI Platform','env'=>'test','url'=>'http://127.0.0.1','timezone'=>'UTC','key'=>str_repeat('a',64)],
+              'db'=>['host'=>'127.0.0.1','port'=>3306,'name'=>'platform_ci','user'=>'platform_ci','pass'=>'ci_user_fixture_only','charset'=>'utf8mb4'],
+              'redis'=>['enabled'=>false],
+              'billing'=>['default_provider'=>'manual','stripe_webhook_secret'=>'ci_signing_fixture_only','razorpay_key_secret'=>'ci_razorpay_fixture_only']
+          ];
+          PHP
+      - name: Apply and recheck Platform schema migrations
+        run: |
+          set -euo pipefail
+          php platform/bin/migrate.php
+          php platform/bin/migrate.php
+          mysql --host=127.0.0.1 --port=3306 --user=platform_ci --password=ci_user_fixture_only --database=platform_ci -N -e "SELECT COUNT(*) FROM schema_migrations WHERE migration_key='20261017_01_usage_events'" | grep -qx '1'
+      - name: Settlement and idempotency integration
+        env:
+          EPDI_BILLING_INTEGRATION: disposable-ci
+        run: |
+          php platform/tests/billing-mariadb-integration.php
+          php platform/tests/domain-mariadb-integration.php
+      - name: Disposable Platform authenticated HTTP navigation
+        env:
+          EPDI_BILLING_INTEGRATION: disposable-ci
+        run: |
+          set -euo pipefail
+          php platform/tests/seed-admin-http.php
+          php -S 127.0.0.1:8097 -t platform/public_html platform/public_html/index.php >/tmp/ci-platform-admin-http.log 2>&1 &
+          pid=$!
+          trap 'kill "$pid" 2>/dev/null || true' EXIT
+          python3 tools/platform_admin_http_smoke.py
+

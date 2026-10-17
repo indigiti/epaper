@@ -36,11 +36,11 @@ final class OAuth
     }
     public static function exchange(string $code,string $verifier,string $clientId): array
     {
-        $row=Store::one('SELECT ac.auth_code_guid,ac.user_guid,ac.application_guid,ac.redirect_uri,ac.code_challenge,ac.expires_at,ac.used_at,a.oauth_client_id FROM auth_codes ac JOIN applications a ON a.application_guid=ac.application_guid WHERE ac.code_hash=? AND a.oauth_client_id=? LIMIT 1',[hash('sha256',$code,true),$clientId]);
+        $row=Store::one('SELECT ac.auth_code_guid,ac.user_guid,ac.application_guid,ac.redirect_uri,ac.code_challenge,ac.expires_at,ac.used_at,a.oauth_client_id FROM auth_codes ac JOIN applications a ON a.application_guid=ac.application_guid WHERE ac.code_hash=? AND a.oauth_client_id=? AND a.status="ACTIVE" LIMIT 1',[hash('sha256',$code,true),$clientId]);
         if(!$row||$row['used_at']||strtotime($row['expires_at'])<time())throw new \RuntimeException('Invalid or expired authorization code');
         $calc=rtrim(strtr(base64_encode(hash('sha256',$verifier,true)),'+/','-_'),'=');if(!hash_equals($row['code_challenge'],$calc))throw new \RuntimeException('PKCE verification failed');
-        Store::exec('UPDATE auth_codes SET used_at=NOW(6) WHERE auth_code_guid=?',[Uuid::toBinary($row['auth_code_guid'])]);
-        $user=Store::one('SELECT user_guid,email,display_name,status FROM platform_users WHERE user_guid=?',[Uuid::toBinary($row['user_guid'])]);
+        if(Store::exec('UPDATE auth_codes SET used_at=NOW(6) WHERE auth_code_guid=? AND used_at IS NULL AND expires_at>NOW(6)',[Uuid::toBinary($row['auth_code_guid'])])!==1)throw new \RuntimeException('Invalid or expired authorization code');
+        $user=Store::one('SELECT user_guid,email,display_name,status FROM platform_users WHERE user_guid=? AND status="ACTIVE"',[Uuid::toBinary($row['user_guid'])]);if(!$user)throw new \RuntimeException('Identity is inactive');
         $memberships=Store::all('SELECT membership_guid,organisation_guid,role_key,status FROM memberships WHERE user_guid=? AND status="ACTIVE"',[Uuid::toBinary($row['user_guid'])]);
         return ['user'=>$user,'memberships'=>$memberships];
     }

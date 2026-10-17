@@ -4,6 +4,15 @@ Multi-tenant newspaper publishing, PDF rendering, OCR, WebP page delivery, artic
 
 > **Repository status (17 October 2026):** The default `main` branch now contains the safe documentation-only reorganization from [PR #20](https://github.com/indigiti/epaper/pull/20). Historical notes were archived with original Git hashes verified. **Live media/PDFs and operational PHP code were not removed or changed.** The separate source slimming and security remediation remain unmerged.
 
+## Two independently deployed applications
+
+| Module | Purpose | Cloudways document root | Release status |
+|---|---|---|---|
+| [`codebase/`](codebase/) | ePaper SaaS publishing, Reader, OCR, PDFs and clippings | `codebase/public_html/` | Existing product; security/deployment gates remain open |
+| [`platform/`](platform/) | Digiti shared SaaS control plane: identity, tenancy, billing, domains and platform operations | `platform/public_html/` | New v1.0.2 source; multilayer migration in [draft PR #23](https://github.com/indigiti/epaper/pull/23), NOT deployment-approved |
+
+The two applications must not share the same PHP webroot or database schema. Their private config, runtime storage, cron/worker deployment paths and rollback procedures must be independently validated. See [Platform layer boundaries](platform/docs/architecture/MULTILAYER-FOUNDATION.md), [Platform audit issue #22](https://github.com/indigiti/epaper/issues/22), and [DigiOps blocker #21](https://github.com/indigiti/epaper/issues/21).
+
 ## Find what you need
 
 | Goal | Location |

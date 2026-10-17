@@ -1,0 +1,9 @@
+# Runtime credentials must be created by the operator; never package or commit them.
+/config/config.php
+/config/*.local.php
+/config/*.secrets.php
+# Runtime state and generated data are outside an immutable source release.
+/storage/*
+!/storage/.gitkeep
+/.phpunit.cache/
+/*.zip

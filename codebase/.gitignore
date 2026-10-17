@@ -1,0 +1,12 @@
+# Runtime/private config must be mounted by Cloudways/DigiOps, never packaged.
+/config/config.php
+/config/runtime.php
+/config/*.local.php
+/config/*.secrets.php
+# All runtime caches, uploaded PDFs/images, queues, logs, generated media and locks stay persistent.
+/storage/*
+!/storage/.gitkeep
+/public_html/uploads/
+/vendor/
+/.phpunit.cache
+/*.zip

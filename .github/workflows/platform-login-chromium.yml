@@ -1,0 +1,29 @@
+name: Platform Login Chromium Browser Diagnostic
+on:
+  push:
+    branches: [audit/platform-multilayer-20261017]
+    paths:
+      - '.github/workflows/platform-login-chromium.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  browser-login-session:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install isolated browser driver
+        run: |
+          npm install --no-save playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Safe synthetic GET-to-POST using browser engine
+        run: node tools/platform_login_chromium.cjs
+      - name: Save sanitized diagnostic
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: platform-login-chromium-report
+          path: platform-login-chromium-report.json
+          if-no-files-found: ignore
+          retention-days: 7

@@ -1,0 +1,33 @@
+<?php
+declare(strict_types=1);
+$root=dirname(__DIR__);$fail=[];
+$check=static function(bool $ok,string $name)use(&$fail):void{echo ($ok?'PASS':'FAIL')." — ".$name."\n";if(!$ok)$fail[]=$name;};
+$app=file_get_contents($root.'/app/App.php');
+$service=file_get_contents($root.'/app/Application/Identity/DirectLogin.php');
+$repository=file_get_contents($root.'/app/Infrastructure/Identity/IdentityRepository.php');
+$oauth=file_get_contents($root.'/app/Core/OAuth.php');
+$check(str_contains($app,'DirectLogin::authenticate('),'thin HTTP controller delegates use case');
+$check(str_contains($service,'TenantBoundaryPolicy::denyReason('),'use case checks domain policy');
+$check(str_contains($service,'activeMemberships('),'use case scopes membership');
+$check(str_contains($repository,'AND organisation_guid=?'),'repository only loads tenant org memberships');
+$check(str_contains($oauth,'AND used_at IS NULL AND expires_at>NOW(6)'),'atomic one-time OAuth code exchange');
+$check(str_contains($oauth,'!==1'),'OAuth rejects already used code');
+$resolver=file_get_contents($root.'/app/Application/Routing/ResolveDomain.php');
+$routingPolicy=file_get_contents($root.'/app/Domain/Routing/DomainResolutionPolicy.php');
+$check(str_contains($app,'ResolveDomain::execute('),'controller delegates domain resolver');
+$check(str_contains($resolver,'DomainResolutionPolicy::denyReason('),'domain use case guards policy');
+$check(str_contains($routingPolicy,"'application_product_guid'")&&str_contains($routingPolicy,"'tenant_organisation_guid'"),'domain policy enforces relational binding');
+$check(!str_contains($app,"RedisStore::getJson('domain:"),'domain response revalidates rather than trusts stale cache');
+$limiter=file_get_contents($root.'/app/Core/RateLimiter.php');
+$check(str_contains($limiter,'ON DUPLICATE KEY UPDATE')&&str_contains($limiter,'hit_count=IF('),'database rate-limit fallback uses atomic upsert');
+$check(!str_contains($limiter,'Store::one('),'rate limiter has no pre-write DB read race');
+$serviceAuth=file_get_contents($root.'/app/Core/ServiceAuth.php');
+$check(str_contains($serviceAuth,'function requireTenantScope('),'tenant-bound machine auth gateway exists');
+$check(str_contains($serviceAuth,'product_tenants WHERE product_tenant_guid=? AND status="ACTIVE"'),'machine gateway checks active tenant product');
+foreach(["tenant.read","access.read","entitlements.read","usage.write"] as $scope)
+    $check(str_contains($app,"requireTenantScope('$scope'"),"HTTP route $scope enforces product scope");
+$check(!is_file($root.'/config/config.php'),'repository has no runtime secrets');
+$check(!is_file($root.'/storage/install.lock'),'repository has no installation lock');
+$manifest=json_decode(file_get_contents($root.'/manifest.json'),true);
+$check(($manifest['version']??'')===trim(file_get_contents($root.'/VERSION')),'manifest matches VERSION');
+exit($fail?1:0);

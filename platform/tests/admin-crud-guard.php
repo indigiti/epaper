@@ -7,6 +7,7 @@ $check(str_contains($up,'ePaper SaaS'),'existing installation ePaper SaaS rename
 $check(str_contains($installer,'ePaper SaaS'),'fresh install ePaper SaaS seed');
 $check(str_contains($installer,'"EPAPER"'),'EPAPER product key preserved');
 $check(str_contains($installer,'"city_epaper"'),'city_epaper application key preserved');
-$check(str_contains($app,'p.status="ACTIVE"')&&str_contains($app,'a.status="ACTIVE"')&&str_contains($app,'pt.status="ACTIVE"')&&str_contains($app,'o.status="ACTIVE"'),'domain resolver parent-status enforcement');
+$policy=file_get_contents($root.'/app/Domain/Routing/DomainResolutionPolicy.php');$repository=file_get_contents($root.'/app/Infrastructure/Routing/DomainRepository.php');
+$check(str_contains($app,'ResolveDomain::execute(')&&str_contains($policy,"'organisation_status'")&&str_contains($policy,"'product_status'")&&str_contains($policy,"'application_status'")&&str_contains($policy,"'tenant_status'")&&str_contains($repository,'JOIN product_tenants')&&str_contains($repository,'JOIN organisations'),'domain resolver parent-status enforcement');
 $check(!is_file($root.'/config/config.php'),'release contains no production config');
 exit($fail?1:0);

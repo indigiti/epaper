@@ -1,4 +1,4 @@
-# Digiti Platform v1.0.0
+# Digiti Platform v1.0.2
 
 Digiti Platform is the shared SaaS control plane intended for `platform.digiti.in`. It is deliberately separate from City ePaper and future product databases.
 
@@ -11,6 +11,12 @@ Digiti Platform is the shared SaaS control plane intended for `platform.digiti.i
 - Domain layer: global hostname uniqueness, DNS verification, domain → product/application/tenant routing, Redis domain cache, manual edge activation and optional Cloudflare Custom Hostname provider.
 - Billing foundation: invoices, invoice items, payments, immutable attempts, refunds, webhook receipt/deduplication, Manual/Razorpay/Stripe provider adapters and reconciliation queue hooks.
 - Operations: worker, scheduler, outbox, jobs, service health, platform error/audit views.
+
+## Layered architecture — migration in progress
+
+The direct-login vertical slice uses `app/Application/Identity/DirectLogin.php`, `app/Domain/Identity/TenantBoundaryPolicy.php`, `app/Infrastructure/Identity/IdentityRepository.php` and a thin `App.php` HTTP controller. Other existing routes are not yet decomposed.
+
+**Deployment warning:** previously committed runtime secrets remain exposed in history until verified rotation, revocation and coordinated history cleanup. No source branch is production-approved. See `docs/architecture/MULTILAYER-FOUNDATION.md`.
 
 ## Cloudways layout
 

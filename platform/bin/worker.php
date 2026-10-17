@@ -5,8 +5,37 @@ use Digiti\Domain\EdgeProviderFactory;
 $loop=in_array('--loop',$argv,true);$worker=gethostname().':'.getmypid();
 function processOne(string $worker): bool {
     $job=Store::one('SELECT job_guid,job_type,payload FROM jobs WHERE status="QUEUED" AND available_at<=NOW() ORDER BY available_at,created_at LIMIT 1');
-    if($job){$claimed=Store::exec('UPDATE jobs SET status="RUNNING",locked_at=NOW(6),locked_by=?,attempts=attempts+1 WHERE job_guid=? AND status="QUEUED"',[$worker,Uuid::toBinary($job['job_guid'])]);if(!$claimed)return true;try{$payload=json_decode($job['payload']?:'{}',true)?:[];switch($job['job_type']){case'domain.revalidate':$domains=Store::all('SELECT domain_guid,hostname,verification_token,status,edge_metadata FROM domains WHERE status NOT IN ("SUSPENDED") ORDER BY last_checked_at IS NULL DESC,last_checked_at ASC LIMIT 100');foreach($domains as$d){$dns=DomainTools::verifyDns($d['hostname'],$d['verification_token']);$status=$dns['verified']?$d['status']:'REVALIDATION_FAILED';$edge=json_decode($d['edge_metadata']?:'{}',true)?:[];if($dns['verified']&&in_array($d['status'],['ROUTING_VALID','SSL_PROVISIONING','ACTIVE'],true)){try{$edge=EdgeProviderFactory::make()->status($d['hostname'],$edge);if(($edge['status']??'')==='ACTIVE')$status='ACTIVE';elseif($d['status']!=='ACTIVE')$status=$edge['status']??'SSL_PROVISIONING';}catch(Throwable$e){$edge['status_error']=$e->getMessage();}}Store::exec('UPDATE domains SET status=?,dns_metadata=?,edge_metadata=?,last_checked_at=NOW(6),updated_at=NOW(6) WHERE domain_guid=?',[$status,json_encode($dns),json_encode($edge),Uuid::toBinary($d['domain_guid'])]);RedisStore::del('domain:'.$d['hostname']);}break;case'payment.reconcile':$payments=Store::all('SELECT payment_guid FROM payments WHERE status IN ("PROCESSING","PENDING") AND updated_at<DATE_SUB(NOW(),INTERVAL 5 MINUTE) LIMIT 100');foreach($payments as$pay)Store::exec('UPDATE payments SET updated_at=NOW(6) WHERE payment_guid=?',[Uuid::toBinary($pay['payment_guid'])]);break;case'notification.dispatch':break;default:break;}Store::exec('UPDATE jobs SET status="COMPLETED",completed_at=NOW(6),locked_at=NULL,locked_by=NULL WHERE job_guid=?',[Uuid::toBinary($job['job_guid'])]);}catch(Throwable$e){Store::exec('UPDATE jobs SET status=IF(attempts>=5,"FAILED","QUEUED"),available_at=DATE_ADD(NOW(),INTERVAL 5 MINUTE),last_error=?,locked_at=NULL,locked_by=NULL WHERE job_guid=?',[substr($e->getMessage(),0,1000),Uuid::toBinary($job['job_guid'])]);}return true;}
+    if($job){$claimed=Store::exec('UPDATE jobs SET status="RUNNING",locked_at=NOW(6),locked_by=?,attempts=attempts+1 WHERE job_guid=? AND status="QUEUED"',[$worker,Uuid::toBinary($job['job_guid'])]);if(!$claimed)return true;try{$payload=json_decode($job['payload']?:'{}',true)?:[];switch($job['job_type']){case'domain.revalidate':\Digiti\Application\Routing\RevalidateDomains::run();break;case'payment.reconcile':$payments=Store::all('SELECT payment_guid FROM payments WHERE status IN ("PROCESSING","PENDING") AND updated_at<DATE_SUB(NOW(),INTERVAL 5 MINUTE) LIMIT 100');foreach($payments as$pay)Store::exec('UPDATE payments SET updated_at=NOW(6) WHERE payment_guid=?',[Uuid::toBinary($pay['payment_guid'])]);break;case'notification.dispatch':break;default:break;}Store::exec('UPDATE jobs SET status="COMPLETED",completed_at=NOW(6),locked_at=NULL,locked_by=NULL WHERE job_guid=?',[Uuid::toBinary($job['job_guid'])]);}catch(Throwable$e){Store::exec('UPDATE jobs SET status=IF(attempts>=5,"FAILED","QUEUED"),available_at=DATE_ADD(NOW(),INTERVAL 5 MINUTE),last_error=?,locked_at=NULL,locked_by=NULL WHERE job_guid=?',[substr($e->getMessage(),0,1000),Uuid::toBinary($job['job_guid'])]);}return true;}
     $event=Store::one('SELECT outbox_event_guid,event_type,payload FROM outbox_events WHERE status="PENDING" AND available_at<=NOW() ORDER BY available_at,created_at LIMIT 1');
-    if($event){$claimed=Store::exec('UPDATE outbox_events SET status="PROCESSING",attempts=attempts+1 WHERE outbox_event_guid=? AND status="PENDING"',[Uuid::toBinary($event['outbox_event_guid'])]);if(!$claimed)return true;try{Store::exec('UPDATE outbox_events SET status="PROCESSED",processed_at=NOW(6) WHERE outbox_event_guid=?',[Uuid::toBinary($event['outbox_event_guid'])]);}catch(Throwable$e){Store::exec('UPDATE outbox_events SET status=IF(attempts>=5,"FAILED","PENDING"),available_at=DATE_ADD(NOW(),INTERVAL 5 MINUTE),last_error=? WHERE outbox_event_guid=?',[substr($e->getMessage(),0,1000),Uuid::toBinary($event['outbox_event_guid'])]);}return true;}return false;
+    if($event){
+        $id=Uuid::toBinary($event['outbox_event_guid']);
+        $claimed=Store::exec('UPDATE outbox_events SET status="PROCESSING",attempts=attempts+1,available_at=DATE_ADD(NOW(6),INTERVAL 15 MINUTE) WHERE outbox_event_guid=? AND status="PENDING"',[$id]);
+        if(!$claimed)return true;
+        try{
+            $payload=json_decode((string)$event['payload'],true,512,JSON_THROW_ON_ERROR);
+            if(!is_array($payload))throw new \RuntimeException('Invalid outbox payload');
+            switch($event['event_type']){
+                case 'payment.webhook.received':
+                    $webhookGuid=$payload['webhook_event_guid']??'';
+                    if(!is_string($webhookGuid)||!Uuid::isValid($webhookGuid))
+                        throw new \RuntimeException('Webhook event identifier missing');
+                    \Digiti\Application\Billing\ReconcileWebhook::execute($event['outbox_event_guid'],$webhookGuid);
+                    break;
+                case 'cache.invalidate':
+                    \Digiti\Infrastructure\Integration\InvalidationDelivery::send($payload);
+                    // Only acknowledge after an authenticated receiver response.
+                    $count=Store::exec('UPDATE outbox_events SET status="PROCESSED",processed_at=NOW(6) WHERE outbox_event_guid=? AND status="PROCESSING"',[Uuid::toBinary($event['outbox_event_guid'])]);
+                    if($count!==1)throw new \RuntimeException('Invalidation outbox lease lost');
+                    break;
+                default:
+                    // Unsupported events must not be falsely acknowledged as delivered.
+                    throw new \RuntimeException('No outbox handler for event type: '.$event['event_type']);
+            }
+        }catch(\Throwable $e){
+            Store::exec('UPDATE outbox_events SET status=IF(attempts>=5,"FAILED","PENDING"),available_at=DATE_ADD(NOW(6),INTERVAL 5 MINUTE),last_error=? WHERE outbox_event_guid=? AND status="PROCESSING"',[substr($e->getMessage(),0,1000),$id]);
+        }
+        return true;
+    }
+    return false;
 }
 do{$worked=processOne($worker);file_put_contents($root.'/storage/worker-heartbeat.json',json_encode(['worker'=>$worker,'at'=>gmdate('c')]),LOCK_EX);if($loop&&!$worked)sleep(2);}while($loop);
