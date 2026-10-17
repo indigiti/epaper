@@ -1,3 +1,4 @@
+# Incident recheck after Cloudways Platform missing private config report (Oct 18, 2026).
 name: Live Domain Read-only Smoke (diagnostics only)
 
 # Explicitly named public domains only. A single run is triggered when this
