@@ -21,7 +21,7 @@ final class ManageDomain
             if(!Store::one('SELECT product_tenant_guid FROM product_tenants WHERE product_tenant_guid=? FOR UPDATE',[$tenant]))
                 throw new \DomainException('Product tenant not found');
             $row=Store::one('SELECT status,domain_type,product_tenant_guid FROM domains WHERE domain_guid=? FOR UPDATE',[$bin]);
-            if(!$row||$row['product_tenant_guid']!==$tenant)throw new \DomainException('Domain changed during edit');
+            if(!$row||$row['product_tenant_guid']!==Uuid::fromBinary($tenant))throw new \DomainException('Domain changed during edit');
             if($row['status']==='REMOVED')throw new \DomainException('Removed domain cannot be edited');
             $status=DomainLifecyclePolicy::editableStatus($row['status'],(string)($input['status']??$row['status']));
             $type=(string)($input['domain_type']??$row['domain_type']);
