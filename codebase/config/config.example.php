@@ -8,6 +8,7 @@ return [
  'platform'=>[
    'url'=>'https://platform.digiti.in','product_key'=>'EPAPER','application_key'=>'city_epaper','application_guid'=>'','oauth_client_id'=>'','service_token'=>'','default_tenant_guid'=>'','default_organisation_guid'=>'', // diagnostics only; never an authorization fallback
    'domain_cache_ttl'=>15,'tenant_cache_ttl'=>15,'access_cache_ttl'=>10,'local_tenant_sync_ttl'=>600,
+   'invalidation_secret'=>'', // shared 32+ character private HMAC key; never commit actual value
  ],
  'auth'=>[
    'admin_roles'=>['OWNER','ADMIN','PUBLISHER_ADMIN','EDITOR','OPERATOR'],
