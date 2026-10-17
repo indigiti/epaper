@@ -31,6 +31,21 @@ final class CacheInvalidationOutbox
         return $created;
     }
 
+    /** Broadcast an EPAPER shared-feature policy change to all ePaper tenants. */
+    public static function stageForPlatformWideFeature(): void
+    {
+        $rows=Store::all('SELECT pt.product_tenant_guid FROM product_tenants pt JOIN products p ON p.product_guid=pt.product_guid WHERE p.product_key="EPAPER"');
+        foreach($rows as $row)self::stageForTenant($row['product_tenant_guid']);
+    }
+
+    /** Invalidate tenant authorizations influenced by a global identity change. */
+    public static function stageForUser(string $userGuid): void
+    {
+        if(!Uuid::isValid($userGuid))throw new \InvalidArgumentException('Invalid user');
+        $rows=Store::all('SELECT DISTINCT pt.product_tenant_guid FROM memberships m JOIN product_tenants pt ON pt.organisation_guid=m.organisation_guid JOIN products p ON p.product_guid=pt.product_guid AND p.product_key="EPAPER" WHERE m.user_guid=?',[Uuid::toBinary($userGuid)]);
+        foreach($rows as $row)self::stageForTenant($row['product_tenant_guid']);
+    }
+
     /** Stage every ePaper tenant touched by an organisation, product or application. */
     public static function stageForParent(string $column,string $guid): void
     {
