@@ -35,6 +35,9 @@ namespace {
     use EpaperSaas\Services\{PlatformAccess,PlatformClient};
     use EpaperSaas\Core\RedisStore;
     $errors=[];
+    $resetMemo=static function():void {
+        (new \ReflectionClass(PlatformAccess::class))->getProperty('memo')->setValue(null,[]);
+    };
     $check=static function(bool $ok,string $label)use(&$errors):void{echo ($ok?'PASS':'FAIL')." — $label\n";if(!$ok)$errors[]=$label;};
 
     $check(PlatformAccess::verifiedState(['ok'=>true,'service_access_state'=>'FULL'])==='FULL','signed-in active state permitted');
@@ -51,11 +54,14 @@ namespace {
     $check((RedisStore::$writes[0][2]??0)===10,'cached access TTL capped at configured 10s');
     $check(str_starts_with(RedisStore::$writes[0][0]??'','access:v2:'),'new cache namespace avoids legacy keys');
 
+    $resetMemo();
     RedisStore::$cached=['_format'=>'access-v2','state'=>'FULL','valid_until'=>time()-1];
     PlatformClient::$fail=true;
     $check(PlatformAccess::currentState()==='UNAVAILABLE','expired grant and Platform failure fail closed');
+    $resetMemo();
     RedisStore::$cached=null;
     $check(PlatformAccess::currentState()==='UNAVAILABLE','no cached grant and Platform failure fail closed');
+    $resetMemo();
     RedisStore::$cached=['_format'=>'access-v2','state'=>'INVALID','valid_until'=>time()+10];
     $check(PlatformAccess::currentState()==='UNAVAILABLE','tampered cached state not granted');
     exit($errors?1:0);
