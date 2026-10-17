@@ -86,6 +86,17 @@ $receipt->receive('stripe',$secondEvt,json_encode($makeEvent($secondEvt,$secondR
 $check(ReconcileWebhook::execute($secondOutbox,$secondWebhook)==='REVIEW_REQUIRED','second attempt against paid invoice goes to review');
 $check(Store::value('SELECT status FROM payments WHERE payment_guid=?',[$bin($secondPayment)])==='PENDING','second payment remains unsettled by Platform');
 
+// Invoice void must be an atomic legal state transition, never pay-to-void.
+$voidPaidDenied=false;
+try{\Digiti\Application\Billing\VoidInvoice::execute($invoice);}
+catch(RuntimeException){$voidPaidDenied=true;}
+$check($voidPaidDenied,'paid invoice cannot be voided after settlement');
+$check(Store::value('SELECT status FROM invoices WHERE invoice_guid=?',[$bin($invoice)])==='PAID','paid invoice remains immutable');
+$openInvoice=$id();
+(new \Digiti\Infrastructure\Billing\InvoiceRepository())->create($tenant,2500,$openInvoice,'CI-VOID-OPEN-002');
+\Digiti\Application\Billing\VoidInvoice::execute($openInvoice);
+$check(Store::value('SELECT status FROM invoices WHERE invoice_guid=?',[$bin($openInvoice)])==='VOID','open invoice can be voided atomically');
+
 // Recover a crashed processing lease without pretending the webhook was processed.
 $lease=$id();
 Store::exec('INSERT INTO outbox_events(outbox_event_guid,event_type,payload,status,attempts,available_at,created_at) VALUES(?,"payment.webhook.received",?,"PROCESSING",2,DATE_SUB(NOW(6),INTERVAL 1 MINUTE),NOW(6))',[$bin($lease),'{}']);
