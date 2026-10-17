@@ -48,3 +48,25 @@ At HEAD the current checked-out source loses approximately 405.6 MiB of tracked 
 - `public_html/uploads/branding/` — current publication logos and favicons remain tracked until a tested public branding migration.
 - `vendor/` — Composer-installed dependencies remain bundled as before pending a separately proven Cloudways artifact/install workflow.
 - `database/`, `app/`, `bin/`, `mobile-android/` and `release/` — unchanged.
+
+
+## Operator-reported backup done; restore verification pending
+
+As of 17 October 2026, the operator reported that a Cloudways backup has been created. This is a **user-reported milestone**, not a remotely inspected Cloudways backup. No verified MariaDB/media restore or deployment rehearsal has been supplied yet.
+
+An optional **read-only** integrity comparator is now available:
+
+1. Locate the precise, frozen content tree inside the completed backup, especially \`storage/media\`, \`storage/uploads\`, \`storage/clips\` (and optional \`cache\`, \`logs\`).
+2. On a private system with access to the extracted backup tree, generate the backup inventory:
+
+       php bin/restore-verification.php --storage=/private/backup/extracted/storage > /private/backup-storage-inventory.json
+
+3. After restoring to a **separate isolated staging installation**, compare the restored media with the backup inventory:
+
+       php bin/restore-verification.php --storage=/private/staging/storage --compare=/private/backup-storage-inventory.json
+
+4. The comparison checks each relative file path and its SHA-256 content digest, count and total bytes without printing user filenames or hashes individually. Media, source PDFs and clips must match; caches/logs may differ. **This does not verify database consistency**, nor source/PDF references stored in MariaDB, Reader behavior, encrypted offline licenses, permissions, webroot, worker services or the actual deployment delete semantics.
+5. Independently restore and verify MariaDB row/edition counts and links to media, sample pages, clippings, offline entitlements, and a synthetic staged publication. Validate the intended Cloudways deployment process against this replica, proving that untracked runtime content survives \`git pull\`, \`rsync --delete\`, release activation and rollback.
+6. Report the sign-off in a private operator record with the backup ID, snapshot timestamp, restore time, database and media checks, owner and rollback evidence. Do not paste sensitive locations or raw backup files into a public PR.
+
+The actual staging restore and cutover remain **NOT VERIFIED** until executed and evidenced.
