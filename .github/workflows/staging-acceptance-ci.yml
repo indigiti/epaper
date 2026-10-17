@@ -105,6 +105,20 @@ jobs:
           server_pid=$!
           trap 'kill "$server_pid" 2>/dev/null || true' EXIT
           python3 tools/test_invalidation_http.py
+          # Synthetic GitHub runner timing only: not a Cloudways performance claim.
+          python3 tools/staging_http_benchmark.py \
+            --base-url http://127.0.0.1:8095 --expected-host 127.0.0.1 \
+            --confirm-isolated-staging --paths /health/live \
+            --samples 25 --concurrency 2 --max-p95-ms 2000 --max-error-percent 0 \
+            --output /tmp/epdi-ci-loopback-timing.json
+      - name: Retain synthetic loopback timing (not a live staging benchmark)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: epaper-ci-loopback-http-timings
+          path: /tmp/epdi-ci-loopback-timing.json
+          if-no-files-found: ignore
+          retention-days: 7
       - name: Validate one durable receipt despite HTTP replay
         run: |
           mysql --host=127.0.0.1 --port=3306 --user=epaper_receiver_ci --password=ci_fixture_pass_only epaper_receiver_ci -N -e "SELECT COUNT(*) FROM ep_system_state WHERE state_key LIKE 'platform-invalidation:%'" | grep -qx '1'
