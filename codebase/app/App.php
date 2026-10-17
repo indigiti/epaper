@@ -8,6 +8,9 @@ final class App
     {
         $method=$_SERVER['REQUEST_METHOD']??'GET';$path=parse_url($_SERVER['REQUEST_URI']??'/',PHP_URL_PATH)?:'/';if($path==='/admin/')$path='/admin';
         if($path==='/login'||$path==='/mobile-login'||$path==='/desktop-login'||$path==='/auth/callback'||$path==='/logout'||str_starts_with($path,'/admin')||str_starts_with($path,'/account')||(str_starts_with($path,'/api/v1/')||str_starts_with($path,'/api/v2/')))Http::privateNoStore();
+        // Control-plane receiver must work even when its tenant/domain was suspended.
+        if($path==='/internal/v1/platform/cache-invalidate')
+            \EpaperSaas\Services\PlatformInvalidation::handle();
         if($path==='/health/live')Http::json(['ok'=>true,'status'=>'LIVE','product'=>'ePaper SaaS','version'=>$this->version(),'request_guid'=>Http::requestGuid()]);
         if($path==='/health/ready')$this->healthReady();
         if($path==='/health/platform')$this->platformHealth();
