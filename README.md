@@ -4,6 +4,12 @@ Multi-tenant digital newspaper publishing, ePaper reading, OCR, clipping, archiv
 
 > **Release note:** The current deployed application is not certified by this repository alone. Security remediation remains in draft [PR #1](https://github.com/indigiti/epaper/pull/1). [Security issue #2](https://github.com/indigiti/epaper/issues/2) requires live staging, verified recovery backup, credential rotation and Git-history cleanup before production promotion.
 
+## Find your way around the cleaned repository
+
+The [application source directory](codebase/) now has **39 top-level entries instead of 209**. It contains the actual PHP application and its supporting directories, not hundreds of duplicated historical notes. Use [source navigation](codebase/README.md) for components and [the archived old-path index](codebase/docs/releases/LEGACY-ROOT-INDEX.md) for former root-level filenames.
+
+This cleanup is staged in [PR #18](https://github.com/indigiti/epaper/pull/18) on top of #17. It is deliberately not merged to `main` while deployment safety and exposed-credential remediation remain open.
+
 ## Start here
 
 - [Documentation and functional area guide](codebase/docs/README.md)
