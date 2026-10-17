@@ -19,27 +19,30 @@ final class DomainResolver
     }
     public static function resolve(): array
     {
-        $host=Http::host();$cache=RedisStore::getJson('domain:'.$host)?:self::fileCacheGet('domain:'.$host);if($cache)return self::activate($cache,$host,true);
+        $host=Http::host();$cache=RedisStore::getJson('domain:v2:'.$host)?:self::fileCacheGet('domain:v2:'.$host);if($cache)return self::activate($cache,$host,true);
         $canonical=parse_url((string)Config::get('app.url'),PHP_URL_HOST);$fallback=(string)Config::get('platform.default_tenant_guid','');
-        try{$d=PlatformClient::instance()->resolveDomain($host);}catch(\Throwable$e){if($fallback&&$host===$canonical){$info=self::remoteTenant($fallback);$d=['ok'=>true,'domain_guid'=>null,'organisation_guid'=>$info['organisation_guid']??(string)Config::get('platform.default_organisation_guid'),'product_guid'=>$info['product_guid']??null,'product_key'=>$info['product_key']??'EPAPER','application_guid'=>(string)Config::get('platform.application_guid'),'application_key'=>Config::get('platform.application_key','city_epaper'),'product_tenant_guid'=>$fallback,'hostname'=>$host,'status'=>'CANONICAL_FALLBACK','_tenant_info'=>$info];}else throw$e;}
+        try{$d=PlatformClient::instance()->resolveDomain($host);}catch(\Throwable$e){if($fallback&&$host===$canonical){$info=self::remoteTenant($fallback);if(($info['status']??'')!=='ACTIVE')throw new \RuntimeException('Canonical fallback tenant is not active');$d=['ok'=>true,'domain_guid'=>null,'organisation_guid'=>$info['organisation_guid']??(string)Config::get('platform.default_organisation_guid'),'product_guid'=>$info['product_guid']??null,'product_key'=>$info['product_key']??'EPAPER','application_guid'=>(string)Config::get('platform.application_guid'),'application_key'=>Config::get('platform.application_key','city_epaper'),'product_tenant_guid'=>$fallback,'hostname'=>$host,'status'=>'CANONICAL_FALLBACK','_tenant_info'=>$info];}else throw$e;}
         if(($d['product_key']??'')!=='EPAPER')throw new \RuntimeException('Domain is not registered for EPAPER');
         $tenant=(string)($d['product_tenant_guid']??'');if($tenant==='' )throw new \RuntimeException('Resolved domain has no product tenant');
         if(empty($d['_tenant_info'])){$info=self::tenantInfo($tenant,false);if($info)$d['_tenant_info']=$info;}
-        $domainTtl=max(60,(int)Config::get('platform.domain_cache_ttl',600));RedisStore::setJson('domain:'.$host,$d,$domainTtl);self::fileCacheSet('domain:'.$host,$d,$domainTtl);
+        $domainTtl=max(5,min(30,(int)Config::get('platform.domain_cache_ttl',15)));RedisStore::setJson('domain:v2:'.$host,$d,$domainTtl);self::fileCacheSet('domain:v2:'.$host,$d,$domainTtl);
         return self::activate($d,$host,false);
     }
     private static function activate(array $d,string $host,bool $cached): array
     {
         $tenant=(string)($d['product_tenant_guid']??'');if(!$tenant)throw new \RuntimeException('Resolved domain has no product tenant');
+        if(($d['product_key']??'')!=='EPAPER')throw new \RuntimeException('Domain is not registered for EPAPER');
+        if(!in_array((string)($d['status']??''),['ACTIVE','ROUTING_VALID','SSL_PROVISIONING','CANONICAL_FALLBACK'],true))throw new \RuntimeException('Domain is not active');
         $info=is_array($d['_tenant_info']??null)?$d['_tenant_info']:self::tenantInfo($tenant,true);
+        if(($info['status']??'')!=='ACTIVE')throw new \RuntimeException('Publisher tenant is not active');
         self::ensureTenant($tenant,$d,$info,$cached);
         $ctx=['request_guid'=>Http::requestGuid(),'correlation_guid'=>Http::correlationGuid(),'hostname'=>$host,'domain_guid'=>$d['domain_guid']??null,'organisation_guid'=>$d['organisation_guid']??($info['organisation_guid']??null),'product_guid'=>$d['product_guid']??($info['product_guid']??null),'application_guid'=>$d['application_guid']??null,'tenant_guid'=>$tenant,'tenant_name'=>$info['display_name']??$info['organisation_name']??'ePaper SaaS','domain_cached'=>$cached];RequestContext::set($ctx);return$ctx;
     }
     private static function tenantInfo(string $tenant,bool $allowLocal): array
     {
-        $ttl=max(60,(int)Config::get('platform.tenant_cache_ttl',900));$cached=RedisStore::getJson('tenant-meta:'.$tenant)?:self::fileCacheGet('tenant-meta:'.$tenant);if($cached)return$cached;
-        if($allowLocal){$local=self::localTenant($tenant);if($local){RedisStore::setJson('tenant-meta:'.$tenant,$local,$ttl);self::fileCacheSet('tenant-meta:'.$tenant,$local,$ttl);return$local;}}
-        try{$info=self::remoteTenant($tenant);if($info){RedisStore::setJson('tenant-meta:'.$tenant,$info,$ttl);self::fileCacheSet('tenant-meta:'.$tenant,$info,$ttl);}return$info;}catch(\Throwable){return $allowLocal?(self::localTenant($tenant)?:[]):[];}
+        $ttl=max(5,min(30,(int)Config::get('platform.tenant_cache_ttl',15)));$cached=RedisStore::getJson('tenant-meta:v2:'.$tenant)?:self::fileCacheGet('tenant-meta:v2:'.$tenant);if($cached)return$cached;
+        if($allowLocal){$local=self::localTenant($tenant);if($local){RedisStore::setJson('tenant-meta:v2:'.$tenant,$local,$ttl);self::fileCacheSet('tenant-meta:v2:'.$tenant,$local,$ttl);return$local;}}
+        try{$info=self::remoteTenant($tenant);if($info){RedisStore::setJson('tenant-meta:v2:'.$tenant,$info,$ttl);self::fileCacheSet('tenant-meta:v2:'.$tenant,$info,$ttl);}return$info;}catch(\Throwable){return $allowLocal?(self::localTenant($tenant)?:[]):[];}
     }
     private static function remoteTenant(string $tenant): array
     {
