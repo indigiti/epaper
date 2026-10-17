@@ -75,7 +75,7 @@ $lease=$id();
 Store::exec('INSERT INTO outbox_events(outbox_event_guid,event_type,payload,status,attempts,available_at,created_at) VALUES(?,"payment.webhook.received",?,"PROCESSING",2,DATE_SUB(NOW(6),INTERVAL 1 MINUTE),NOW(6))',[$bin($lease),'{}']);
 $exhausted=$id();
 Store::exec('INSERT INTO outbox_events(outbox_event_guid,event_type,payload,status,attempts,available_at,created_at) VALUES(?,"payment.webhook.received",?,"PROCESSING",5,DATE_SUB(NOW(6),INTERVAL 1 MINUTE),NOW(6))',[$bin($exhausted),'{}']);
-$recovered=\\Digiti\\Application\\Operations\\QueueLeaseRecovery::recover();
+$recovered=\Digiti\Application\Operations\QueueLeaseRecovery::recover();
 $check($recovered['outbox']>=2,'expired in-flight outbox receipts recovered');
 $check(Store::value('SELECT status FROM outbox_events WHERE outbox_event_guid=?',[$bin($lease)])==='PENDING','crashed receipt restored for retry');
 $check(Store::value('SELECT status FROM outbox_events WHERE outbox_event_guid=?',[$bin($exhausted)])==='FAILED','attempt limit moves receipt to failed queue');
