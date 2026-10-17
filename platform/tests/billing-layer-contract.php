@@ -1,0 +1,20 @@
+<?php
+declare(strict_types=1);
+$root=dirname(__DIR__);$failed=[];
+$check=static function(bool $ok,string $name)use(&$failed):void{echo ($ok?'PASS':'FAIL')." — $name\n";if(!$ok)$failed[]=$name;};
+$app=file_get_contents($root.'/app/App.php');
+$worker=file_get_contents($root.'/bin/worker.php');
+$ingress=file_get_contents($root.'/app/Application/Billing/WebhookIngress.php');
+$receipt=file_get_contents($root.'/app/Infrastructure/Billing/WebhookRepository.php');
+$reconcile=file_get_contents($root.'/app/Application/Billing/ReconcileWebhook.php');
+$payments=file_get_contents($root.'/app/Infrastructure/Billing/PaymentRepository.php');
+$check(str_contains($app,'WebhookIngress::receive('),'HTTP webhook delegates to Application layer');
+$check(str_contains($ingress,'verifyWebhook(')&&str_contains($ingress,'WebhookEventPolicy::eventReference('),'verify signature before event identity');
+$check(str_contains($receipt,'Store::tx(')&&str_contains($receipt,'ON DUPLICATE KEY UPDATE')&&str_contains($receipt,'INSERT INTO outbox_events'),'receipt and outbox are atomic and deduplicated');
+$check(str_contains($worker,'ReconcileWebhook::execute('),'worker invokes reconciliation');
+$check(str_contains($worker,'No outbox handler for event type'),'unhandled outbox events are not silently acknowledged');
+$check(str_contains($reconcile,'Store::tx(')&&str_contains($reconcile,"'REVIEW_REQUIRED'"),'reconciliation transaction maintains review queue');
+$check(str_contains($reconcile,'amount_minor')&&str_contains($reconcile,'product_tenant_guid')&&str_contains($reconcile,'currency'),'settlement guards amount, currency and tenant');
+$check(str_contains($payments,'FOR UPDATE')&&str_contains($payments,'finishOutbox('),'financial row locks and outbox completion in transaction');
+$check(str_contains($root.'/app/Billing/StripeProvider.php','StripeProvider.php'),'Stripe adapter available');
+exit($failed?1:0);
