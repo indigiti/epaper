@@ -107,7 +107,9 @@ final class AiEditorialReview
             foreach($kinds as$option)$html.='<option value="'.$option.'"'.($option===$kind?' selected':'').'>'.str_replace('_',' ',View::e($option)).'</option>';
             $html.='</select></label><label>OCR text<textarea name="text" maxlength="5000">'.View::e($text).'</textarea></label><div class="ai-fields">';
             foreach(['x1','y1','x2','y2'] as$coord)$html.='<label>'.strtoupper($coord).'<input type="number" name="'.$coord.'" min="0" max="'.(str_starts_with($coord,'x')?$w:$h).'" required value="'.(int)($b[$coord]??0).'"></label>';
-            $html.='</div><button class="btn ghost" type="submit">Save correction</button></form>';
+            $group=(string)($saved['article_group']??'');
+            $readingOrder=(int)($saved['reading_order']??($count+1));
+            $html.='</div><p><label>Article group (same key links columns)<input name="article_group" maxlength="40" pattern="[A-Za-z0-9_-]*" value="'.View::e($group).'" placeholder="e.g. story-1"></label> <label>Reading position<input type="number" name="reading_order" min="1" max="4096" value="'.$readingOrder.'"></label></p><button class="btn ghost" type="submit">Save correction</button></form>';
             $count++;
         }
         $html.='</div></div></section>';
@@ -223,7 +225,11 @@ HTML;
                 }
                 if(!($bbox['x1']>=0&&$bbox['y1']>=0&&$bbox['x2']<=(int)$row['width']&&$bbox['y2']<=(int)$row['height']
                     &&$bbox['x1']<$bbox['x2']&&$bbox['y1']<$bbox['y2']))return 'INVALID_BOUNDARY';
-                $edit['regions'][$id]=['kind'=>$kind,'text'=>$content,'bbox_px'=>$bbox];
+                $group=trim((string)($_POST['article_group']??''));
+                if(strlen($group)>40||($group!==''&&!preg_match('/^[A-Za-z0-9_-]+$/',$group)))return 'INVALID_STORY_GROUP';
+                $order=filter_var($_POST['reading_order']??null,FILTER_VALIDATE_INT,['options'=>['min_range'=>1,'max_range'=>4096]]);
+                if($order===false)return 'INVALID_READING_ORDER';
+                $edit['regions'][$id]=['kind'=>$kind,'text'=>$content,'bbox_px'=>$bbox,'article_group'=>$group,'reading_order'=>$order];
                 $count=Store::exec('UPDATE ep_ai_page_candidates SET editor_json=?,status="PENDING",reviewed_by_user_guid=NULL,reviewed_at=NULL,version=version+1,updated_at=NOW(6) WHERE tenant_guid=? AND page_guid=? AND version=?',[
                     json_encode($edit,JSON_UNESCAPED_UNICODE|JSON_THROW_ON_ERROR),
                     Uuid::toBinary(RequestContext::tenantGuid()),Uuid::toBinary($pageGuid),$version
