@@ -10,6 +10,8 @@ final class UsagePolicy
         if(is_int($value)||is_float($value)){
             if(!is_finite((float)$value)||abs((float)$value)>999999999)
                 throw new \InvalidArgumentException('Invalid usage quantity.');
+            if(abs((float)$value-round((float)$value,4))>0.00000001)
+                throw new \InvalidArgumentException('Usage precision exceeds four decimal places.');
             $value=sprintf('%.4F',(float)$value);
         }
         if(!is_string($value)||!preg_match('/^-?(0|[1-9][0-9]{0,8})(?:\.[0-9]{1,4})?$/D',$value))
