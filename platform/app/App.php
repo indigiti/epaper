@@ -219,7 +219,17 @@ final class App
     }
     private function consumeImpersonation(): never
     {
-        ServiceAuth::requireScope('impersonation.consume');$d=Http::bodyJson();$token=$d['token']??'';$tenantGuid=$d['product_tenant_guid']??'';$pt=Store::one('SELECT organisation_guid FROM product_tenants WHERE product_tenant_guid=? AND status="ACTIVE"',[Uuid::toBinary($tenantGuid)]);if(!$pt)Http::json(['ok'=>false,'code'=>'TENANT_NOT_FOUND'],404);$grant=Store::one('SELECT impersonation_guid,admin_guid,organisation_guid,user_guid,reason,expires_at,used_at,revoked_at FROM impersonation_grants WHERE token_hash=? LIMIT 1',[hash('sha256',$token,true)]);if(!$grant||$grant['used_at']||$grant['revoked_at']||strtotime($grant['expires_at'])<time()||$grant['organisation_guid']!==$pt['organisation_guid'])Http::json(['ok'=>false,'code'=>'IMPERSONATION_INVALID'],403);$membership=Store::one('SELECT membership_guid,organisation_guid,user_guid,role_key,status FROM memberships WHERE organisation_guid=? AND user_guid=? AND status="ACTIVE"',[Uuid::toBinary($grant['organisation_guid']),Uuid::toBinary($grant['user_guid'])]);if(!$membership)Http::json(['ok'=>false,'code'=>'MEMBERSHIP_NOT_ACTIVE'],403);Store::exec('UPDATE impersonation_grants SET used_at=NOW(6) WHERE impersonation_guid=?',[Uuid::toBinary($grant['impersonation_guid'])]);$user=Store::one('SELECT user_guid,email,display_name,status FROM platform_users WHERE user_guid=?',[Uuid::toBinary($grant['user_guid'])]);Audit::log('impersonation.consume','impersonation_grant',$grant['impersonation_guid'],'SUCCESS',['product_tenant_guid'=>$tenantGuid]);Http::json(['ok'=>true,'identity'=>['user'=>$user,'membership'=>$membership,'impersonator_admin_guid'=>$grant['admin_guid'],'reason'=>$grant['reason']]]);
+        $payload=Http::bodyJson();
+        $tenant=(string)($payload['product_tenant_guid']??'');
+        ServiceAuth::requireTenantScope('impersonation.consume',$tenant);
+        try{
+            $identity=\Digiti\Application\Security\ConsumeImpersonation::consume((string)($payload['token']??''),$tenant);
+            Http::json(['ok'=>true,'identity'=>$identity]);
+        }catch(\DomainException $e){
+            $code=$e->getMessage();
+            if(!in_array($code,['TENANT_NOT_FOUND','MEMBERSHIP_NOT_ACTIVE','IMPERSONATION_INVALID'],true))$code='IMPERSONATION_INVALID';
+            Http::json(['ok'=>false,'code'=>$code],$code==='TENANT_NOT_FOUND'?404:403);
+        }
     }
 
     private function adminSecurity(string $method): never
