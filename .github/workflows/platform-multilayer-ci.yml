@@ -1,0 +1,38 @@
+name: Digiti Platform Security and Layers
+on:
+  push:
+    branches: [main, audit/platform-multilayer-20261017]
+    paths:
+      - 'platform/**'
+      - '.github/workflows/platform-multilayer-ci.yml'
+  pull_request:
+    paths:
+      - 'platform/**'
+      - '.github/workflows/platform-multilayer-ci.yml'
+permissions:
+  contents: read
+jobs:
+  platform:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: pdo_mysql, openssl, json, curl, mbstring, intl
+          coverage: none
+      - name: PHP syntax
+        run: |
+          find platform/app platform/bin platform/public_html platform/tests -type f -name '*.php' -print0 | xargs -0 -n1 php -l > /tmp/platform-php-lint.log
+      - name: Unit, contract and release-guard checks
+        run: |
+          set -euo pipefail
+          php platform/tests/core-smoke.php
+          php platform/tests/multilayer-policy.php
+          php platform/tests/layer-contract.php
+          php platform/tests/build-guard.php
+          php platform/tests/admin-crud-guard.php
+      - name: Protected runtime files must be absent from release source
+        run: |
+          test ! -f platform/config/config.php
+          test ! -f platform/storage/install.lock
