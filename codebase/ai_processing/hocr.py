@@ -38,9 +38,12 @@ class _Words(HTMLParser):
     def __init__(self) -> None:
         super().__init__(convert_charrefs=True)
         self.stack: list[dict] = []
-        self.candidates: list[tuple[str, tuple[int, int, int, int] | None, float | None]] = []
+        self.candidates: list[tuple[str, tuple[int, int, int, int] | None, float | None, dict]] = []
         self.page_count = 0
         self.word_tags = 0
+        self.area_tags = 0
+        self.paragraph_tags = 0
+        self.line_tags = 0
         self.suppressed = 0
 
     def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
@@ -51,6 +54,20 @@ class _Words(HTMLParser):
             self.page_count += 1
             if self.page_count > 1:
                 raise OcrContractError("Only one OCR page is allowed per request")
+        # Preserve native Tesseract structural ancestry. These are candidate
+        # layout hints, never verified article boundaries.
+        area = None
+        paragraph = None
+        line = None
+        if "ocr_carea" in cls:
+            self.area_tags += 1
+            area = self.area_tags
+        if "ocr_par" in cls:
+            self.paragraph_tags += 1
+            paragraph = self.paragraph_tags
+        if cls.intersection({"ocr_line", "ocrx_line"}):
+            self.line_tags += 1
+            line = self.line_tags
         word = bool(cls.intersection({"ocrx_word", "ocr_word"}))
         if word:
             self.word_tags += 1
@@ -60,7 +77,14 @@ class _Words(HTMLParser):
             self.suppressed += 1
         if len(self.stack) >= 256:
             raise OcrContractError("hOCR nesting limit exceeded")
-        self.stack.append({"tag": tag, "word": word, "bbox": _bbox(title) if word else None,
+        scope = {}
+        if word:
+            for kind in ("area", "paragraph", "line"):
+                scope[kind] = next((frame[kind] for frame in reversed(self.stack)
+                                    if frame[kind] is not None), None)
+        self.stack.append({"tag": tag, "area": area, "paragraph": paragraph,
+                           "line": line, "scope": scope, "word": word,
+                           "bbox": _bbox(title) if word else None,
                            "confidence": _confidence(title) if word else None, "text": []})
 
     def handle_startendtag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
@@ -85,7 +109,7 @@ class _Words(HTMLParser):
                 self.suppressed -= 1
             if frame["word"]:
                 value = " ".join("".join(frame["text"]).split())
-                self.candidates.append((value, frame["bbox"], frame["confidence"]))
+                self.candidates.append((value, frame["bbox"], frame["confidence"], frame["scope"]))
         del self.stack[pos:]
 
 
@@ -115,7 +139,7 @@ def normalize_hocr(hocr: str, *, tenant_guid: str, page_guid: str,
         raise OcrContractError("No closed OCR word elements found")
     words = []
     invalid = 0
-    for value, bbox, confidence in parser.candidates:
+    for value, bbox, confidence, scope in parser.candidates:
         if not value or bbox is None:
             invalid += 1
             continue
@@ -133,6 +157,9 @@ def normalize_hocr(hocr: str, *, tenant_guid: str, page_guid: str,
                           "width": round((x2 - x1) / width, 6),
                           "height": round((y2 - y1) / height, 6)},
             "confidence": confidence,
+            "ocr_area": scope.get("area"),
+            "ocr_paragraph": scope.get("paragraph"),
+            "ocr_line": scope.get("line"),
         })
     if not words:
         raise OcrContractError("No valid OCR words within page bounds")
