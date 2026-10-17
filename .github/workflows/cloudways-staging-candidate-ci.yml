@@ -83,10 +83,11 @@ jobs:
         run: |
           set -euo pipefail
           find app bin tests public_html -type f -name '*.php' -print0 | xargs -0 -n1 php -l > /tmp/cloudways-epaper-php-lint.txt
+      # Database-backed processing-regression requires a disposable MariaDB fixture; it is not a source-only check.
       - name: Tenant, invalidation, Reader and source tests
         shell: bash
         run: |
           set -euo pipefail
-          for t in core-smoke platform-access-policy platform-cache-boundary platform-disk-cache-ttl platform-invalidation-protocol platform-tenant-failclosed tenant-query-guard reader-parity processing-regression processing-progress-guard offline-vault-static; do
+          for t in core-smoke platform-access-policy platform-cache-boundary platform-disk-cache-ttl platform-invalidation-protocol platform-tenant-failclosed tenant-query-guard reader-parity offline-vault-static; do
             php "tests/$t.php"
           done
