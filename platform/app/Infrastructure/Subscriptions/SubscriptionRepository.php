@@ -19,6 +19,7 @@ final class SubscriptionRepository
             $current=(int)Store::value('SELECT COUNT(*) FROM subscriptions WHERE product_tenant_guid=? AND status IN ("ACTIVE","PAST_DUE","GRACE_PERIOD")',[Uuid::toBinary($tenantGuid)]);
             if($current>0)throw new \DomainException('Tenant already has a current subscription; edit that subscription instead.');
             Store::exec('INSERT INTO subscriptions(subscription_guid,product_tenant_guid,plan_guid,status,billing_state,service_access_state,current_period_start,current_period_end,created_at,updated_at) VALUES(?,?,?,"ACTIVE","ACTIVE","FULL",NOW(6),DATE_ADD(NOW(6),INTERVAL 1 MONTH),NOW(6),NOW(6))',[Uuid::toBinary($newGuid),Uuid::toBinary($tenantGuid),Uuid::toBinary($planGuid)]);
+            \Digiti\Application\Integration\CacheInvalidationOutbox::stageForTenant($tenantGuid);
         });
     }
 
@@ -35,6 +36,7 @@ final class SubscriptionRepository
                 Uuid::toBinary($guid),$expectedVersion
             ]);
             if($changed!==1)throw new \DomainException('Subscription changed during update. Refresh and try again.');
+            \Digiti\Application\Integration\CacheInvalidationOutbox::stageForTenant($row['product_tenant_guid']);
             return $row['product_tenant_guid'];
         });
     }
