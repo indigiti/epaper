@@ -1,0 +1,92 @@
+name: Cloudways Flattened Staging Source CI
+on:
+  push:
+    branches:
+      - 'staging/cloudways-platform-*'
+      - 'staging/cloudways-epaper-*'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  platform-source:
+    if: startsWith(github.ref_name, 'staging/cloudways-platform-')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: pdo_mysql, mbstring, json, intl, openssl, curl
+          coverage: none
+      - name: Assert app-root layout and no packaged state
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f app/bootstrap.php
+          test -f public_html/index.php
+          test -f config/config.example.php
+          test ! -e config/config.php
+          test ! -e config/runtime.php
+          test ! -e storage/install.lock
+          test ! -e vendor
+          test ! -d public_html/uploads
+          test -f CLOUDWAYS-RELEASE-NOTICE.md
+          test ! -d platform
+          test ! -d codebase
+      - name: PHP syntax
+        run: |
+          set -euo pipefail
+          find app bin tests public_html -type f -name '*.php' -print0 | xargs -0 -n1 php -l > /tmp/cloudways-platform-php-lint.txt
+      - name: Source contracts and regression suite
+        shell: bash
+        run: |
+          set -euo pipefail
+          for t in core-smoke multilayer-policy domain-resolution-policy domain-lifecycle domain-lifecycle-contract epaper-api-contract billing-webhooks billing-layer-contract billing-money subscription-policy subscription-layer-contract tenant-lifecycle-policy tenant-layer-contract usage-policy usage-layer-contract commercial-catalog-contract performance-contract invalidation-admin-contract layer-contract build-guard admin-crud-guard; do
+            php "tests/$t.php"
+          done
+  epaper-source:
+    if: startsWith(github.ref_name, 'staging/cloudways-epaper-')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: pdo_mysql, mbstring, json, sockets, openssl, curl, fileinfo, zip
+          coverage: none
+      - name: Assert app-root layout and no packaged state
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f app/bootstrap.php
+          test -f public_html/index.php
+          test -f config/config.example.php
+          test -f composer.lock
+          test ! -e config/config.php
+          test ! -e config/runtime.php
+          test ! -e storage/installed.lock
+          test ! -d vendor
+          test ! -d public_html/uploads
+          test -f CLOUDWAYS-RELEASE-NOTICE.md
+          test ! -d platform
+          test ! -d codebase
+      - name: Reproducible Composer dependency installation on ephemeral CI runner
+        shell: bash
+        run: |
+          set -euo pipefail
+          composer validate --no-check-publish
+          composer install --no-dev --no-interaction --prefer-dist --optimize-autoloader
+      - name: PHP syntax
+        shell: bash
+        run: |
+          set -euo pipefail
+          find app bin tests public_html -type f -name '*.php' -print0 | xargs -0 -n1 php -l > /tmp/cloudways-epaper-php-lint.txt
+      - name: Tenant, invalidation, Reader and source tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          for t in core-smoke platform-access-policy platform-cache-boundary platform-disk-cache-ttl platform-invalidation-protocol platform-tenant-failclosed tenant-query-guard reader-parity processing-regression processing-progress-guard offline-vault-static; do
+            php "tests/$t.php"
+          done
