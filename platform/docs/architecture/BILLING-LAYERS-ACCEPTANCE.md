@@ -20,6 +20,7 @@
 - Unknown or unsupported provider event types, missing payments, invalid amounts/currencies and ambiguous matches become `webhook_events.processing_status=REVIEW_REQUIRED`, with a preserved reason. They are *not* represented as successful payments.
 - Admin review page `/admin/billing/webhooks` shows only safe summary data. It never renders signed raw payloads and it cannot mark invoices paid.
 - Manual invoice amounts are parsed into integer INR paise without float conversion; header and line are committed together for an active tenant.
+- Invoice voiding now delegates from Admin CRUD to `Application/Billing/VoidInvoice` and an atomic `UPDATE ... status IN ('DRAFT','OPEN')`; an invoice that became `PAID` cannot be voided on the strength of an earlier stale read.
 - Worker crashes no longer imply success. After the 15-minute processing lease the scheduler requeues or fails stale outbox work according to attempts. Redis outages use a MariaDB advisory lock for scheduler coordination.
 
 ## What is deliberately not claimed
