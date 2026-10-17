@@ -1,0 +1,6 @@
+# GitHub presentation: reduce vendor/generated data in language and diff views.
+codebase/vendor/** linguist-vendored=true -diff
+codebase/storage/** linguist-generated=true -diff
+codebase/public_html/uploads/** linguist-generated=true -diff
+codebase/release/** linguist-generated=true
+*.md diff=markdown
