@@ -37,6 +37,7 @@ final class App
         if($path==='/admin')QuickOperations::dashboard();
         if($path==='/admin/quick-start')QuickOperations::onboard($method);
         if($path==='/admin/quick-domain')QuickOperations::addDomain($method);
+        if(preg_match('#^/admin/quick-domains/([0-9a-f-]{36})$#',$path,$m)&&$method==='GET')QuickOperations::domainDetail($m[1]);
         if(preg_match('#^/admin/quick-domains/([0-9a-f-]{36})/disable$#',$path,$m)&&$method==='POST')QuickOperations::disableDomain($m[1],$method);
         if(preg_match('#^/admin/quick-renew/([0-9a-f-]{36})$#',$path,$m)&&$method==='POST')QuickOperations::renew($m[1],$method);
         if($path==='/admin/organisations')$this->organisations($method);
