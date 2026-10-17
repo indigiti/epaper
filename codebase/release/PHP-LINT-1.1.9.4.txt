@@ -1,3 +1,0 @@
-No syntax errors detected in /mnt/data/epaper_v1194_build/app/Core/View.php
-No syntax errors detected in /mnt/data/epaper_v1194_build/bin/release-check.php
-No syntax errors detected in /mnt/data/epaper_v1194_build/tests/build-guard-v1.1.9.4.php

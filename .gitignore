@@ -1,0 +1,17 @@
+# Preserve live state outside managed releases
+/config/config.php
+/config/runtime.php
+/config/*.local.php
+/config/*.secret.php
+/.env
+/.env.*
+!/\.env.example
+/storage/*
+!/storage/.gitkeep
+/public_html/uploads/*
+!/public_html/uploads/.gitkeep
+*.log
+*.bak
+*.bak.*
+*.sql.gz
+*.zip

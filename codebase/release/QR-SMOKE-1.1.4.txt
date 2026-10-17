@@ -1,4 +1,0 @@
-QR matrix: 37x37
-Input: https://epaper.digiti.in/c/01a061234567890123
-Decoded: https://epaper.digiti.in/c/01a061234567890123
-Result: PASS

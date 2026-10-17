@@ -1,1 +1,0 @@
-* * * * * php /home/<cloudways-app>/public_html/bin/scheduler.php >> /home/<cloudways-app>/public_html/storage/logs/scheduler.log 2>&1

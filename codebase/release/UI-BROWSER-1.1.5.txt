@@ -1,6 +1,0 @@
-PASS — color picker syncs hex field
-PASS — brand file shows local preview
-PASS — record action menu closes on outside click
-PASS — dark mode swaps to dark logo
-PASS — destructive action cancellation blocks submit
-ALL v1.1.5 UI BROWSER CHECKS PASSED

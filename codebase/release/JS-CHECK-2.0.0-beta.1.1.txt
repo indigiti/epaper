@@ -1,7 +1,0 @@
-CHECK public_html/assets/app.js
-CHECK public_html/assets/crud.js
-CHECK public_html/assets/admin-beta.js
-CHECK public_html/assets/reader.js
-CHECK public_html/assets/reader-prefetch.js
-CHECK public_html/assets/guest-clipping.js
-CHECK public_html/service-worker.js
