@@ -66,8 +66,9 @@ final class ManageDomain
                 // TLS provider readiness does not replace explicit administrator activation.
                 $candidate=(string)($edge['status']??'SSL_PROVISIONING');
                 $status=in_array($candidate,['ROUTING_VALID','SSL_PROVISIONING'],true)?$candidate:'SSL_PROVISIONING';
+                if($d['status']==='ACTIVE' && in_array($candidate,['ROUTING_VALID','ACTIVE'],true))$status='ACTIVE';
             }catch(\Throwable $e){
-                $status='ROUTING_VALID';$edge=['provider_error'=>$e->getMessage()];
+                $status='SSL_PROVISIONING';$edge=['provider_error'=>'Edge provisioning temporarily unavailable'];
             }
         }
         Store::tx(static function()use($guid,$d,$dns,$status,$edge):void{
@@ -85,10 +86,15 @@ final class ManageDomain
     {
         if(!Uuid::isValid($guid))throw new \InvalidArgumentException('Invalid domain GUID');
         Store::tx(static function()use($guid):void{
-            $changed=Store::exec('UPDATE domains SET status="ACTIVE",ssl_ready_at=COALESCE(ssl_ready_at,NOW(6)),activated_at=COALESCE(activated_at,NOW(6)),updated_at=NOW(6) WHERE domain_guid=? AND status IN ("ROUTING_VALID","SSL_PROVISIONING")',[Uuid::toBinary($guid)]);
-            if($changed!==1)throw new \DomainException('Domain is not verified or state changed');
-            $tenant=Store::value('SELECT product_tenant_guid FROM domains WHERE domain_guid=?',[Uuid::toBinary($guid)]);
-            if(is_string($tenant))CacheInvalidationOutbox::stageForTenant(Uuid::fromBinary($tenant));
+            $bin=Uuid::toBinary($guid);
+            $row=Store::one('SELECT status,edge_metadata,product_tenant_guid FROM domains WHERE domain_guid=? FOR UPDATE',[$bin]);
+            if(!$row)throw new \DomainException('Domain not found');
+            $edge=json_decode((string)($row['edge_metadata']??''),true);
+            if(!DomainLifecyclePolicy::canActivate((string)$row['status'],is_array($edge)?$edge:[]))
+                throw new \DomainException('DNS and TLS/edge readiness must be confirmed before activation');
+            $changed=Store::exec('UPDATE domains SET status="ACTIVE",ssl_ready_at=COALESCE(ssl_ready_at,NOW(6)),activated_at=COALESCE(activated_at,NOW(6)),updated_at=NOW(6) WHERE domain_guid=? AND status IN ("ROUTING_VALID","SSL_PROVISIONING")',[$bin]);
+            if($changed!==1)throw new \DomainException('Domain status changed during activation');
+            CacheInvalidationOutbox::stageForTenant(Uuid::fromBinary($row['product_tenant_guid']));
         });
         Audit::log('domain.activate','domain',$guid);
     }
