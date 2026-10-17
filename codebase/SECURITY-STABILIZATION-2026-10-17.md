@@ -28,3 +28,7 @@ This branch removes runtime secrets and installation state from the **current so
 - Provision and test the external configuration **before deploying** removal of the old tracked config. Do not allow Git checkout or deployment synchronization to delete the only production copy.
 - Role authorization is now method-aware: editor/operator processing pages are read-only, processing actions have exact path patterns, and Publisher Admin cannot use global recovery or queue repair. Direct-route tests cover bypass-shaped URLs.
 - This code-level hardening cannot replace authenticated staging tests or production secret rotation/history cleanup.
+
+## Source-tracking recurrence guard
+
+`php bin/secret-path-guard.php` fails closed if sensitive filenames are committed, including `.env*`, `config/config.php`, `config/runtime.php`, installer lock/token, privileged hotfix scripts, credential key bundles and cloud service-account JSON. The guard runs in CI; an independent policy regression test covers detection and safe exceptions. It warns about legacy tracked storage rather than deleting production newspaper assets. **It checks filenames, not the full commit history, live credential validity or arbitrary secrets hidden inside unrelated files.**

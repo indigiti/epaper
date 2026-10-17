@@ -13,3 +13,11 @@
 *.orig
 *.log
 .DS_Store
+
+# Private credentials, service-account material and installer state.
+*.pem
+*.p12
+*.pfx
+*.key
+service-account*.json
+firebase-service-account*.json
