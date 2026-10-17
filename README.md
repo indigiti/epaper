@@ -1,39 +1,27 @@
-# EP-DI ePaper
+# EP-DI source directory
 
-Multi-tenant newspaper publishing, PDF rendering, OCR, WebP page delivery, article clipping, reader accounts, archives, and offline reading.
+The ePaper PHP application root is `codebase/`. Its web document root is **`public_html/`**, not the entire Git repository.
 
-> **Repository status (17 October 2026):** The default `main` branch now contains the safe documentation-only reorganization from [PR #20](https://github.com/indigiti/epaper/pull/20). Historical notes were archived with original Git hashes verified. **Live media/PDFs and operational PHP code were not removed or changed.** The separate source slimming and security remediation remain unmerged.
-
-## Find what you need
-
-| Goal | Location |
+| Location | Purpose |
 |---|---|
-| PHP application, controllers and services | [`codebase/app/`](codebase/app/) |
-| Browser entry points, styles and Reader assets | [`codebase/public_html/`](codebase/public_html/) |
-| CLI tasks, PDF workers and scheduler | [`codebase/bin/`](codebase/bin/) |
-| MariaDB schema and upgrades | [`codebase/database/`](codebase/database/) |
-| Regression, security and Reader tests | [`codebase/tests/`](codebase/tests/) |
-| Android reader | [`codebase/mobile-android/`](codebase/mobile-android/) |
-| Historical releases and parity evidence | [`codebase/release/`](codebase/release/) |
-| Cloudways installation/upgrade notes | [`codebase/DEPLOY-CLOUDWAYS.md`](codebase/DEPLOY-CLOUDWAYS.md) |
-| Full application source documentation | [`codebase/README.md`](codebase/README.md) |
+| [app/](app/) | Controllers, core services, publishers, reader and clipping |
+| [bin/](bin/) | Worker processes, scheduled jobs and CLI diagnostics |
+| [database/](database/) | MariaDB schema and migrations |
+| [config/](config/) | Templates; production credentials are private |
+| [public_html/](public_html/) | Web entry points, assets and offline Reader |
+| [tests/](tests/) | Application tests |
+| [mobile-android/](mobile-android/) | Android reader client |
+| [docs/](docs/) | Docs and historical notes |
+| [release/](release/) | Unmodified historical release evidence |
+| [storage/](storage/) | Historically Git-tracked runtime media; preserve on live Cloudways |
+| [vendor/](vendor/) | PHP dependencies in historical checkout |
 
-The PHP application root is **`codebase/`**. The intended public web document root is **`codebase/public_html/`**. Database secrets, customer PDFs, generated pages and clipping data must remain protected from source deployment.
+## Historical documentation
 
-## Clean organization now on main
+The prior `codebase/` root contained ~170 redundant or older versioned documents. Use the [old filename index](docs/releases/LEGACY-ROOT-INDEX.md) to locate every document and its original Git SHA, and the [archive categories](docs/releases/archive/README.md) to browse past releases. The previous [source README](docs/releases/archive/references/LEGACY-PROJECT-README.md) is retained byte-for-byte.
 
-The merged [documentation cleanup](https://github.com/indigiti/epaper/pull/20) organizes historical release documents under [`codebase/docs/releases/archive/`](codebase/docs/releases/archive/), preserves an [original filename map](codebase/docs/releases/LEGACY-ROOT-INDEX.md), and reduces `codebase/` from 207 to **38 top-level entries**.
+**Pinned current release records** and historical `SHA256SUMS` remain at their original paths. Run `php bin/release-check.php` to verify the installed source (this is not production deployment acceptance).
 
-The separate [draft storage cleanup](https://github.com/indigiti/epaper/pull/17) would untrack 4,684 runtime files, **but those files may still be used by production**. Never deploy that deletion-based Git change onto an existing Cloudways checkout without a verified persistent-data migration.
+## Production safety
 
-## Release and security controls
-
-- [Security stabilization PR #1](https://github.com/indigiti/epaper/pull/1)
-- [Documentation/layout PR #15](https://github.com/indigiti/epaper/pull/15)
-- [Runtime storage cleanup PR #17](https://github.com/indigiti/epaper/pull/17)
-- [Historical document organization PR #18](https://github.com/indigiti/epaper/pull/18)
-- [Active security incident #2](https://github.com/indigiti/epaper/issues/2)
-
-**Do not treat a successful source CI run or a Cloudways one-touch backup as production promotion approval.** Known historical credentials must be revoked and rotated, real Cloudways/DigiOps deletion behavior must be rehearsed against isolated staging, and Reader/PDF/clipping/data integrity must be accepted before applying the stacked PRs to a deployed application.
-
-This README describes the merged documentation-only cleanup; it does not authorize deployment, credential rotation or deletion of runtime media.
+This documentation-only refactor neither deletes nor migrates customer PDFs, pages and clips. Do not merge the separate 4,684-file runtime-storage deletion PR into production without protected persistent storage and a verified Cloudways/DigiOps staging rehearsal. Historical exposed credentials also require rotation.

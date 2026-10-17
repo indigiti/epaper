@@ -1,8 +1,0 @@
-PASS — no JS errors
-PASS — next state prefetched
-PASS — previous state prefetched
-PASS — second-forward state warmed
-PASS — adjacent preview decoded
-PASS — page change schedules new next page
-PASS — swipe direction predicts next
-ALL v1.1.8 READER PREFETCH BROWSER CHECKS PASSED

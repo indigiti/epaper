@@ -1,7 +1,0 @@
-No syntax errors detected in app/App.php
-No syntax errors detected in app/Core/View.php
-No syntax errors detected in app/Services/ClipService.php
-No syntax errors detected in app/Services/QrCode.php
-No syntax errors detected in bin/release-check.php
-No syntax errors detected in tests/build-guard-v1.1.4.1.php
-No syntax errors detected in tests/build-guard-v1.1.5.php

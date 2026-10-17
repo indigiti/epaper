@@ -1,6 +1,0 @@
-EP-DI v2.0.1 — Database Schema Diff
-Baseline: checksum-locked EP-DI v2.0.0 Production Stable
-
-Result: PASS — database/ is byte-identical to v2.0.0.
-Migration: NONE. No database/upgrade-v2.0.1.sql exists.
-The canonical schema inventory remains DATABASE-SCHEMA-MANIFEST-2.0.0.txt.

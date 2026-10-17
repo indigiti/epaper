@@ -1,9 +1,0 @@
-[program:digiti-platform-worker]
-command=php /PATH/TO/APPLICATION/bin/worker.php --loop
-directory=/PATH/TO/APPLICATION
-autostart=true
-autorestart=true
-stopasgroup=true
-killasgroup=true
-stdout_logfile=/PATH/TO/APPLICATION/storage/logs/worker.log
-stderr_logfile=/PATH/TO/APPLICATION/storage/logs/worker-error.log
