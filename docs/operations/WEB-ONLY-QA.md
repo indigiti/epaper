@@ -5,7 +5,7 @@ Updated: 18 October 2026. This runbook does **not** authorize production writes.
 ## Run the automated web checks
 
 1. Open indigiti/epaper → **Actions** → **Web-only Production QA (read-only)**.
-2. Choose **Run workflow** against audit/platform-multilayer-20261017.
+2. Open the existing workflow run (for example, https://github.com/indigiti/epaper/actions/runs/39062822155), choose **Re-run jobs → Re-run all jobs**. GitHub's Run workflow button normally requires the workflow to exist on the default branch, so it may not be shown for this draft-only workflow.
 3. Inspect the job summary and download the digiti-web-only-diagnostics JSON artifact.
 4. A failed workflow is intentional when a homepage or core health endpoint returns HTTP 500. Do not interpret a green ePaper health endpoint as proof that Reader/archive is functional.
 
