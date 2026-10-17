@@ -57,5 +57,13 @@ jobs:
           node tests/browser-cache-isolation.cjs
       - name: Run disposable release activation and rollback simulation
         run: php tests/slim-release-activation.php
+      - name: Build and verify slim release ZIP
+        run: |
+          set -euo pipefail
+          artifact="$(mktemp -u /tmp/epdi-slim-ci-XXXXXXXX.zip)"
+          trap 'rm -f "$artifact"' EXIT
+          php bin/slim-release-zip.php --output="$artifact"
+          php bin/slim-release-zip.php --verify="$artifact"
+          php tests/slim-release-zip.php
       - name: Run current release regression suite
         run: php bin/release-check.php
