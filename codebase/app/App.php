@@ -262,11 +262,33 @@ final class App
     }
     private function serviceAccess(): string
     {
-        $k='access:'.RequestContext::tenantGuid();$cached=\EpaperSaas\Core\RedisStore::getJson($k);if($cached)return(string)($cached['service_access_state']??'FULL');try{$d=PlatformClient::instance()->access(RequestContext::tenantGuid());\EpaperSaas\Core\RedisStore::setJson($k,$d,180);return(string)($d['service_access_state']??'BLOCKED');}catch(\Throwable){return'FULL';}
+        $k='access:'.RequestContext::tenantGuid();
+        $cached=RedisStore::getJson($k);
+        if(is_array($cached)){
+            $status=\EpaperSaas\Services\ServiceAccessPolicy::status($cached);
+            if($status!==\EpaperSaas\Services\ServiceAccessPolicy::UNAVAILABLE)return $status;
+        }
+        try{
+            $response=PlatformClient::instance()->access(RequestContext::tenantGuid());
+            $status=\EpaperSaas\Services\ServiceAccessPolicy::status($response);
+            if($status!==\EpaperSaas\Services\ServiceAccessPolicy::UNAVAILABLE)RedisStore::setJson($k,$response,180);
+            return $status;
+        }catch(\Throwable){
+            return \EpaperSaas\Services\ServiceAccessPolicy::UNAVAILABLE;
+        }
     }
     private function requireDataPlane(): void
     {
-        $state=$this->serviceAccess();if(in_array($state,['FULL','RESTRICTED'],true))return;http_response_code(402);View::layout('Service access restricted','<section class="empty-state"><h1>Publisher service is restricted</h1><p>This ePaper account currently has <strong>'.$this->e($state).'</strong> access. Publisher administrators can review subscription details from the ePaper account area.</p><a class="btn" href="/admin">Publisher dashboard</a></section>',['brand'=>$this->brandName()]);
+        $state=$this->serviceAccess();
+        if(\EpaperSaas\Services\ServiceAccessPolicy::permitted($state))return;
+        Http::privateNoStore();
+        if($state===\EpaperSaas\Services\ServiceAccessPolicy::UNAVAILABLE){
+            http_response_code(503);
+            header('Retry-After: 30');
+            View::layout('Service temporarily unavailable','<section class="empty-state"><h1>Edition access temporarily unavailable</h1><p>We cannot verify the publisher service status right now. Please try again shortly.</p></section>',['brand'=>$this->brandName()]);
+        }
+        http_response_code(402);
+        View::layout('Service access restricted','<section class="empty-state"><h1>Publisher service is restricted</h1><p>This ePaper account currently has <strong>'.$this->e($state).'</strong> access. Publisher administrators can review subscription details from the ePaper account area.</p><a class="btn" href="/admin">Publisher dashboard</a></section>',['brand'=>$this->brandName()]);
     }
     private function home(): never
     {
