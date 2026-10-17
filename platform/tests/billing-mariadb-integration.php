@@ -131,6 +131,11 @@ $catalog=\Digiti\Infrastructure\Commercial\CatalogReadRepository::snapshot();
 $check(count($catalog['plans'])>=2,'batched Commercial catalog returns multiple plans');
 $check(count($catalog['prices_by_plan'][$plan]??[])===1,'first plan price grouped by normalized GUID');
 $check(count($catalog['prices_by_plan'][$otherPlan]??[])===1,'second product price grouped without extra SELECT');
+$counts=\Digiti\Infrastructure\Reporting\AdminDashboardRepository::counts();
+$check(($counts['Organisations']??0)>=1,'Admin dashboard batched organisation count');
+$check(($counts['Product Tenants']??0)>=1,'Admin dashboard batched tenant count');
+$check(($counts['Subscriptions']??0)>=1,'Admin dashboard batched subscription count');
+
 
 
 $future='2030-12-31T12:00';
