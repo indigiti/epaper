@@ -9,6 +9,7 @@ on:
       - 'codebase/bin/ai-*'
       - 'codebase/tests/test_ai_*.py'
       - 'codebase/tests/ai-review-static.php'
+      - 'codebase/tests/ai-review-mariadb.php'
       - 'codebase/app/Services/AiCandidatePipeline.php'
       - 'codebase/app/Services/AiEditorialReview.php'
       - 'codebase/app/Services/ProcessingPipeline.php'
@@ -22,6 +23,18 @@ permissions:
 jobs:
   source-and-fixtures:
     runs-on: ubuntu-latest
+    services:
+      mariadb:
+        image: mariadb:10.11
+        env:
+          MARIADB_ROOT_PASSWORD: epdi_ci_only_password
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="healthcheck.sh --connect --innodb_initialized"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=20
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -31,6 +44,7 @@ jobs:
         with:
           php-version: '8.3'
           coverage: none
+          extensions: pdo_mysql, mbstring
       - name: Install pinned optional OpenCV for synthetic image test
         working-directory: codebase
         run: python -m pip install -r ai_processing/requirements-image.txt
@@ -50,3 +64,11 @@ jobs:
           php -l app/App.php
           php -l app/Core/View.php
           php tests/ai-review-static.php
+          php -l tests/ai-review-mariadb.php
+      - name: Disposable MariaDB tenant and revision acceptance
+        working-directory: codebase
+        env:
+          EPDI_AI_TEST_DB_HOST: 127.0.0.1
+          EPDI_AI_TEST_DB_USER: root
+          EPDI_AI_TEST_DB_PASSWORD: epdi_ci_only_password
+        run: php tests/ai-review-mariadb.php
