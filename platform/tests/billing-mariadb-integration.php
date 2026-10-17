@@ -47,6 +47,13 @@ $getOutbox=static function(string $eventId): array {
 $event='evt_ci_capture_001';$raw=json_encode($makeEvent($event,$ref,1900),JSON_THROW_ON_ERROR);
 $check($receipt->receive('stripe',$event,$raw)===false,'first valid receipt inserted');
 $check($receipt->receive('stripe',$event,$raw)===true,'same provider event deduplicated');
+try{
+    $receipt->receive('stripe',$event,json_encode($makeEvent($event,$ref,1850),JSON_THROW_ON_ERROR));
+    $conflictDenied=false;
+}catch(\Digiti\Application\Billing\WebhookFailure $e){
+    $conflictDenied=$e->errorCode()==='WEBHOOK_EVENT_CONFLICT';
+}
+$check($conflictDenied,'same provider event ID with changed payload is rejected');
 $check((int)Store::value('SELECT COUNT(*) FROM webhook_events WHERE provider="stripe" AND provider_event_reference=?',[$event])===1,'one durable webhook');
 $check((int)Store::value('SELECT COUNT(*) FROM outbox_events WHERE event_type="payment.webhook.received"')===1,'one outbox receipt for retry');
 [$webhook,$outbox]=$getOutbox($event);
@@ -69,6 +76,15 @@ $receipt->receive('stripe',$unknownEvent,$rawUnknown);
 [$unknownWebhook,$unknownOutbox]=$getOutbox($unknownEvent);
 $check(ReconcileWebhook::execute($unknownOutbox,$unknownWebhook)==='REVIEW_REQUIRED','unmatched provider reference never auto-settles');
 $check((int)Store::value('SELECT COUNT(*) FROM webhook_events WHERE processing_status="REVIEW_REQUIRED"')===2,'exception review queue retains both cases');
+
+// A second provider success must not silently settle an invoice that is already paid.
+$secondPayment=$id();$secondRef='pi_ci_duplicate_invoice_002';
+Store::exec('INSERT INTO payments(payment_guid,product_tenant_guid,invoice_guid,provider,amount_minor,currency,status,provider_reference,created_at,updated_at) VALUES(?,?,?,"stripe",1900,"INR","PENDING",?,NOW(6),NOW(6))',[$bin($secondPayment),$bin($tenant),$bin($invoice),$secondRef]);
+$secondEvt='evt_ci_duplicate_invoice_002';
+$receipt->receive('stripe',$secondEvt,json_encode($makeEvent($secondEvt,$secondRef,1900),JSON_THROW_ON_ERROR));
+[$secondWebhook,$secondOutbox]=$getOutbox($secondEvt);
+$check(ReconcileWebhook::execute($secondOutbox,$secondWebhook)==='REVIEW_REQUIRED','second attempt against paid invoice goes to review');
+$check(Store::value('SELECT status FROM payments WHERE payment_guid=?',[$bin($secondPayment)])==='PENDING','second payment remains unsettled by Platform');
 
 // Recover a crashed processing lease without pretending the webhook was processed.
 $lease=$id();
