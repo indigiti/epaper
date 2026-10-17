@@ -278,6 +278,13 @@ final class App
 
     private function webhook(string $provider): never
     {
-        $payload=file_get_contents('php://input')?:'';$headers=array_change_key_case(getallheaders()?:[],CASE_LOWER);$adapter=ProviderFactory::make($provider);$guid=Uuid::v7();$data=$adapter->normalizeWebhook($payload,$headers);$ref=$data['id']??($data['event']??null);$verified=$adapter->verifyWebhook($payload,$headers);try{Store::exec('INSERT INTO webhook_events(webhook_event_guid,provider,provider_event_reference,verification_status,processing_status,headers_json,payload,received_at) VALUES(?,?,?,?,"RECEIVED",?,?,NOW(6))',[Uuid::toBinary($guid),$provider,$ref,$verified?'VERIFIED':'INVALID',json_encode($headers),$payload]);}catch(\PDOException$e){if(($e->errorInfo[1]??0)===1062)Http::json(['ok'=>true,'duplicate'=>true]);throw$e;}if(!$verified)Http::json(['ok'=>false,'code'=>'WEBHOOK_SIGNATURE_INVALID'],400);Store::exec('INSERT INTO outbox_events(outbox_event_guid,event_type,payload,status,available_at,created_at) VALUES(?,"payment.webhook.received",?,"PENDING",NOW(6),NOW(6))',[Uuid::toBinary(Uuid::v7()),json_encode(['webhook_event_guid'=>$guid,'provider'=>$provider])]);Http::json(['ok'=>true]);
+        $raw=(string)(file_get_contents('php://input')?:'');
+        $headers=array_change_key_case(function_exists('getallheaders')?(getallheaders()?:[]):[],CASE_LOWER);
+        try {
+            $receipt=\Digiti\Application\Billing\WebhookIngress::receive($provider,$raw,$headers);
+            Http::json($receipt);
+        } catch (\Digiti\Application\Billing\WebhookFailure $e) {
+            Http::json(['ok'=>false,'code'=>$e->errorCode(),'message'=>$e->getMessage()],$e->status());
+        }
     }
 }
