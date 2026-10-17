@@ -21,8 +21,14 @@ final class RevalidateDomains
             if($dns['verified']&&in_array($domain['status'],['ROUTING_VALID','SSL_PROVISIONING','ACTIVE'],true)){
                 try{
                     $edge=EdgeProviderFactory::make()->status($domain['hostname'],$edge);
-                    if(($edge['status']??'')==='ACTIVE')$status='ACTIVE';
-                    elseif($domain['status']!=='ACTIVE')$status=$edge['status']??'SSL_PROVISIONING';
+                    $edgeReady=($edge['status']??'')==='ACTIVE';
+                    if($domain['status']==='ACTIVE') {
+                        // Do not silently revoke manual-edge approvals on routine DNS rechecks.
+                        $status=$edgeReady || ($edge['provider']??null)==='manual'?'ACTIVE':'SSL_PROVISIONING';
+                    } else {
+                        // Edge readiness never grants activation without administrator approval.
+                        $status=($edge['provider']??null)==='manual'?'ROUTING_VALID':'SSL_PROVISIONING';
+                    }
                 }catch(\Throwable $e){$edge['status_error']=$e->getMessage();}
             }
             $changed=Store::tx(static function()use($domain,$status,$dns,$edge):bool{
