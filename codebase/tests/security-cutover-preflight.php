@@ -52,6 +52,10 @@ try{
     $world=SecurityCutover::inspect($root,$conf);
     $assert($has($world,'primary_config_private')===false,'world readable file rejected');
     chmod($conf,0600);
+    chmod($conf,0640);
+    $group=SecurityCutover::inspect($root,$conf);
+    $assert($has($group,'primary_config_private')===false,'group readable file rejected');
+    chmod($conf,0600);
 
     $weak=$valid;$weak['app']['key']='not-a-strong-key';$write($conf,$weak);
     $assert($has(SecurityCutover::inspect($root,$conf),'application_key_strength')===false,'weak key rejected');

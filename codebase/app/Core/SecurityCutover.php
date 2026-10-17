@@ -89,7 +89,7 @@ final class SecurityCutover
     private static function privateFile(string $file): bool
     {
         $permissions=@fileperms($file);
-        return is_int($permissions)&&($permissions & 0007)===0;
+        return is_int($permissions)&&($permissions & 0077)===0;
     }
 
     private static function readConfig(string $file): ?array

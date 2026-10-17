@@ -20,3 +20,5 @@
 | Cloudways production acceptance | NOT VERIFIED | | |
 
 **Release rule:** Any NOT VERIFIED or FAILED mandatory gate means **NOT DEPLOYMENT CLEARED**. This record must be completed by an operator with authoritative access to the hosting, service identities, DB, media backup and staging deployment. GitHub CI can verify only source-level tests.
+
+Source-only preparation does not satisfy backup, rotation, history rewriting or live staging acceptance. For the requested ordering, backup/restore may be last **preparation** gate but must precede every destructive step.

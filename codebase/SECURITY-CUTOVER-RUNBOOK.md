@@ -11,7 +11,7 @@ This runbook intentionally contains no credentials, usernames, customer data, ap
 - [ ] Limit database, Redis and RabbitMQ network access to trusted local/service hosts while rotating; check Cloudways/app/Platform logs.
 - [ ] Take note of signed reader media, offline vault encryption/device pairing, mobile/desktop FCM, active sessions and cache keys using the app secret. Rotating this key without a compatibility plan may invalidate access to existing ciphertext/tokens.
 
-## 1 — Verified backup and recovery (MUST precede destructive actions)
+## 1 — Verified backup and recovery (can be final preparation gate, MUST precede destructive actions)
 - [ ] Create a Cloudways on-demand application backup and separate consistent MariaDB backup. Record backup IDs, timestamps and checksums in the **private** incident record.
 - [ ] Create a content-complete backup of original PDFs, media/editions, clips, uploads and server-only configuration. Existing tracked media is not a reliable production backup.
 - [ ] Verify the backup actually contains authoritative database and media data and has correct restoration permissions.
@@ -71,3 +71,13 @@ Backup ID + restore rehearsal outcome; old credential revocation timestamps (nev
 ## Repo-level verification (not proof of live operations)
 From repository root: GitHub Actions EP-DI PHP Security and Regression must be green.  
 From installed application root, with private config and correct environment: php bin/security-cutover-preflight.php --json && php bin/health.php && php bin/queue-diagnostic.php && php bin/readiness-check.php --tenant=<REAL_STAGING_TENANT_GUID>.
+
+
+## Preparation-first ordering requested (non-destructive steps may precede backup)
+1. Complete source audit, static role checks and security CI. ✅ Branch-level gate.
+2. Prepare config relocation, rotation playbooks, key consumer inventory and staging smoke scripts. Code preparation can be completed without live infrastructure.
+3. Configure isolated staging access and rehearse non-mutating readiness checks; run \`php bin/staging-http-smoke.php --base-url=https://<STAGING_HOST>\` once a staging deployment exists.
+4. **Final preparation gate:** complete verified Cloudways application/DB/media backup **and isolated restore rehearsal** (section 1).
+5. Only after section 4 succeeds: rotate production credentials and encryption keys according to the agreed data migration (section 3), clean historical Git objects (section 5), and promote/verify production (section 6).
+
+Never defer verified recovery beyond the first destructive or irreversible cutover step. See \`APP-KEY-ROTATION-INVENTORY.md\` for affected encrypted data.
