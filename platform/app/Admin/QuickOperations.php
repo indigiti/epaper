@@ -91,7 +91,7 @@ final class QuickOperations
         $plans=Store::all('SELECT plan_guid,name FROM plans WHERE product_guid=? AND status="ACTIVE" ORDER BY name',[Uuid::toBinary($app['product_guid'])]);
         if($method==='POST'){
             $name=trim((string)($_POST['name']??''));$host=self::hostname((string)($_POST['hostname']??''));
-            if(mb_strlen($name)<2||mb_strlen($name)>190)throw new \InvalidArgumentException('Publisher name must be between 2 and 190 characters.');
+            if((function_exists('mb_strlen')?mb_strlen($name):strlen($name))<2 || (function_exists('mb_strlen')?mb_strlen($name):strlen($name))>190)throw new \InvalidArgumentException('Publisher name must be between 2 and 190 characters.');
             $plan=(string)($_POST['plan_guid']??'');$approved=($_POST['approve_access']??'')==='yes';
             if($approved&&!$plan)throw new \InvalidArgumentException('Select a plan before approving service access.');
             if($approved&&!Store::value('SELECT plan_guid FROM plans WHERE plan_guid=? AND product_guid=? AND status="ACTIVE"',[Uuid::toBinary($plan),Uuid::toBinary($app['product_guid'])]))throw new \InvalidArgumentException('Selected plan is not an active ePaper plan.');
