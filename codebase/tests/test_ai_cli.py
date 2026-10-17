@@ -32,7 +32,7 @@ class CliSmoke(unittest.TestCase):
         self.assertEqual(layout["page"]["tenant_guid"], TENANT)
         self.assertEqual(layout["page"]["page_guid"], PAGE)
         self.assertEqual(layout["regions"][0]["text"], "नमस्कार")
-        self.assertEqual(layout["regions"][0]["source_group"]["kind"], "OCR_LINE")
+        self.assertEqual(layout["regions"][0]["source_group"]["kind"], "OCR_AREA")
         self.assertEqual(layout["status"], "REVIEW_REQUIRED")
         self.assertFalse(layout["regions"][0]["verified_article"])
 
