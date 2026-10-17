@@ -29,6 +29,7 @@ jobs:
           set -euo pipefail
           php platform/tests/core-smoke.php
           php platform/tests/multilayer-policy.php
+          php platform/tests/domain-resolution-policy.php
           php platform/tests/layer-contract.php
           php platform/tests/build-guard.php
           php platform/tests/admin-crud-guard.php
