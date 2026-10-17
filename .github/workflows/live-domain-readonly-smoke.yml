@@ -1,0 +1,87 @@
+name: Live Domain Read-only Smoke (diagnostics only)
+
+# Explicitly named public domains only. A single run is triggered when this
+# workflow is introduced on the audit branch; subsequent runs are manual.
+on:
+  push:
+    branches: [audit/platform-multilayer-20261017]
+    paths:
+      - '.github/workflows/live-domain-readonly-smoke.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  public-readonly-smoke:
+    name: Public HTTPS reachability (no auth, no mutation)
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - name: Probe exact approved domains once per endpoint
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import json
+          import time
+          import urllib.request
+          import urllib.error
+          from datetime import datetime, timezone
+          from pathlib import Path
+
+          # No credentials, cookies, redirects, POSTs, failover or load tests.
+          HOSTS = ("platform.digiti.in", "epaper.digiti.in")
+          PATHS = ("/", "/health/live", "/health/ready")
+
+          class NoRedirect(urllib.request.HTTPRedirectHandler):
+              def redirect_request(self, request, fp, code, message, headers, newurl):
+                  return None
+
+          opener = urllib.request.build_opener(NoRedirect())
+          rows = []
+          for host in HOSTS:
+              for path in PATHS:
+                  url = "https://" + host + path
+                  request = urllib.request.Request(
+                      url,
+                      method="GET",
+                      headers={"User-Agent": "EPDI-ReadOnly-Production-Diagnostic/1.0",
+                               "Accept": "text/html,application/json;q=0.9"},
+                  )
+                  started = time.monotonic()
+                  status, error = 0, None
+                  try:
+                      with opener.open(request, timeout=7) as response:
+                          status = response.status
+                          # Do not save or print response bodies, tokens or cookies.
+                  except urllib.error.HTTPError as exc:
+                      status = exc.code
+                  except (urllib.error.URLError, OSError, TimeoutError) as exc:
+                      error = type(exc).__name__
+                  elapsed_ms = round((time.monotonic() - started) * 1000, 1)
+                  rows.append({"host": host, "path": path, "status": status,
+                               "elapsed_ms": elapsed_ms, "transport_error": error})
+                  print(f"{host}{path}: HTTP {status or 'UNREACHABLE'}, {elapsed_ms} ms, {error or 'transport-ok'}")
+                  time.sleep(0.4)
+
+          roots = [r for r in rows if r["path"] == "/"]
+          report = {
+              "kind": "external_public_https_readonly_diagnostic",
+              "at_utc": datetime.now(timezone.utc).isoformat(),
+              "does_not_prove_deployed_commit_or_staging_acceptance": True,
+              "production_changed": False,
+              "homepage_http_ok": all(200 <= r["status"] < 400 for r in roots),
+              "rows": rows,
+          }
+          Path("live-domain-smoke.json").write_text(json.dumps(report, indent=2) + "\n")
+          if not report["homepage_http_ok"]:
+              raise SystemExit("One or both homepages did not give HTTP 2xx/3xx from GitHub runner; review smoke artifact (WAF/DNS/TLS may explain)")
+          PY
+      - name: Save diagnostic JSON (no response body)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: live-domain-public-http-diagnostics
+          path: live-domain-smoke.json
+          retention-days: 7
+          if-no-files-found: error
