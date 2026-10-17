@@ -7,6 +7,12 @@ use Digiti\Core\{Store,Uuid};
 /** Persist invoices and their lines together; refuse inactive/missing tenants. */
 final class InvoiceRepository
 {
+    /** An invoice must never transition from PAID to VOID, even under concurrency. */
+    public function voidOpenOrDraft(string $invoiceGuid): bool
+    {
+        return Store::exec('UPDATE invoices SET status="VOID",updated_at=NOW(6) WHERE invoice_guid=? AND status IN ("DRAFT","OPEN")',[Uuid::toBinary($invoiceGuid)])===1;
+    }
+
     public function create(string $tenantGuid,int $amountMinor,string $invoiceGuid,string $number): void
     {
         Store::tx(static function()use($tenantGuid,$amountMinor,$invoiceGuid,$number):void{
