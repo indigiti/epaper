@@ -144,5 +144,25 @@ Store::exec('UPDATE organisations SET status="ACTIVE" WHERE organisation_guid=?'
 Store::exec('UPDATE subscriptions SET current_period_end=DATE_SUB(NOW(6), INTERVAL 1 MINUTE) WHERE subscription_guid=?',[$bin($subscription)]);
 $check(\Digiti\Application\Subscriptions\SubscriptionAccess::payload($tenant)['service_access_state']==='BLOCKED','period expiry blocks access despite stored FULL');
 
+// Tenant lifecycle with live foreign-key related domain, in isolated CI database.
+Store::exec('UPDATE subscriptions SET current_period_end=DATE_ADD(NOW(6), INTERVAL 1 MONTH) WHERE subscription_guid=?',[$bin($subscription)]);
+$applicationGuid=$id();$domainGuid=$id();
+Store::exec('INSERT INTO applications(application_guid,product_guid,application_key,name,base_url,status,created_at,updated_at) VALUES(?,?,"ci_epaper_app","CI App","https://ci.test.invalid","ACTIVE",NOW(6),NOW(6))',[$bin($applicationGuid),$bin($product)]);
+Store::exec('INSERT INTO domains(domain_guid,organisation_guid,product_guid,application_guid,product_tenant_guid,hostname,normalized_hostname,status,is_primary,verification_token,created_at,updated_at) VALUES(?,?,?,?,?,"ci.epaper.invalid","ci.epaper.invalid","ACTIVE",1,"test-token",NOW(6),NOW(6))',[
+    $bin($domainGuid),$bin($organisation),$bin($product),$bin($applicationGuid),$bin($tenant)
+]);
+\Digiti\Application\Tenants\ManageTenant::status($tenant,'SUSPENDED');
+$check(\Digiti\Application\Subscriptions\SubscriptionAccess::payload($tenant)['service_access_state']==='BLOCKED','Admin tenant suspension revokes fresh subscription access');
+\Digiti\Application\Tenants\ManageTenant::status($tenant,'ACTIVE');
+$check(\Digiti\Application\Subscriptions\SubscriptionAccess::payload($tenant)['service_access_state']==='FULL','active tenant may resume valid subscription');
+\Digiti\Application\Tenants\ManageTenant::remove($tenant);
+$check(Store::value('SELECT status FROM product_tenants WHERE product_tenant_guid=?',[$bin($tenant)])==='REMOVED','tenant removal persisted');
+$check(Store::value('SELECT status FROM domains WHERE domain_guid=?',[$bin($domainGuid)])==='REMOVED','tenant removal deactivates associated domain');
+$check((int)Store::value('SELECT is_primary FROM domains WHERE domain_guid=?',[$bin($domainGuid)])===0,'removed domain is not primary');
+$check(\Digiti\Application\Subscriptions\SubscriptionAccess::payload($tenant)['service_access_state']==='BLOCKED','removed tenant cannot use subscription');
+try{\Digiti\Application\Tenants\ManageTenant::status($tenant,'ACTIVE');$revived=false;}
+catch(\DomainException){$revived=true;}
+$check($revived,'removed tenant cannot be reactivated by stale POST');
+
 echo "MariaDB billing integration checks complete.\n";
 exit($fail?1:0);
