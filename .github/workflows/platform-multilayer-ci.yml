@@ -33,6 +33,7 @@ jobs:
           php platform/tests/epaper-api-contract.php
           php platform/tests/billing-webhooks.php
           php platform/tests/billing-layer-contract.php
+          php platform/tests/billing-money.php
           php platform/tests/layer-contract.php
           php platform/tests/build-guard.php
           php platform/tests/admin-crud-guard.php
