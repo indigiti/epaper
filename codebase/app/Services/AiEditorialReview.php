@@ -2,7 +2,7 @@
 declare(strict_types=1);
 namespace EpaperSaas\Services;
 
-use EpaperSaas\Core\{Auth,Http,RequestContext,Store,Uuid,View};
+use EpaperSaas\Core\{Auth,Http,RateLimiter,RequestContext,Store,Uuid,View};
 
 /**
  * Feature-flagged publisher editorial review. Controller called only under
@@ -203,6 +203,7 @@ HTML;
         if(!in_array($mode,['correct','approve','reject'],true))Http::json(['ok'=>false,'code'=>'MODE_INVALID'],422);
         $actor=(string)(Auth::user()['user_guid']??'');
         if(!Uuid::isValid($actor))Http::json(['ok'=>false,'code'=>'EDITOR_IDENTITY_INVALID'],403);
+        if(!RateLimiter::allow('ai-review:'.RequestContext::tenantGuid().':'.$actor,40,60))Http::json(['ok'=>false,'code'=>'REVIEW_RATE_LIMIT'],429);
         $result=Store::tx(function()use($pageGuid,$version,$mode,$actor){
             $row=self::row($pageGuid,true);
             if(!$row)return 'NOT_FOUND';
@@ -230,8 +231,10 @@ HTML;
                 $order=filter_var($_POST['reading_order']??null,FILTER_VALIDATE_INT,['options'=>['min_range'=>1,'max_range'=>4096]]);
                 if($order===false)return 'INVALID_READING_ORDER';
                 $edit['regions'][$id]=['kind'=>$kind,'text'=>$content,'bbox_px'=>$bbox,'article_group'=>$group,'reading_order'=>$order];
+                $encoded=json_encode($edit,JSON_UNESCAPED_UNICODE|JSON_THROW_ON_ERROR);
+                if(strlen($encoded)>1024*1024)return 'REVIEW_SIZE_LIMIT';
                 $count=Store::exec('UPDATE ep_ai_page_candidates SET editor_json=?,status="PENDING",reviewed_by_user_guid=NULL,reviewed_at=NULL,version=version+1,updated_at=NOW(6) WHERE tenant_guid=? AND page_guid=? AND version=?',[
-                    json_encode($edit,JSON_UNESCAPED_UNICODE|JSON_THROW_ON_ERROR),
+                    $encoded,
                     Uuid::toBinary(RequestContext::tenantGuid()),Uuid::toBinary($pageGuid),$version
                 ]);
                 return $count===1?'corrected':'STALE_VERSION';
