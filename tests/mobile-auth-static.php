@@ -1,0 +1,20 @@
+<?php
+declare(strict_types=1);
+$root=dirname(__DIR__);$fails=[];$ok=function(bool$c,string$m)use(&$fails){echo($c?'PASS':'FAIL')." — {$m}\n";if(!$c)$fails[]=$m;};
+$app=(string)file_get_contents($root.'/app/App.php');
+$auth=(string)file_get_contents($root.'/app/Core/Auth.php');
+$mobile=(string)file_get_contents($root.'/app/Services/MobileAuth.php');
+$schema=(string)file_get_contents($root.'/database/schema.sql');
+$manifest=(string)file_get_contents($root.'/mobile-android/app/src/main/AndroidManifest.xml');
+$android=(string)file_get_contents($root.'/mobile-android/app/src/main/java/in/digiti/epdi/MainActivity.java');
+$ok(str_contains($app,"/api/v1/auth/mobile/bootstrap")&&str_contains($app,"/api/v1/auth/mobile/start")&&str_contains($app,"/api/v1/auth/mobile/verify"),'mobile auth API routes present');
+$ok(str_contains($auth,"'memberships'=>[]")&&str_contains($auth,"'auth_source'=>'LOCAL_MOBILE'"),'local mobile session has no admin memberships');
+$ok(str_contains($auth,'sessionAccessActive()')&&str_contains($auth,"SELECT status FROM ep_subscribers"),'subscriber disable is enforced');
+$ok(str_contains($mobile,"['sms','whatsapp','sna']")&&str_contains($mobile,"VerificationCheck"),'SMS/WhatsApp/SNA verification implementation present');
+$ok(str_contains($mobile,"hash_hmac('sha256', \$ip")&&str_contains($mobile,'ep_mobile_auth_challenges'),'challenge abuse history stores HMAC IP key');
+$ok(str_contains($schema,'ep_local_mobile_accounts')&&str_contains($schema,'identity_source'),'local-account schema present');
+$ok(str_contains($manifest,'android:exported="true"')&&str_contains($manifest,'android.permission.INTERNET'),'modern exported launcher + internet permission');
+$ok(!str_contains($manifest,'READ_SMS')&&!str_contains($manifest,'READ_PHONE')&&!str_contains($manifest,'READ_CONTACTS'),'no sensitive SMS/phone/contact permissions');
+$ok(str_contains($android,'new WebView(this)')&&str_contains($android,'installCookiesInWebView'),'Reader opens in embedded WebView with session handoff');
+$ok(str_contains($android,'TRANSPORT_CELLULAR')&&str_contains($android,'network.openConnection(new URL(snaUrl))'),'silent verification forces SNA URL over cellular network');
+if($fails){fwrite(STDERR,"\nMOBILE AUTH STATIC FAILED\n - ".implode("\n - ",$fails)."\n");exit(1);}echo"\nPASS mobile auth static guard\n";

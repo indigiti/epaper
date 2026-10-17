@@ -8,6 +8,9 @@ final class App
     {
         $method=$_SERVER['REQUEST_METHOD']??'GET';$path=parse_url($_SERVER['REQUEST_URI']??'/',PHP_URL_PATH)?:'/';if($path==='/admin/')$path='/admin';
         if($path==='/login'||$path==='/mobile-login'||$path==='/desktop-login'||$path==='/auth/callback'||$path==='/logout'||str_starts_with($path,'/admin')||str_starts_with($path,'/account')||(str_starts_with($path,'/api/v1/')||str_starts_with($path,'/api/v2/')))Http::privateNoStore();
+        // Control-plane receiver must work even when its tenant/domain was suspended.
+        if($path==='/internal/v1/platform/cache-invalidate')
+            \EpaperSaas\Services\PlatformInvalidation::handle();
         if($path==='/health/live')Http::json(['ok'=>true,'status'=>'LIVE','product'=>'ePaper SaaS','version'=>$this->version(),'request_guid'=>Http::requestGuid()]);
         if($path==='/health/ready')$this->healthReady();
         if($path==='/health/platform')$this->platformHealth();
@@ -262,11 +265,11 @@ final class App
     }
     private function serviceAccess(): string
     {
-        $k='access:'.RequestContext::tenantGuid();$cached=\EpaperSaas\Core\RedisStore::getJson($k);if($cached)return(string)($cached['service_access_state']??'FULL');try{$d=PlatformClient::instance()->access(RequestContext::tenantGuid());\EpaperSaas\Core\RedisStore::setJson($k,$d,180);return(string)($d['service_access_state']??'BLOCKED');}catch(\Throwable){return'FULL';}
+        return \EpaperSaas\Services\PlatformAccess::currentState();
     }
     private function requireDataPlane(): void
     {
-        $state=$this->serviceAccess();if(in_array($state,['FULL','RESTRICTED'],true))return;http_response_code(402);View::layout('Service access restricted','<section class="empty-state"><h1>Publisher service is restricted</h1><p>This ePaper account currently has <strong>'.$this->e($state).'</strong> access. Publisher administrators can review subscription details from the ePaper account area.</p><a class="btn" href="/admin">Publisher dashboard</a></section>',['brand'=>$this->brandName()]);
+        $state=$this->serviceAccess();if(in_array($state,['FULL','RESTRICTED'],true))return;Http::privateNoStore();http_response_code($state==='UNAVAILABLE'?503:402);if($state==='UNAVAILABLE')header('Retry-After: 15');View::layout('Service access restricted','<section class="empty-state"><h1>Publisher service is restricted</h1><p>This ePaper account currently has <strong>'.$this->e($state).'</strong> access. Publisher administrators can review subscription details from the ePaper account area.</p><a class="btn" href="/admin">Publisher dashboard</a></section>',['brand'=>$this->brandName()]);
     }
     private function home(): never
     {

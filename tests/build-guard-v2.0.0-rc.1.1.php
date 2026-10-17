@@ -1,0 +1,20 @@
+<?php
+declare(strict_types=1);
+$root=dirname(__DIR__);$fails=[];$pass=function(bool$ok,string$name)use(&$fails){echo($ok?'PASS':'FAIL')." — {$name}\n";if(!$ok)$fails[]=$name;};$read=fn(string$f):string=>is_file($root.'/'.$f)?(string)file_get_contents($root.'/'.$f):'';
+$version=trim($read('VERSION'));$app=$read('app/App.php');$view=$read('app/Core/View.php');$css=$read('public_html/assets/admin-beta.css');$crud=$read('public_html/assets/crud.js');$sw=$read('public_html/service-worker.js');
+$pass($version==='2.0.0-rc.1.1','VERSION locked to v2.0.0-rc.1.1');
+$pass(str_contains($app,"if(\$path==='/admin/')\$path='/admin';"),'/admin/ compatibility normalization retained');
+foreach(['PUBLISHING','DISCOVERY','AUDIENCE','PUBLISHER','OPERATIONS','GOVERNANCE'] as$group)$pass(str_contains($view,"\$groups['{$group}']"),'admin IA group '.$group);
+$pass(str_contains($view,'PUBLISHER OPERATIONS')&&str_contains($view,'Publisher operations console'),'publisher masthead/tenant context retained');
+foreach(["'archive'=>","'restore'=>","'trash'=>","'more'=>"] as$marker)$pass(str_contains($view,$marker),'shared icon '.$marker);
+$pass(str_contains($app,'console-icon-action is-archive')&&str_contains($app,'console-icon-action is-restore'),'Editions expose archive and restore icon actions');
+$pass(str_contains($app,'data-label="Processing"')&&str_contains($app,'data-label="Actions"'),'responsive Editions row labels packaged');
+$pass(str_contains($app,"'Scheduled'")&&str_contains($app,'publish_mode="SCHEDULED"'),'dashboard prioritizes scheduled publishing');
+$pass(str_contains($crud,'reusable enterprise CRUD/action icon system')&&str_contains($crud,'record-action-cluster'),'application-wide CRUD action promotion packaged');
+foreach(['is-view','is-edit','is-delete','is-archive','is-restore','is-publish'] as$kind)$pass(str_contains($css,$kind),'semantic action style '.$kind);
+$pass(str_contains($css,'@media(max-width:760px)')&&str_contains($css,'.editions-table td::before'),'tablet/mobile Editions recomposition packaged');
+$pass(str_contains($css,':focus-visible')&&str_contains($css,'prefers-reduced-motion'),'accessibility focus and reduced-motion guardrails');
+$pass(str_contains($sw,"const VERSION='epdi-v2.0.0-rc.1.1'"),'service worker aligned to rc.1.1');
+$pass(!is_file($root.'/database/upgrade-v2.0.0-rc.1.1.sql'),'rc.1.1 introduces no database migration');
+foreach(['/admin/editions/','/admin/processing','/admin/articles','/admin/navigation','/admin/master-data','/admin/settings','/admin/errors','/admin/system/health'] as$route)$pass(str_contains($app,$route),'critical admin route retained '.$route);
+if($fails){fwrite(STDERR,"\nRC.1.1 BUILD GUARD FAILED: ".implode(', ',$fails)."\n");exit(1);}echo"\nALL EP-DI v2.0.0-rc.1.1 BUILD GUARDS PASSED\n";

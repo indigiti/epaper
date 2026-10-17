@@ -1,0 +1,20 @@
+<?php
+declare(strict_types=1);
+$root=dirname(__DIR__);$fails=[];$pass=function(bool$ok,string$name)use(&$fails){echo($ok?'PASS':'FAIL')." — {$name}\n";if(!$ok)$fails[]=$name;};$read=fn(string$f):string=>is_file($root.'/'.$f)?(string)file_get_contents($root.'/'.$f):'';
+$version=trim($read('VERSION'));$app=$read('app/App.php');$view=$read('app/Core/View.php');$ready=$read('app/Services/ProductionReadiness.php');$store=$read('app/Core/Store.php');$sched=$read('bin/scheduler.php');$sw=$read('public_html/service-worker.js');$css=$read('public_html/assets/admin-beta.css');
+$pass($version==='2.0.0-rc.2','VERSION locked to v2.0.0-rc.2');
+$pass(str_contains($ready,"public const READY='READY'")&&str_contains($ready,"public const ACTION='ACTION_REQUIRED'")&&str_contains($ready,"public const REVIEW='REVIEW'"),'real readiness status vocabulary packaged');
+$pass(str_contains($app,'/admin/system/readiness.json')&&str_contains($app,'ProductionReadiness::snapshot(true)'),'admin readiness UI and JSON endpoint packaged');
+$pass(str_contains($view,"'Production readiness','/admin/system/health'"),'admin IA promotes Production readiness');
+$pass(str_contains($app,'Status is derived from runtime evidence—not a manually entered score.'),'readiness page explicitly rejects decorative scoring');
+$pass(!str_contains($app,'SYSTEM SCORE'),'legacy fake system score removed from active App UI');
+$pass(str_contains($store,'max_query_ms')&&str_contains($store,'slow_queries')&&str_contains($store,"hash('sha256',\$normalized)"),'non-sensitive slow-query telemetry packaged');
+$pass(str_contains($app,'Stuck &gt;20 min')&&str_contains($app,'time()-1200'),'stuck processing detection exposed');
+$pass(str_contains($sched,'GET_LOCK("epdi_scheduler_v2",0)')&&str_contains($sched,"'published_now'=>\$publishedNow")&&str_contains($sched,'scheduler.last_run'),'scheduler overlap lock and catch-up heartbeat packaged');
+$pass(str_contains($app,"'search:'")&&str_contains($app,"'offline-page:'")&&str_contains($app,"'analytics:'")&&str_contains($app,"'progress:'"),'high-volume public/API paths have rate-limit guards');
+$pass(str_contains($app,'Cloudways backup & restore')&&str_contains($ready,'cannot be proven by a local health probe'),'external backup verification is represented honestly');
+$pass(str_contains($css,'.readiness-overview')&&str_contains($css,'.readiness-row'),'readiness console design-system components packaged');
+$pass(str_contains($sw,"const VERSION='epdi-v2.0.0-rc.2'"),'service worker aligned to rc.2');
+$pass(!is_file($root.'/database/upgrade-v2.0.0-rc.2.sql'),'rc.2 introduces no database migration');
+foreach(['/admin/editions','/admin/processing','/admin/errors','/admin/performance','/archive'] as$route)$pass(str_contains($app,$route),'critical route retained '.$route);
+if($fails){fwrite(STDERR,"\nRC.2 BUILD GUARD FAILED: ".implode(', ',$fails)."\n");exit(1);}echo"\nALL EP-DI v2.0.0-rc.2 BUILD GUARDS PASSED\n";

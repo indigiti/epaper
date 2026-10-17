@@ -1,0 +1,21 @@
+<?php
+declare(strict_types=1);
+$root=dirname(__DIR__);$fails=[];
+$pass=function(bool $ok,string $name)use(&$fails){echo($ok?'PASS':'FAIL')." — {$name}\n";if(!$ok)$fails[]=$name;};
+$read=fn(string $f):string=>is_file($root.'/'.$f)?(string)file_get_contents($root.'/'.$f):'';
+$version=trim($read('VERSION'));$app=$read('app/App.php');$css=$read('public_html/assets/app.css');$sw=$read('public_html/service-worker.js');$offline=$read('public_html/offline.html');$ol=$read('public_html/offline-library.html');$or=$read('public_html/offline-reader.html');
+$pass($version==='2.0.0','VERSION locked to v2.0.0 Production Stable');
+$pass(str_contains($sw,"const VERSION='epdi-v2.0.0'"),'service worker cache namespace aligned to stable');
+$pass(str_contains($sw,"/assets/app.css?v=2.0.0")&&str_contains($sw,"/assets/offline-vault.js?v=2.0.0"),'stable PWA shell asset keys aligned');
+$pass(str_contains($offline,'EP-DI v2.0.0 · Reader OS + Encrypted Offline Vault'),'offline fallback identifies stable release');
+$pass(str_contains($ol,"version:'2.0.0'")&&str_contains($or,"version:'2.0.0'"),'offline vault static runtime aligned to stable');
+$pass(str_contains($css,'.newsstand-hero-copy::before')&&str_contains($css,'filter:blur(32px)'),'Today hero editorial glow retained');
+$pass(str_contains($css,'border:3px solid #fff')&&str_contains($css,'rotate(3deg)'),'Today cover border/swing retained');
+$pass(str_contains($css,'.edition-rail{')&&str_contains($css,'scroll-snap-type:x mandatory')&&str_contains($css,'touch-action:pan-x'),'Homepage recent editions swipe rail retained');
+$pass(str_contains($css,'.public-shell .newsstand{')&&str_contains($css,'grid-auto-flow:column')&&str_contains($css,'grid-auto-columns:minmax(190px,230px)'),'Publication newsstand horizontal rail retained');
+$pass(str_contains($css,'.public-shell .newsstand>.edition-cover img')&&str_contains($css,'object-fit:contain')&&str_contains($css,'object-position:center top'),'Publication covers preserve newspaper geometry');
+$pass(str_contains($app,"editionCoverUrl(\$r,'THUMB')"),'strict THUMB delivery retained');
+$pass(str_contains($app,"if(\$path==='/admin/')\$path='/admin'"),'admin trailing-slash compatibility retained');
+$pass(!is_file($root.'/database/upgrade-v2.0.0.sql'),'stable promotion introduces no database migration');
+foreach(['BUILD-MANIFEST-2.0.0.md','RELEASE-NOTES-2.0.0.md','DEPLOYMENT-RUNBOOK-2.0.0.md','ROLLBACK-2.0.0.md','ROUTE-INVENTORY-2.0.0.txt','DATABASE-SCHEMA-MANIFEST-2.0.0.txt','PRODUCTION-ACCEPTANCE-REPORT-2.0.0.md','BACKUP-RESTORE-CHECKLIST-2.0.0.md'] as $f)$pass(is_file($root.'/'.$f),'stable release artifact present: '.$f);
+if($fails){fwrite(STDERR,"\nV2.0.0 STABLE BUILD GUARD FAILED:\n - ".implode("\n - ",$fails)."\n");exit(1);}echo"\nALL EP-DI v2.0.0 PRODUCTION STABLE BUILD GUARDS PASSED\n";
