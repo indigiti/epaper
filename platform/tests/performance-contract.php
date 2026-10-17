@@ -22,4 +22,9 @@ $check(str_contains($client,"'event_guid'=>"),'ePaper service client forwards st
 $check(str_contains($migration,'PRIMARY KEY(event_guid)')&&str_contains($migration,'payload_hash'),'usage migration provides unique event ledger');
 $check(str_contains($usageRepo,'Store::tx(')&&str_contains($usageRepo,'ON DUPLICATE KEY UPDATE'),'event record and meter increment share transaction');
 $check(str_contains($usageRepo,"'USAGE_EVENT_CONFLICT'"),'mismatched reused event key rejected');
+$redis=file_get_contents($root.'/app/Core/RedisStore.php');
+$check(str_contains($redis,'private static bool $unavailable=false'),'Redis outages short-circuit repeated connects in a request');
+$check(str_contains($redis,"'redis.connect_timeout',0.5"),'Redis connection timeout is bounded and configurable');
+$check(str_contains($redis,'self::$unavailable=true'),'failed cache backends enter request-scoped fallback');
+
 exit($failed?1:0);
