@@ -256,29 +256,12 @@ final class App
     private function directAuth(): never
     {
         $service=ServiceAuth::requireScope('auth.direct');
-        $d=Http::bodyJson();
-        $clientId=trim((string)($d['client_id']??''));
-        $tenantGuid=strtolower(trim((string)($d['product_tenant_guid']??'')));
-        $email=strtolower(trim((string)($d['email']??'')));
-        $password=(string)($d['password']??'');
-        $totp=trim((string)($d['totp']??''));
-        if($clientId===''||$tenantGuid===''||$email===''||$password==='')Http::json(['ok'=>false,'code'=>'AUTH_REQUEST_INVALID','message'=>'Invalid sign-in request'],400);
-        try{$tenantBin=Uuid::toBinary($tenantGuid);}catch(\Throwable){Http::json(['ok'=>false,'code'=>'AUTH_REQUEST_INVALID','message'=>'Invalid sign-in request'],400);}
-        $app=Store::one('SELECT application_guid,product_guid,application_key,name,status,oauth_client_id FROM applications WHERE oauth_client_id=? AND status="ACTIVE" LIMIT 1',[$clientId]);
-        if(!$app)Http::json(['ok'=>false,'code'=>'AUTH_CLIENT_INVALID','message'=>'Application authentication is not configured'],401);
-        $tenant=Store::one('SELECT pt.product_tenant_guid,pt.organisation_guid,pt.product_guid,pt.display_name,pt.status,o.status organisation_status,p.status product_status FROM product_tenants pt JOIN organisations o ON o.organisation_guid=pt.organisation_guid JOIN products p ON p.product_guid=pt.product_guid WHERE pt.product_tenant_guid=? LIMIT 1',[$tenantBin]);
-        if(!$tenant||$tenant['status']!=='ACTIVE'||$tenant['organisation_status']!=='ACTIVE'||$tenant['product_status']!=='ACTIVE')Http::json(['ok'=>false,'code'=>'TENANT_INACTIVE','message'=>'Publisher account is not active'],403);
-        if(!hash_equals((string)$app['product_guid'],(string)$tenant['product_guid']))Http::json(['ok'=>false,'code'=>'AUTH_PRODUCT_MISMATCH','message'=>'Application is not authorized for this publisher'],403);
-        if(!empty($service['product_guid'])&&!hash_equals((string)$service['product_guid'],(string)$app['product_guid']))Http::json(['ok'=>false,'code'=>'SERVICE_PRODUCT_MISMATCH','message'=>'Service account is not authorized for this product'],403);
-        $bucket='direct-auth:'.$tenantGuid.':'.hash('sha256',$email);
-        if(!RateLimiter::allow($bucket,10,300)){Audit::log('identity.direct_login_rate_limited','product_tenant',$tenantGuid,'DENIED',['application_key'=>$app['application_key']]);Http::json(['ok'=>false,'code'=>'AUTH_RATE_LIMITED','message'=>'Too many sign-in attempts. Try again later.'],429);}
-        $user=OAuth::verifyCredentials($email,$password,$totp);
-        if(!$user){Audit::log('identity.direct_login_failed','product_tenant',$tenantGuid,'DENIED',['application_key'=>$app['application_key'],'email_hash'=>hash('sha256',$email)]);Http::json(['ok'=>false,'code'=>'AUTH_INVALID','message'=>'Invalid email, password or authenticator code'],401);}
-        $memberships=Store::all('SELECT membership_guid,organisation_guid,role_key,status FROM memberships WHERE user_guid=? AND status="ACTIVE"',[Uuid::toBinary($user['user_guid'])]);
-        $identity=['user'=>$user,'memberships'=>$memberships,'authenticated_at'=>gmdate('c'),'assurance'=>!empty($user['mfa_used'])?'PASSWORD_MFA':'PASSWORD','product_tenant_guid'=>$tenantGuid,'application_guid'=>$app['application_guid']];
-        unset($identity['user']['mfa_used']);
-        Audit::log('identity.direct_login','product_tenant',$tenantGuid,'SUCCESS',['application_key'=>$app['application_key'],'user_guid'=>$user['user_guid']]);
-        Http::json(['ok'=>true,'identity'=>$identity]);
+        try {
+            $identity=\Digiti\Application\Identity\DirectLogin::authenticate($service,Http::bodyJson());
+            Http::json(['ok'=>true,'identity'=>$identity]);
+        } catch (\Digiti\Application\Identity\DirectAuthFailure $e) {
+            Http::json(['ok'=>false,'code'=>$e->errorCode(),'message'=>$e->getMessage()],$e->httpStatus());
+        }
     }
 
     private function authToken(): never
