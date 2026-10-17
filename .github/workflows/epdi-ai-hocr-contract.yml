@@ -7,6 +7,7 @@ on:
       - 'codebase/bin/ai-layout-preview.py'
       - 'codebase/tests/test_ai_hocr.py'
       - 'codebase/tests/test_ai_layout.py'
+      - 'codebase/tests/test_ai_cli.py'
       - '.github/workflows/epdi-ai-hocr-contract.yml'
   push:
     branches:
@@ -17,6 +18,7 @@ on:
       - 'codebase/bin/ai-layout-preview.py'
       - 'codebase/tests/test_ai_hocr.py'
       - 'codebase/tests/test_ai_layout.py'
+      - 'codebase/tests/test_ai_cli.py'
       - '.github/workflows/epdi-ai-hocr-contract.yml'
 permissions:
   contents: read
