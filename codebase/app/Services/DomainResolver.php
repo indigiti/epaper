@@ -20,8 +20,9 @@ final class DomainResolver
     public static function resolve(): array
     {
         $host=Http::host();$cache=RedisStore::getJson('domain:v2:'.$host)?:self::fileCacheGet('domain:v2:'.$host);if($cache)return self::activate($cache,$host,true);
-        $canonical=parse_url((string)Config::get('app.url'),PHP_URL_HOST);$fallback=(string)Config::get('platform.default_tenant_guid','');
-        try{$d=PlatformClient::instance()->resolveDomain($host);}catch(\Throwable$e){if($fallback&&$host===$canonical){$info=self::remoteTenant($fallback);if(($info['status']??'')!=='ACTIVE')throw new \RuntimeException('Canonical fallback tenant is not active');$d=['ok'=>true,'domain_guid'=>null,'organisation_guid'=>$info['organisation_guid']??(string)Config::get('platform.default_organisation_guid'),'product_guid'=>$info['product_guid']??null,'product_key'=>$info['product_key']??'EPAPER','application_guid'=>(string)Config::get('platform.application_guid'),'application_key'=>Config::get('platform.application_key','city_epaper'),'product_tenant_guid'=>$fallback,'hostname'=>$host,'status'=>'CANONICAL_FALLBACK','_tenant_info'=>$info];}else throw$e;}
+        // No implicit canonical fallback: a suspended/unregistered domain must not
+        // silently regain access through a default publisher mapping.
+        $d=PlatformClient::instance()->resolveDomain($host);
         if(($d['product_key']??'')!=='EPAPER')throw new \RuntimeException('Domain is not registered for EPAPER');
         $tenant=(string)($d['product_tenant_guid']??'');if($tenant==='' )throw new \RuntimeException('Resolved domain has no product tenant');
         if(empty($d['_tenant_info'])){$info=self::tenantInfo($tenant,false);if($info)$d['_tenant_info']=$info;}
