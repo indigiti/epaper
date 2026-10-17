@@ -42,3 +42,7 @@ jobs:
           find app bin tests public_html -type f -name '*.php' -not -path '*/uploads/*' -print0 | xargs -0 -n1 php -l > /tmp/epdi-php-lint.txt
       - name: Existing complete source regressions
         run: php bin/release-check.php
+      - name: Platform authorization and cache revocation regression checks
+        run: |
+          php tests/platform-access-policy.php
+          php tests/platform-cache-boundary.php
