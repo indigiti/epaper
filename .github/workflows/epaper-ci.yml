@@ -55,5 +55,7 @@ jobs:
           node --check tests/browser-cache-isolation.cjs
           node --check bin/staging-browser-isolation.cjs
           node tests/browser-cache-isolation.cjs
+      - name: Run disposable release activation and rollback simulation
+        run: php tests/slim-release-activation.php
       - name: Run current release regression suite
         run: php bin/release-check.php
