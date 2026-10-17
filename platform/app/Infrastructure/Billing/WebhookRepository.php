@@ -8,6 +8,12 @@ use Digiti\Application\Billing\WebhookFailure;
 /** Atomic event receipt/outbox insertion, protected by provider event ID uniqueness. */
 class WebhookRepository
 {
+    /** No raw webhook data is sent to the admin browser. */
+    public function reviewQueue(): array
+    {
+        return Store::all('SELECT provider,provider_event_reference,processing_status,error_message,received_at FROM webhook_events WHERE processing_status="REVIEW_REQUIRED" ORDER BY received_at DESC LIMIT 100');
+    }
+
     public function receive(string $provider,string $reference,string $raw): bool
     {
         return Store::tx(static function()use($provider,$reference,$raw):bool{
