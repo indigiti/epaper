@@ -27,6 +27,8 @@ $check(str_contains($quick,'FOR UPDATE'),'renewal locks subscription row');
 $check(str_contains($quick,'acknowledged'),'renewal requires explicit approval');
 $check(str_contains($quick,'billing_state'),'renewal checks billing state');
 $check(str_contains($quick,'domain.quick_disable'),'domain disable audit action');
+$check(str_contains($quick,'function domainDetail('),'guided DNS/TLS setup detail');
+$check(str_contains($app,'QuickOperations::domainDetail'),'domain checklist reachable from authenticated admin router');
 $check(str_contains($view,'data-confirm'),'specific destructive action confirmation');
 $check(!str_contains($quick,'$_GET[\'tenant_guid\']'),'no GET tenant authorization bypass');
 require $root.'/app/Core/DomainTools.php';
