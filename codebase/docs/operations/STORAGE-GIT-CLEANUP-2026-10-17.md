@@ -86,3 +86,25 @@ For a staged installation containing restored data, the new **read-only** file-r
 Next run the separate backup-vs-restore SHA-256 comparator (above), \`php bin/health.php\`, \`php bin/queue-diagnostic.php\`, \`php bin/readiness-check.php --json\` with the correct staging tenant, and authenticated staging browser tests. Never run \`bin/tenant-isolation-diagnostic.php\` on a live/production database: that diagnostic inserts and deletes fixture data.
 
 **Stop** if any original PDF/asset/current clip is missing, any parent is orphaned, the restored database is empty, tenant isolation fails or stage deployment wipes files. No deletion PR may be merged until the restore and deployment-preservation procedure has independent evidence and operator sign-off.
+
+
+## Cloudways ZIP backup format — non-destructive preflight
+
+The operator reports the Cloudways backup is in ZIP format. It has **not** been inspected or test-restored by this repository. Keep the original ZIP unchanged, in private storage; calculate its SHA-256 digest and preserve it in the private recovery record.
+
+The following new preflight reads the ZIP *without extracting files* (and does not display file names or data):
+
+```bash
+cd codebase
+php bin/backup-zip-preflight.php --zip=/private/backups/epdi-backup.zip
+# Optional: stream every entry to test readability, without extraction
+php bin/backup-zip-preflight.php --zip=/private/backups/epdi-backup.zip --verify-contents
+```
+
+The results include whether the ZIP structure is safe, and counts for `storage/media`, `storage/uploads/*.pdf`, `storage/clips`, publisher branding, application entry files and potential SQL exports. The verifier refuses parent-directory traversal, absolute paths, Windows drive paths and Unix symlink entries. It reports suspicious ZIP paths without disclosing filenames.
+
+**Important:** A ZIP containing only application files is not necessarily a full MariaDB backup. SQL/database exports may be separate in Cloudways. An SQL-looking filename is only an indicator, not proof that the backup is consistent or restorable. If the ZIP bundles another archive, inspect that archive separately on an isolated system.
+
+After inspection, extract only onto a **disposable, isolated staging destination** using a tool that rejects unsafe paths; never unzip over production. Then run `bin/restore-verification.php`, `bin/staging-restore-acceptance.php` and authenticated staging/Reader/OCR/Clipping tests, with a separate verified MariaDB restore.
+
+No Git merge or deployment against the live checkout is authorized from ZIP preflight success alone. The source-cleanup PR still contains deletion entries for the formerly Git-tracked production data.
