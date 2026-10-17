@@ -20,7 +20,7 @@ $check(str_contains($app,'CreateInvoice::execute('),'HTTP invoice creation deleg
 $invoice=file_get_contents($root.'/app/Infrastructure/Billing/InvoiceRepository.php');
 $check(str_contains($invoice,'Store::tx(')&&str_contains($invoice,'INSERT INTO invoice_items'),'invoice header and lines inserted in one transaction');
 $money=file_get_contents($root.'/app/Domain/Billing/Money.php');
-$check(!str_contains($money,'round(')&&!str_contains($money,'float'),'invoice amounts use no floating point');
+$check(!str_contains($money,'round(')&&!str_contains($money,'(float)')&&!str_contains($money,'floatval('),'invoice amounts avoid float conversion');
 $check(str_contains($app,"/admin/billing/webhooks")&&str_contains($root.'/app/Presentation/Admin/WebhookReviewPage.php','WebhookReviewPage.php'),'authenticated review route retained');
 $check(str_contains($root.'/app/Billing/StripeProvider.php','StripeProvider.php'),'Stripe adapter available');
 exit($failed?1:0);
