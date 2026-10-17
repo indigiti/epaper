@@ -1,0 +1,8 @@
+PASS — version
+PASS — v1.1.9.9 auth markup
+PASS — auth stylesheet cache bust
+PASS — content shrink wrap
+PASS — compact vertical spacing
+PASS — service worker aligned
+PASS — protected QR/clip services not packaged
+ALL HOTFIX PACKAGE CHECKS PASSED

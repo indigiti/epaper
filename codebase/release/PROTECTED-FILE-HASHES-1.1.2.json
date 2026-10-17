@@ -1,0 +1,17 @@
+{
+  "version": "1.1.2",
+  "files": {
+    "app/App.php": "cf8c15c83373d1e3594279a079d34ff3468933d7d7fc58db6bbab6b2a3644c1b",
+    "app/Core/View.php": "25a57c18b32011a7c9658456a84cfa2b27cc0de66397ec67aa2334bd5481cdc6",
+    "app/Core/Store.php": "900127e497c643bafe8d829cc4cadaf4a68cff962545d240ba42ea897c7b7e05",
+    "app/Core/RedisStore.php": "b641b866cfb829668f00ff3de77faeb59316aec122761dfbf02948110691d794",
+    "public_html/assets/app.css": "f69d9cf9344c6b1f4acc360c954e032341edea787e4ba23a23da1ccb842ccfa9",
+    "public_html/assets/app.js": "c64fd4c0d62082c308505b12b7c8b2b58f8a8e4ecc87b56bea82b235a3be0914",
+    "public_html/assets/reader.css": "9b096c1b9fa895a613dbff662f74e15b056b119be17614aa0c311ed82887fa91",
+    "public_html/assets/reader.js": "a50a9ae3ab5d9621721757d46b3565ed3736ab974197ff6a220b2dbd8edfa9de",
+    "public_html/service-worker.js": "c1a7fbe303a1379a0317394602af516c11b7fdf39916e5e3fc1ea68f86e2207b",
+    "app/Services/QueueService.php": "7e5ecad9f43a5b2c7ed3aebc8979bcc8d7146e2aa052db5b87b72405f001d571",
+    "app/Services/RabbitMq.php": "5470715086ce25818482f1ffbb7372c0a87c44f01f10e40e6727d8ed9f429898",
+    "bin/rabbit-worker.php": "72c83c8d00e78cb0bc1d461c8679de6c26d3604932a5e20fd70e50c691a3efe0"
+  }
+}

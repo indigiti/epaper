@@ -1,0 +1,66 @@
+{
+  "version": "1.0.1.1",
+  "routes": {
+    "public": [
+      "GET /health/live",
+      "GET /health/ready",
+      "GET /health/platform",
+      "GET /health/queue",
+      "GET /",
+      "GET /archive",
+      "GET /search",
+      "GET /epaper/{publication}",
+      "GET /epaper/{publication}/{date}",
+      "GET /edition/{slug}/page/{page}",
+      "GET /c/{slug}",
+      "GET /media/{token}",
+      "GET /login",
+      "GET /auth/callback",
+      "GET /logout"
+    ],
+    "reader_api": [
+      "GET /api/v1/reader/{slug}/page/{page}/state",
+      "GET /api/v1/pages/{page_guid}/tiles",
+      "GET /api/v1/pages/{page_guid}/tiles/{level}/{x}/{y}.webp",
+      "GET /api/v1/pages/{page_guid}/article-at",
+      "GET /api/v1/search",
+      "POST /api/v1/analytics/events",
+      "POST /api/v1/clips",
+      "POST /api/v1/bookmarks",
+      "POST /api/v1/saved-articles",
+      "POST /api/v1/offline",
+      "POST /api/v1/progress"
+    ],
+    "account": [
+      "GET /account",
+      "GET /account/saved-articles",
+      "GET /account/bookmarks",
+      "GET /account/clips",
+      "GET /account/history",
+      "GET /account/offline",
+      "GET /account/notifications"
+    ],
+    "domain_admin": [
+      "GET /admin",
+      "GET|POST /admin/publications",
+      "GET|POST /admin/highlights",
+      "GET|POST /admin/master-data",
+      "GET|POST /admin/editions",
+      "POST /admin/editions/{guid}/process-now",
+      "POST /admin/editions/{guid}/publish",
+      "POST /admin/editions/{guid}/schedule",
+      "GET /admin/processing",
+      "GET /admin/subscribers",
+      "GET|POST /admin/settings",
+      "GET /admin/audit",
+      "GET /admin/errors",
+      "GET /admin/system/health",
+      "GET /admin/account",
+      "GET /admin/system/infrastructure",
+      "POST /admin/system/infrastructure/rabbitmq/save",
+      "POST /admin/system/infrastructure/rabbitmq/test",
+      "POST /admin/system/infrastructure/probe",
+      "GET /admin/system/infrastructure/probe-status"
+    ]
+  }
+}

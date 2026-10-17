@@ -1,0 +1,7 @@
+PASS — PHP installer syntax
+PASS — recovers when v3 runtime patch is already present
+PASS — corrected card.dataset.compactAuthHeight verification
+PASS — no duplicate runtime patch appended
+PASS — service-worker cache version bumped
+PASS — old failed v3 installer deleted
+PASS — v3.1 installer self-deletes after success

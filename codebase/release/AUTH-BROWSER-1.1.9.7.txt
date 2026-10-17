@@ -1,0 +1,141 @@
+PASS — 2560x1440 no JS errors
+PASS — 2560x1440 compact width :: {'x': 1060, 'y': 483.609375, 'width': 440, 'height': 514.765625}
+PASS — 2560x1440 content-fit height :: {'x': 1060, 'y': 483.609375, 'width': 440, 'height': 514.765625}
+PASS — 2560x1440 not portrait-stretched :: {'x': 1060, 'y': 483.609375, 'width': 440, 'height': 514.765625}
+PASS — 2560x1440 form inside card
+PASS — 2560x1440 submit inside card
+PASS — 2560x1440 security inside card
+PASS — 2560x1440 quote inside card
+PASS — 2560x1440 brand visible
+PASS — 2560x1440 legacy auth classes absent
+PASS — 2048x1202 no JS errors
+PASS — 2048x1202 compact width :: {'x': 804, 'y': 364.609375, 'width': 440, 'height': 514.765625}
+PASS — 2048x1202 content-fit height :: {'x': 804, 'y': 364.609375, 'width': 440, 'height': 514.765625}
+PASS — 2048x1202 not portrait-stretched :: {'x': 804, 'y': 364.609375, 'width': 440, 'height': 514.765625}
+PASS — 2048x1202 form inside card
+PASS — 2048x1202 submit inside card
+PASS — 2048x1202 security inside card
+PASS — 2048x1202 quote inside card
+PASS — 2048x1202 brand visible
+PASS — 2048x1202 legacy auth classes absent
+PASS — 1920x1080 no JS errors
+PASS — 1920x1080 compact width :: {'x': 740, 'y': 303.609375, 'width': 440, 'height': 514.765625}
+PASS — 1920x1080 content-fit height :: {'x': 740, 'y': 303.609375, 'width': 440, 'height': 514.765625}
+PASS — 1920x1080 not portrait-stretched :: {'x': 740, 'y': 303.609375, 'width': 440, 'height': 514.765625}
+PASS — 1920x1080 form inside card
+PASS — 1920x1080 submit inside card
+PASS — 1920x1080 security inside card
+PASS — 1920x1080 quote inside card
+PASS — 1920x1080 brand visible
+PASS — 1920x1080 legacy auth classes absent
+PASS — 1600x900 no JS errors
+PASS — 1600x900 compact width :: {'x': 580, 'y': 213.609375, 'width': 440, 'height': 514.765625}
+PASS — 1600x900 content-fit height :: {'x': 580, 'y': 213.609375, 'width': 440, 'height': 514.765625}
+PASS — 1600x900 not portrait-stretched :: {'x': 580, 'y': 213.609375, 'width': 440, 'height': 514.765625}
+PASS — 1600x900 form inside card
+PASS — 1600x900 submit inside card
+PASS — 1600x900 security inside card
+PASS — 1600x900 quote inside card
+PASS — 1600x900 brand visible
+PASS — 1600x900 legacy auth classes absent
+PASS — 1440x900 no JS errors
+PASS — 1440x900 compact width :: {'x': 500, 'y': 213.609375, 'width': 440, 'height': 514.765625}
+PASS — 1440x900 content-fit height :: {'x': 500, 'y': 213.609375, 'width': 440, 'height': 514.765625}
+PASS — 1440x900 not portrait-stretched :: {'x': 500, 'y': 213.609375, 'width': 440, 'height': 514.765625}
+PASS — 1440x900 form inside card
+PASS — 1440x900 submit inside card
+PASS — 1440x900 security inside card
+PASS — 1440x900 quote inside card
+PASS — 1440x900 brand visible
+PASS — 1440x900 legacy auth classes absent
+PASS — 1366x768 no JS errors
+PASS — 1366x768 compact width :: {'x': 463, 'y': 147.609375, 'width': 440, 'height': 514.765625}
+PASS — 1366x768 content-fit height :: {'x': 463, 'y': 147.609375, 'width': 440, 'height': 514.765625}
+PASS — 1366x768 not portrait-stretched :: {'x': 463, 'y': 147.609375, 'width': 440, 'height': 514.765625}
+PASS — 1366x768 form inside card
+PASS — 1366x768 submit inside card
+PASS — 1366x768 security inside card
+PASS — 1366x768 quote inside card
+PASS — 1366x768 brand visible
+PASS — 1366x768 legacy auth classes absent
+PASS — 1280x720 no JS errors
+PASS — 1280x720 compact width :: {'x': 420, 'y': 123.609375, 'width': 440, 'height': 514.765625}
+PASS — 1280x720 content-fit height :: {'x': 420, 'y': 123.609375, 'width': 440, 'height': 514.765625}
+PASS — 1280x720 not portrait-stretched :: {'x': 420, 'y': 123.609375, 'width': 440, 'height': 514.765625}
+PASS — 1280x720 form inside card
+PASS — 1280x720 submit inside card
+PASS — 1280x720 security inside card
+PASS — 1280x720 quote inside card
+PASS — 1280x720 brand visible
+PASS — 1280x720 legacy auth classes absent
+PASS — 1024x768 no JS errors
+PASS — 1024x768 compact width :: {'x': 292, 'y': 147.609375, 'width': 440, 'height': 514.765625}
+PASS — 1024x768 content-fit height :: {'x': 292, 'y': 147.609375, 'width': 440, 'height': 514.765625}
+PASS — 1024x768 not portrait-stretched :: {'x': 292, 'y': 147.609375, 'width': 440, 'height': 514.765625}
+PASS — 1024x768 form inside card
+PASS — 1024x768 submit inside card
+PASS — 1024x768 security inside card
+PASS — 1024x768 quote inside card
+PASS — 1024x768 brand visible
+PASS — 1024x768 legacy auth classes absent
+PASS — 768x1024 no JS errors
+PASS — 768x1024 compact width :: {'x': 164, 'y': 275.609375, 'width': 440, 'height': 514.765625}
+PASS — 768x1024 content-fit height :: {'x': 164, 'y': 275.609375, 'width': 440, 'height': 514.765625}
+PASS — 768x1024 not portrait-stretched :: {'x': 164, 'y': 275.609375, 'width': 440, 'height': 514.765625}
+PASS — 768x1024 form inside card
+PASS — 768x1024 submit inside card
+PASS — 768x1024 security inside card
+PASS — 768x1024 quote inside card
+PASS — 768x1024 brand visible
+PASS — 768x1024 legacy auth classes absent
+PASS — 430x932 no JS errors
+PASS — 430x932 compact width :: {'x': 12, 'y': 247.875, 'width': 406, 'height': 490.25}
+PASS — 430x932 content-fit height :: {'x': 12, 'y': 247.875, 'width': 406, 'height': 490.25}
+PASS — 430x932 mobile card fits viewport height :: {'x': 12, 'y': 247.875, 'width': 406, 'height': 490.25}
+PASS — 430x932 form inside card
+PASS — 430x932 submit inside card
+PASS — 430x932 security inside card
+PASS — 430x932 quote inside card
+PASS — 430x932 brand visible
+PASS — 430x932 legacy auth classes absent
+PASS — 430x932 mobile width :: {'x': 12, 'y': 247.875, 'width': 406, 'height': 490.25}
+PASS — 390x844 no JS errors
+PASS — 390x844 compact width :: {'x': 12, 'y': 203.875, 'width': 366, 'height': 490.25}
+PASS — 390x844 content-fit height :: {'x': 12, 'y': 203.875, 'width': 366, 'height': 490.25}
+PASS — 390x844 mobile card fits viewport height :: {'x': 12, 'y': 203.875, 'width': 366, 'height': 490.25}
+PASS — 390x844 form inside card
+PASS — 390x844 submit inside card
+PASS — 390x844 security inside card
+PASS — 390x844 quote inside card
+PASS — 390x844 brand visible
+PASS — 390x844 legacy auth classes absent
+PASS — 390x844 mobile width :: {'x': 12, 'y': 203.875, 'width': 366, 'height': 490.25}
+PASS — 360x800 no JS errors
+PASS — 360x800 compact width :: {'x': 10, 'y': 175.984375, 'width': 340, 'height': 502.015625}
+PASS — 360x800 content-fit height :: {'x': 10, 'y': 175.984375, 'width': 340, 'height': 502.015625}
+PASS — 360x800 mobile card fits viewport height :: {'x': 10, 'y': 175.984375, 'width': 340, 'height': 502.015625}
+PASS — 360x800 form inside card
+PASS — 360x800 submit inside card
+PASS — 360x800 security inside card
+PASS — 360x800 quote inside card
+PASS — 360x800 brand visible
+PASS — 360x800 legacy auth classes absent
+PASS — 360x800 mobile width :: {'x': 10, 'y': 175.984375, 'width': 340, 'height': 502.015625}
+PASS — 320x720 no JS errors
+PASS — 320x720 compact width :: {'x': 10, 'y': 126.921875, 'width': 300, 'height': 520.140625}
+PASS — 320x720 content-fit height :: {'x': 10, 'y': 126.921875, 'width': 300, 'height': 520.140625}
+PASS — 320x720 mobile card fits viewport height :: {'x': 10, 'y': 126.921875, 'width': 300, 'height': 520.140625}
+PASS — 320x720 form inside card
+PASS — 320x720 submit inside card
+PASS — 320x720 security inside card
+PASS — 320x720 quote inside card
+PASS — 320x720 brand visible
+PASS — 320x720 legacy auth classes absent
+PASS — 320x720 mobile width :: {'x': 10, 'y': 126.921875, 'width': 300, 'height': 520.140625}
+PASS — zoom 0.67 card ratio stable :: {'x': 652.59375, 'y': 176.375, 'width': 294.796875, 'height': 345.375}
+PASS — zoom 0.8 card ratio stable :: {'x': 624, 'y': 210.71875, 'width': 352, 'height': 412.15625}
+PASS — zoom 1.0 card ratio stable :: {'x': 580, 'y': 263.609375, 'width': 440, 'height': 514.765625}
+PASS — zoom 1.25 card ratio stable :: {'x': 525, 'y': 329.75, 'width': 550, 'height': 643}
+PASS — zoom 1.5 card ratio stable :: {'x': 470, 'y': 395.90625, 'width': 660, 'height': 771.171875}
+
+ALL v1.1.9.7 CONTENT-FIT AUTH CHECKS PASSED

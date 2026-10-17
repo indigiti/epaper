@@ -1,0 +1,8 @@
+EP-DI v2.0.1 — Route / API Diff
+Baseline: checksum-locked EP-DI v2.0.0 Production Stable
+Stable static inventory: 80 exact route signatures + 49 regex/pattern signatures = 129 total.
+
+Result: PASS — no route/API dispatcher signature was added, removed, or altered by v2.0.1.
+Method: route-bearing dispatcher lines ($path checks / preg_match route patterns) were compared against the exact v2.0.0 baseline and are byte-identical after line-number removal.
+
+The canonical complete inventory remains ROUTE-INVENTORY-2.0.0.txt because the route surface is unchanged.

@@ -1,0 +1,12 @@
+{
+  "version": "1.0.1.0",
+  "settings": [
+    "brand.site_name",
+    "brand.tagline",
+    "reader.theme",
+    "reader.default_fit",
+    "seo.description",
+    "processing.ocr_languages",
+    "clipping.default_visibility"
+  ]
+}

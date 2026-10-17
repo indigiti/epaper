@@ -1,0 +1,13 @@
+{
+  "version": "1.1.7",
+  "baseline": "1.1.6.2",
+  "added_or_hardened": {
+    "reader.guest_clipping": "one_free_guest_clip_per_browser_guest_state",
+    "reader.guest_clip_conversion_gate": "second_attempt_sign_in_or_subscribe",
+    "reader.guest_clip_claim": "automatic_same_session_claim_after_login",
+    "reader.guest_clip_privacy": "public_link_noindex_nofollow_fixed_7_day_expiry",
+    "reader.clipping_subscription_gate": "entitlement_aware_conversion_sheet",
+    "security.guest_clip_rate_limit": "secondary_network_rate_limit"
+  },
+  "removed": []
+}

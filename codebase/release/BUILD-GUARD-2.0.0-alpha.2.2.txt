@@ -1,0 +1,15 @@
+PASS — VERSION locked to 2.0.0-alpha.2.2
+PASS — alpha.2 SQL migration retained
+PASS — web upgrade-check entry point included
+PASS — CLI schema-check included
+PASS — SchemaDoctor provides preflight and safe repair
+PASS — SchemaDoctor verifies real DB schema/index state
+PASS — schema repair is serialized with MariaDB advisory lock
+PASS — web repair consumes canonical alpha.2 migration
+PASS — secured Upgrade Center route exists
+PASS — Upgrade Center is infrastructure-admin restricted
+PASS — Upgrade Center appears in canonical infra navigation
+PASS — dashboard Attention Center surfaces missing schema with repair route
+PASS — service worker cache version aligned
+
+ALL EP-DI v2.0.0-alpha.2.2 BUILD GUARDS PASSED

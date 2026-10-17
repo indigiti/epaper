@@ -1,0 +1,14 @@
+{
+  "version": "1.1.8",
+  "base": "1.1.7",
+  "capabilities": {
+    "reader.redis_state_cache": "implemented_tenant_scoped_300s",
+    "reader.adjacent_preview_decode_prefetch": "implemented_n_plus_minus_1",
+    "reader.predictive_swipe_prefetch": "implemented_direction_aware",
+    "reader.second_neighbor_prefetch": "metadata_plus_preview_when_not_low_data",
+    "reader.service_worker_media_cache": "bounded_18_network_first_offline_fallback",
+    "reader.data_saver_prefetch_policy": "implemented",
+    "account.same_domain_subscription": "implemented",
+    "platform.user_facing_url_exposure": "removed_from_reader_conversion_flow"
+  }
+}

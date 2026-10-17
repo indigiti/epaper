@@ -1,0 +1,51 @@
+EP-DI v2.0.1.4 RELEASE CHECK
+
+PASS 142 PHP syntax checks; 8 JavaScript syntax checks; cumulative guard.
+
+PASS: 37 targeted processing/database/subprocess/launch checks (output below).
+PASS: test fixture completed real PDF render -> WebP images/tiles -> Tesseract English OCR -> READY.
+PASS: web-action launcher started detached CLI runner and completed publication with RabbitMQ configured but absent; no Supervisor or recurring scheduler used in that test.
+PASS: database, vendor dependencies, core authentication/CSRF services, media and entitlement services, reader JS/CSS and offline-vault implementation unchanged from v2.0.1.3 by byte comparison.
+PASS: baseline admin dispatcher routes retained; process-immediately POST added behind existing admin/CSRF gates.
+PASS: regenerated SHA256SUMS and ZIP integrity verification.
+
+NOT VERIFIED: live production deployment, actual RabbitMQ transport/consumer integration, production-scale load, multi-page high-DPI performance, Marathi/Hindi OCR, or rendered browser visual acceptance. PHP fixtures validate action HTML, and responsive CSS/source is reviewed. PHP-FPM/Cloudways background-launch permissions must be checked on the host. Tests use PHP 8.3.6/MariaDB 10.11.14, not production PHP 8.4/MariaDB 11.4.
+
+PASS root admission
+PASS overlapping root rejected
+PASS direct recovery protects PUBLISHED
+PASS direct recovery protects SCHEDULED
+PASS direct recovery protects ARCHIVED
+PASS direct recovery protects TRASHED
+PASS repeated recovery adds no broker messages
+PASS durable direct request recorded
+PASS live worker lock respected
+PASS Trash waits for lock owner
+PASS cancel checkpoint
+PASS last cancellation settles Trash
+PASS direct request records cancellation
+PASS recent abandoned RUNNING job executed rather than acknowledged
+PASS abandoned job trace retained
+PASS late broker duplicate is terminal
+PASS transient direct failure schedules database retry
+PASS direct retry requires no broker publish
+PASS retry uses database time under IST PHP timezone
+PASS retry delay respected
+PASS no finalizer before render completion
+PASS missing finalizer reconciled exactly once
+PASS cross-tenant direct request rejected
+PASS queued job marked stalled
+PASS batched progress summary
+PASS accessible icon actions rendered
+PASS pagination still works
+PASS actual PDF to READY through direct runner with no RabbitMQ connection
+PASS reader assets generated
+PASS actual OCR stored
+PASS completed render handoff resumes after interruption without replacing pages
+PASS subprocess cancellation propagated
+PASS cancelled subprocess terminated promptly
+PASS direct recovery honours Auto publish without cron
+PASS future schedule is not published early
+PASS web action launches detached PHP CLI runner
+PASS detached runner processes real PDF and publishes without RabbitMQ/Supervisor/cron
+TOTAL 37 PASSED

@@ -1,0 +1,66 @@
+PASS — VERSION 1.1.9.9
+PASS — no production config/secrets packaged
+PASS — v1.1.4.1 QrCode exact hash retained
+PASS — v1.1.4.1 ClipService exact hash retained
+PASS — Source Page QR behavior BRANDING_VERSION = 'source-qr-v1'
+PASS — Source Page QR behavior sourcePageUrl
+PASS — Source Page QR behavior QrCode::drawImagick
+PASS — settings normalization private function postedSetting
+PASS — settings normalization settings[brand.site_name]
+PASS — settings normalization str_replace(['.',' '],'_',$key)
+PASS — smart social sharing /social/edition/
+PASS — smart social sharing socialPageThumb
+PASS — smart social sharing asset=$assets['THUMB']??$assets['PREVIEW']
+PASS — guest clipping guestClipUsed
+PASS — guest clipping claimGuestClipAfterLogin
+PASS — guest clipping GUEST_CLIP_LIMIT
+PASS — Reader Redis cache reader:state:v1:
+PASS — Reader Redis cache X-Reader-State-Cache: HIT
+PASS — Reader Redis cache X-Reader-State-Cache: MISS
+PASS — Reader predictive prefetch stateCache
+PASS — Reader predictive prefetch imageCache
+PASS — Reader predictive prefetch img.decode
+PASS — Reader predictive prefetch lastDirection
+PASS — Platform UI remains background-only
+PASS — same-domain subscription retained
+PASS — bulk clear audit null resource retained
+PASS — server-side rotating quote with immediate-repeat guard retained
+PASS — quote pool contains Roy Greenslade
+PASS — quote pool contains C. P. Scott
+PASS — quote pool contains Arthur Miller
+PASS — quote pool contains Philip L. Graham
+PASS — quote pool contains Walter Cronkite
+PASS — quote pool contains Hugo Black
+PASS — quote pool contains Joseph Pulitzer
+PASS — quote pool contains Thomas Jefferson
+PASS — quote pool contains Nelson Mandela
+PASS — quote pool contains Walter Lippmann
+PASS — quote pool contains Albert Camus
+PASS — quote pool contains Finley Peter Dunne
+PASS — v1.1.9.9 auth markup present
+PASS — luxury editorial quote markup present
+PASS — legacy class token explicitly remapped auth-panel
+PASS — legacy class token explicitly remapped auth-brand
+PASS — legacy class token explicitly remapped eyebrow
+PASS — legacy class token explicitly remapped muted
+PASS — legacy class token explicitly remapped auth-form
+PASS — legacy class token explicitly remapped auth-security
+PASS — legacy class token explicitly remapped auth-error
+PASS — dedicated v1.1.9.9 auth CSS loaded after app CSS
+PASS — runtime asset version aligned
+PASS — compact auth CSS auth-fit-v1199 .auth-fit-card
+PASS — compact auth CSS grid-template-rows:max-content max-content
+PASS — compact auth CSS height:max-content!important
+PASS — compact auth CSS width:min(100%,420px)
+PASS — compact auth CSS padding:46px 28px 20px
+PASS — compact auth CSS @media (max-width:640px)
+PASS — luxury quote CSS auth-fit-quote-card
+PASS — luxury quote CSS grid-template-areas:"mark quote" ". author"
+PASS — luxury quote CSS backdrop-filter:blur(15px)
+PASS — luxury quote CSS auth-fit-quote-mark
+PASS — v1.1.9.9 stylesheet isolated from legacy auth selectors
+PASS — quote follows trust note without spacer
+PASS — service worker aligned and auth CSS cache-busted
+PASS — bounded Reader media cache retained
+
+ALL v1.1.9.9 BUILD GUARDS PASSED

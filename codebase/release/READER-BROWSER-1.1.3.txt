@@ -1,0 +1,21 @@
+PASS — 1440x900 no JS page errors
+PASS — 1440x900 document does not scroll
+PASS — 1440x900 pager visible
+PASS — 1440x900 stage bounded between header and pager
+PASS — 1440x900 pages open by default desktop
+PASS — 1440x900 thumbnails independently scroll
+PASS — desktop Pages toggle gives canvas width back
+PASS — 1440x900 Low Data selection persists
+PASS — 1440x900 Low Data label updates
+PASS — 1440x900 High Quality selection works
+PASS — 390x844 no JS page errors
+PASS — 390x844 document does not scroll
+PASS — 390x844 pager visible
+PASS — 390x844 stage bounded between header and pager
+PASS — 390x844 pages closed by default mobile
+PASS — 390x844 mobile Pages drawer opens
+PASS — 390x844 Low Data selection persists
+PASS — 390x844 Low Data label updates
+PASS — 390x844 High Quality selection works
+
+ALL READER v1.1.3 BROWSER CHECKS PASSED

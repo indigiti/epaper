@@ -1,0 +1,34 @@
+{
+  "version": "1.1.4",
+  "engine": "RabbitMQ + Supervisor + MariaDB transactional outbox",
+  "stages": [
+    "EDITION_RENDER",
+    "EDITION_RENDER:HIGHRES_WEBP",
+    "PAGE_ASSETS:THUMBNAIL",
+    "PAGE_ASSETS:PREVIEW_WEBP",
+    "PAGE_ASSETS:DEEP_ZOOM_WEBP",
+    "PAGE_OCR:TESSERACT_HOCR",
+    "EDITION_FINALIZE"
+  ],
+  "retry_queues": [
+    "30s",
+    "5m",
+    "30m"
+  ],
+  "dead_letter": "epaper.dead",
+  "ocr_profiles": {
+    "english": "eng",
+    "marathi": "mar+eng",
+    "hindi": "hin+eng",
+    "fallback": "eng"
+  },
+  "asset_policy": {
+    "original_pdf": "retained_private",
+    "internal_render_source": "jpeg_private_processing_only",
+    "reader_highres": "webp",
+    "reader_preview": "webp",
+    "thumbnail": "webp",
+    "deep_zoom_tiles": "webp",
+    "ocr": "hocr+text"
+  }
+}

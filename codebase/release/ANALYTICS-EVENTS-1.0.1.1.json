@@ -1,0 +1,22 @@
+{
+  "version": "1.0.1.1",
+  "events": [
+    "page_view",
+    "page_dwell",
+    "edition_opened",
+    "reader_zoom",
+    "reader_fit",
+    "reader_scroll_zoom",
+    "reader_clip_started",
+    "reader_clip_saved",
+    "reader_search",
+    "reader_performance",
+    "article_opened",
+    "article_selected",
+    "bookmark_created",
+    "bookmark_removed",
+    "offline_download",
+    "share",
+    "tts_started"
+  ]
+}

@@ -1,0 +1,44 @@
+{
+  "baseline": "City ePaper v2.2.9.1",
+  "target": "ePaper SaaS v1.1.0",
+  "principle": "Port proven City behavior onto the SaaS-native multi-tenant architecture; do not restore legacy single-publisher infrastructure.",
+  "parity": {
+    "Reader visual/content-first shell": "IMPLEMENTED",
+    "Fit Page / Fit Width": "IMPLEMENTED",
+    "Mouse scroll zoom": "IMPLEMENTED",
+    "Cursor-centered zoom": "IMPLEMENTED",
+    "Pinch / pan / swipe": "IMPLEMENTED",
+    "Smooth page navigation": "IMPLEMENTED",
+    "Page thumbnails": "IMPLEMENTED",
+    "Clip final workflow": "IMPLEMENTED",
+    "Smart Article / TTS": "IMPLEMENTED",
+    "OCR search": "IMPLEMENTED",
+    "Resume / history": "IMPLEMENTED",
+    "Bookmarks / saved articles": "IMPLEMENTED",
+    "Offline / PWA": "IMPLEMENTED",
+    "Account Library": "IMPLEMENTED",
+    "Newsstand home": "IMPLEMENTED",
+    "Archive filters": "IMPLEMENTED",
+    "Global branding": "IMPLEMENTED_TENANT_SCOPED",
+    "Publisher Control IA": "IMPLEMENTED",
+    "Appearance / Brand / SEO / Reader / Processing / Clipping settings": "IMPLEMENTED",
+    "Admin themes": "IMPLEMENTED",
+    "Reader themes": "IMPLEMENTED",
+    "Auth themes": "IMPLEMENTED",
+    "Processing Center": "IMPLEMENTED_WITH_NEW_ENGINE",
+    "Error Center": "IMPLEMENTED",
+    "System Health": "IMPLEMENTED",
+    "Release guardrails": "IMPLEMENTED"
+  },
+  "intentionally_replaced": {
+    "City single-publisher assumptions": "Digiti Platform Product Tenant + DomainResolver",
+    "City queue/cron architecture": "RabbitMQ + Supervisor + transactional outbox",
+    "City local subscription/entitlement ownership": "Digiti Platform subscriptions/entitlements",
+    "City local identity": "Digiti Platform identity + first-party secure login",
+    "City global settings": "Tenant/publication/user scoped settings"
+  },
+  "non_blocking_followups": [
+    "Clip PDF export and QR-code export are not part of the v1.1.0 release blocker; WebP clip export, shareable clip URL and original-page link are present.",
+    "Advanced analytics dashboards remain a later enhancement; canonical event registry and audit/error telemetry are protected now."
+  ]
+}

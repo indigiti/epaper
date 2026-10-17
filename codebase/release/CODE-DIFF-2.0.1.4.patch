@@ -1,0 +1,758 @@
+--- v2.0.1.3/app/App.php
++++ v2.0.1.4/app/App.php
+@@ -1,7 +1,7 @@
+ <?php
+ namespace EpaperSaas;
+ use EpaperSaas\Core\{Auth,Build,Config,Http,RateLimiter,RedisStore,RequestContext,Store,Uuid,View};
+-use EpaperSaas\Services\{AnalyticsCatalog,Audit,CacheInspector,ClipService,DomainResolver,EditionOperations,EditionManifest,Entitlements,InfrastructureConfig,Media,MultiLayerCache,OfflineVault,PlatformClient,Processing,ProcessingRecovery,ProductionReadiness,PublicReadCache,PublishingRuntime,PublishingScheduler,QueueService,RecoveryCenter,RabbitMq,ReaderNavigation,RuntimeCache,SchemaDoctor,SemanticNews,SeoDiscovery,SettingsCatalog,SupervisorRuntime,TenantData};
++use EpaperSaas\Services\{AnalyticsCatalog,Audit,CacheInspector,ClipService,DomainResolver,DirectRecovery,EditionOperations,EditionManifest,Entitlements,InfrastructureConfig,Media,MultiLayerCache,OfflineVault,PlatformClient,Processing,ProcessingRecovery,ProductionReadiness,PublicReadCache,PublishingRuntime,PublishingScheduler,QueueService,RecoveryCenter,RabbitMq,ReaderNavigation,RuntimeCache,SchemaDoctor,SemanticNews,SeoDiscovery,SettingsCatalog,SupervisorRuntime,TenantData};
+ final class App
+ {
+     public function run(): never
+@@ -586,7 +586,7 @@
+     private function runAdmin(string $path,string $method): never
+     {
+         Auth::requireAdmin();if($method==='POST')Http::verifyCsrf();
+-        if(preg_match('#^/admin/editions/([0-9a-f-]{36})/(trash|delete|cancel|recover)$#i',$path,$m)&&$method==='POST')$this->adminEditionRecovery($m[1],$m[2]);
++        if(preg_match('#^/admin/editions/([0-9a-f-]{36})/(trash|delete|cancel|recover|process-immediately)$#i',$path,$m)&&$method==='POST')$this->adminEditionRecovery($m[1],$m[2]);
+         if($path==='/admin/preferences/theme'&&$method==='POST')$this->adminThemePreference();
+         if($path==='/admin')$this->adminDashboard();if($path==='/admin/navigation')$this->adminNavigation();if($path==='/admin/navigation/scope/create'&&$method==='POST')$this->adminNavigationCreateScope();if(preg_match('#^/admin/navigation/([0-9a-f-]{36})/header$#i',$path,$m)&&$method==='POST')$this->adminNavigationHeader($m[1]);if(preg_match('#^/admin/navigation/([0-9a-f-]{36})/item/add$#i',$path,$m)&&$method==='POST')$this->adminNavigationAddItem($m[1]);if(preg_match('#^/admin/navigation/([0-9a-f-]{36})/item/([0-9a-f-]{36})/(delete|toggle|up|down)$#i',$path,$m)&&$method==='POST')$this->adminNavigationItemAction($m[1],$m[2],$m[3]);if(preg_match('#^/admin/navigation/([0-9a-f-]{36})/publish$#i',$path,$m)&&$method==='POST')$this->adminNavigationPublish($m[1]);if(preg_match('#^/admin/navigation/([0-9a-f-]{36})/restore/(\d+)$#i',$path,$m)&&$method==='POST')$this->adminNavigationRestore($m[1],(int)$m[2]);if($path==='/admin/publications')$this->adminPublications($method);if(preg_match('#^/admin/publications/([0-9a-f-]{36})/(update|status|delete)$#i',$path,$m)&&$method==='POST')$this->adminPublicationAction($m[1],$m[2]);if($path==='/admin/highlights')$this->adminHighlights($method);if(preg_match('#^/admin/highlights/([0-9a-f-]{36})/(update|status|delete)$#i',$path,$m)&&$method==='POST')$this->adminHighlightAction($m[1],$m[2]);if($path==='/admin/articles')$this->adminArticles($method);if(preg_match('#^/admin/articles/([0-9a-f-]{36})/(update|publish|unpublish|delete)$#i',$path,$m)&&$method==='POST')$this->adminArticleAction($m[1],$m[2]);if($path==='/admin/authors')$this->adminAuthors($method);if(preg_match('#^/admin/authors/([0-9a-f-]{36})/(update|status|delete)$#i',$path,$m)&&$method==='POST')$this->adminAuthorAction($m[1],$m[2]);if($path==='/admin/topics')$this->adminTopics($method);if(preg_match('#^/admin/topics/([0-9a-f-]{36})/(update|status|delete)$#i',$path,$m)&&$method==='POST')$this->adminTopicAction($m[1],$m[2]);if($path==='/admin/entities')$this->adminEntities($method);if(preg_match('#^/admin/entities/([0-9a-f-]{36})/(update|status|delete)$#i',$path,$m)&&$method==='POST')$this->adminEntityAction($m[1],$m[2]);if($path==='/admin/master-data')$this->adminMasterData($method);if(preg_match('#^/admin/master-data/(city|language|section)/([0-9a-f-]{36})/(update|status|delete)$#i',$path,$m)&&$method==='POST')$this->adminMasterAction($m[1],$m[2],$m[3]);if($path==='/admin/editions')$this->adminEditions($method);if(preg_match('#^/admin/editions/([0-9a-f-]{36})/(update|archive|restore)$#i',$path,$m)&&$method==='POST')$this->adminEditionAction($m[1],$m[2]);
+         if(preg_match('#^/admin/editions/([0-9a-f-]{36})/process-now$#i',$path,$m)&&$method==='POST')$this->adminProcessNow($m[1]);if(preg_match('#^/admin/editions/([0-9a-f-]{36})/reprocess$#i',$path,$m)&&$method==='POST')$this->adminReprocess($m[1]);if(preg_match('#^/admin/editions/([0-9a-f-]{36})/publish$#i',$path,$m)&&$method==='POST')$this->adminPublish($m[1]);if(preg_match('#^/admin/editions/([0-9a-f-]{36})/schedule$#i',$path,$m)&&$method==='POST')$this->adminSchedule($m[1]);if(preg_match('#^/admin/editions/([0-9a-f-]{36})/unschedule$#i',$path,$m)&&$method==='POST')$this->adminUnschedule($m[1]);
+@@ -892,9 +892,10 @@
+             if(in_array($status,['ARCHIVED','TRASHED'],true))$actions.='<form class="console-icon-form" method="post" action="/admin/editions/'.$guid.'/restore">'.$this->csrf().'<button class="console-icon-action is-restore" title="Restore edition" aria-label="Restore '.$this->e($title).'">'.View::icon('restore').'</button></form>';
+             elseif($status!=='PROCESSING')$actions.='<form class="console-icon-form" method="post" action="/admin/editions/'.$guid.'/archive" data-confirm="Archive this edition? Publishing intent will be cleared; processing/audit history is retained.">'.$this->csrf().'<button class="console-icon-action is-archive" title="Archive edition" aria-label="Archive '.$this->e($title).'">'.View::icon('archive').'</button></form>';
+             if(in_array($status,['PROCESSING','NEEDS_ATTENTION'],true)){
+-                $actions.='<form class="inline" method="post" action="/admin/editions/'.$guid.'/recover">'.$this->csrf().'<button class="btn small" title="Safely redispatch unowned jobs">Recover</button></form><form class="inline" method="post" action="/admin/editions/'.$guid.'/cancel" data-confirm="Stop processing at the next safe checkpoint?">'.$this->csrf().'<button class="btn small">Cancel</button></form>';
++                $actions.='<form class="inline" method="post" action="/admin/editions/'.$guid.'/recover">'.$this->csrf().'<button class="console-icon-action is-process" title="Recover unfinished work" aria-label="Recover unfinished work">'.View::icon('refresh').'</button></form><form class="inline" method="post" action="/admin/editions/'.$guid.'/cancel" data-confirm="Stop processing at the next safe checkpoint?">'.$this->csrf().'<button class="console-icon-action is-delete" title="Cancel processing" aria-label="Cancel processing">'.View::icon('stop').'</button></form>';
+                 if((int)($r['processing_active_count']??0)===0)$actions.='<button class="btn small" type="button" data-open-editor-target="reprocess-'.$guid.'">Reprocess</button>';
+             }
++            if(in_array($status,['PROCESSING','NEEDS_ATTENTION'],true))$actions.='<form class="inline" method="post" action="/admin/editions/'.$guid.'/process-immediately">'.$this->csrf().'<button class="console-icon-action is-process" title="Process immediately" aria-label="Process immediately">'.View::icon('play').'</button></form>';
+             if(!in_array($status,['PUBLISHED','SCHEDULED','TRASHED'],true))$actions.='<form class="inline" method="post" action="/admin/editions/'.$guid.'/trash" data-confirm="Move this edition to Trash? Active work will be cancelled safely. Files are retained for Restore.">'.$this->csrf().'<button class="console-icon-action is-delete" title="Move to Trash" aria-label="Move to Trash">'.View::icon('trash').'</button></form>';
+             $manage='';
+             if($status==='READY')$manage.='<button type="button" class="record-action" data-open-editor-target="reprocess-'.$guid.'">Reprocess edition</button>';
+@@ -914,7 +915,7 @@
+         $status=(string)($r['status']??'DRAFT');$job=strtoupper((string)($r['processing_status']??''));$progress=(float)($r['processing_progress']??0);
+         if($status==='TRASHED')return['label'=>'Stopped','class'=>'archived','note'=>'Restore to process again'];
+         if($status==='NEEDS_ATTENTION')return['label'=>'Needs attention','class'=>'failed','note'=>'Recovery available'];
+-        if($status==='PROCESSING'||in_array($job,['QUEUED','RUNNING','RETRY_WAIT'],true))return['label'=>$job==='RETRY_WAIT'?'Retry waiting':($job==='QUEUED'?'Queued':'Processing'),'class'=>'processing','note'=>($progress>0?number_format($progress,0).'% render complete':'In supervised queue').(!empty($r['processing_updated_at'])?' · Updated '.$r['processing_updated_at']:'')];
++        if($status==='PROCESSING'||in_array($job,['QUEUED','RUNNING','RETRY_WAIT'],true))return['label'=>!empty($r['processing_stalled'])?'Waiting too long':($job==='QUEUED'?'Queued':'Processing'),'class'=>!empty($r['processing_stalled'])?'failed':'processing','note'=>isset($r['stage_summary'])?($r['overall_progress'].'% overall · '.$r['stage_summary']):'Waiting for processing'];
+         if(in_array($status,['READY','SCHEDULED','PUBLISHED','ARCHIVED'],true)&&(int)($r['page_count']??0)>0)return['label'=>'Processed','class'=>'ready','note'=>(int)$r['page_count'].' pages ready'];
+         if($job==='FAILED')return['label'=>'Failed','class'=>'failed','note'=>'Open recovery'];
+         return['label'=>'Not processed','class'=>'draft','note'=>'Waiting to process'];
+@@ -978,7 +979,7 @@
+         if(in_array($action,['trash','delete'],true)&&!in_array($role,['OWNER','ADMIN','PUBLISHER_ADMIN','EDITOR'],true))$this->adminError('Your role cannot move editions to Trash.');
+         if(!RateLimiter::allow('edition-recovery:'.RequestContext::tenantGuid(),20,300))$this->adminError('Too many recovery requests. Try again shortly.');
+         try{
+-            if($action==='recover'){$result=EditionOperations::recover($guid);$notice='Recovered '.$result['redispatched'].' job(s); '.$result['busy'].' job(s) are still owned by a worker.';}
++            if(in_array($action,['recover','process-immediately'],true)){DirectRecovery::request($guid);$launched=DirectRecovery::launch();$notice=$launched?'Immediate processing requested. Open processing details to confirm runner activity and progress.':'Recovery request saved. The direct recovery worker must be started by your hosting administrator; open processing details for status.';}
+             else{$result=EditionOperations::requestStop($guid,in_array($action,['trash','delete'],true)?'trash':'cancel');$notice=$result['pending']?'Stop requested. '.$result['pending'].' running job(s) will stop at the next checkpoint. Refresh to check progress.':($result['intent']==='trash'?'Edition moved to Trash. Files are retained for Restore.':'Processing stopped. Use Reprocess when ready.');}
+         }catch(\RuntimeException $e){$this->adminError($e->getMessage());}
+         Http::redirect('/admin/editions?notice='.rawurlencode($notice));
+@@ -1043,13 +1044,13 @@
+         if(!empty($_GET['started']))$notice='<div class="alert success">Edition queued. RabbitMQ will distribute render, asset and OCR work to Supervisor workers.</div>';
+         if(!empty($_GET['queue_repaired']))$notice.='<div class="alert success">Queue dispatch repaired. Pending jobs were rechecked and eligible work was returned to the RabbitMQ outbox.</div>';
+         $active=count(array_filter($rows,fn($r)=>in_array($r['status'],['QUEUED','RUNNING','RETRY_WAIT'],true)));
+-        $failed=count(array_filter($rows,fn($r)=>in_array($r['status'],['FAILED','NEEDS_ATTENTION'],true)));$stuck=count(array_filter($rows,fn($r)=>$r['status']==='RUNNING'&&!empty($r['updated_at'])&&strtotime((string)$r['updated_at'])<time()-1200));
++        $failed=count(array_filter($rows,fn($r)=>in_array($r['status'],['FAILED','NEEDS_ATTENTION'],true)));$stuck=count(array_filter($rows,fn($r)=>!empty($r['stale'])));
+         $broker=RabbitMq::instance()->ping();$qstats=RabbitMq::instance()->queueStats();$outbox=QueueService::outboxBacklog();
+         $brokerLabel=$broker['ok']?'Connected':$broker['detail'];
+-        $h='<section class="admin-head"><div><span class="eyebrow">OPERATIONS</span><h1>Processing Center</h1><p class="muted">RabbitMQ transports durable jobs; Supervisor keeps render, asset, OCR and finalize workers alive. MariaDB remains authoritative for progress and retries.</p></div><div class="processing-live"><span class="processing-live-dot" aria-hidden="true"></span><span data-processing-live-label>'.($active?'Live updates':'Idle').'</span></div></section>'.$notice;
++        $h='<section class="admin-head"><div><span class="eyebrow">OPERATIONS</span><h1>Processing Center</h1><p class="muted">Track edition progress, see what is waiting, and recover unfinished work.</p></div><div class="processing-live"><span class="processing-live-dot" aria-hidden="true"></span><span data-processing-live-label>'.($active?'Live updates':'Idle').'</span></div></section>'.$notice;
+         $confirmRecoverable=(int)($outbox['recoverable_confirm_failed']??0);
+         $failedLabel=$outbox['failed'].' failed'.($confirmRecoverable>0?' · '.$confirmRecoverable.' confirm-recoverable':'');
+-        $h.='<div class="kpis processing-kpis"><div class="kpi"><span>Active editions</span><strong data-processing-active>'.$active.'</strong></div><div class="kpi"><span>Needs attention</span><strong data-processing-failed>'.$failed.'</strong></div><div class="kpi"><span>Stuck &gt;20 min</span><strong class="'.($stuck?'bad':'good').'">'.$stuck.'</strong></div><div class="kpi"><span>RabbitMQ</span><strong style="font-size:18px">'.$this->e($brokerLabel).'</strong></div><div class="kpi"><span>Outbox pending</span><strong>'.$outbox['pending'].'</strong><small>'.$outbox['processing'].' processing · '.$failedLabel.'</small></div></div>';if($stuck>0)$h.='<div class="alert danger"><strong>Stuck processing detected.</strong> '.$stuck.' running edition job(s) have not updated for more than 20 minutes. The scheduler recovery net will retry abandoned RabbitMQ work; inspect the edition before manually reprocessing.</div>';
++        $h.='<div class="kpis processing-kpis"><div class="kpi"><span>Active editions</span><strong data-processing-active>'.$active.'</strong></div><div class="kpi"><span>Needs attention</span><strong data-processing-failed>'.$failed.'</strong></div><div class="kpi"><span>No progress &gt;20 min</span><strong data-processing-stalled class="'.($stuck?'bad':'good').'">'.$stuck.'</strong></div><div class="kpi"><span>RabbitMQ</span><strong style="font-size:18px">'.$this->e($brokerLabel).'</strong></div><div class="kpi"><span>Outbox pending</span><strong>'.$outbox['pending'].'</strong><small>'.$outbox['processing'].' processing · '.$failedLabel.'</small></div></div>';if($stuck>0)$h.='<div class="alert danger"><strong>Stuck processing detected.</strong> '.$stuck.' edition(s) include queued or running work without progress for more than 20 minutes. Open the edition and use Process immediately to request direct recovery.</div>';
+         if($outbox['pending']>0||$outbox['processing']>0||$outbox['failed']>0||($outbox['missing_dispatch_receipt']??0)>0){$age=(int)($outbox['oldest_pending_seconds']??0);$detail=(int)($outbox['failed_actionable']??0).' actionable failed · '.(int)($outbox['failed_closeable']??0).' historical/closeable · '.(int)($outbox['missing_dispatch_receipt']??0).' missing dispatch receipt';if($age>0)$detail.=' · oldest pending '.($age>=60?floor($age/60).' min':$age.' sec');$h.='<div class="alert warning"><strong>Queue transport needs analysis.</strong> '.$detail.' '.(Auth::canInfrastructureAdmin()?'<a class="btn" href="/admin/system/recovery">Open Web Recovery Center</a>':'<span class="muted">OWNER/ADMIN can run recovery actions.</span>').'</div>';}
+         if($qstats){$h.='<div class="panel"><div class="section-head"><h2>Queue lanes</h2><span class="muted">Ready messages · Supervisor consumers</span></div><div class="queue-lanes">';foreach($qstats as$name=>$q)$h.='<div class="queue-lane"><code>'.$this->e($name).'</code><strong>'.(int)$q['ready'].'</strong><span>'.(int)$q['consumers'].' worker'.((int)$q['consumers']===1?'':'s').'</span></div>';$h.='</div></div>';}
+         $h.='<div class="panel" data-processing-center><div class="table-wrap"><table class="processing-table"><thead><tr><th>Edition</th><th>Status</th><th>Overall</th><th>Stage progress</th><th>Last activity</th><th>Error / action</th></tr></thead><tbody data-processing-body>'.$this->processingRowsHtml($rows).'</tbody></table></div></div>';
+@@ -1063,12 +1064,12 @@
+     private function processingRows(): array
+     {
+         $editions=Store::all('SELECT DISTINCT e.edition_guid,e.edition_date,e.status,p.name publication_name,MAX(j.updated_at) last_activity FROM ep_editions e JOIN ep_processing_jobs j ON j.tenant_guid=e.tenant_guid AND j.edition_guid=e.edition_guid LEFT JOIN ep_publications p ON p.tenant_guid=e.tenant_guid AND p.publication_guid=e.publication_guid WHERE e.tenant_guid=? GROUP BY e.edition_guid,e.edition_date,e.status,p.name ORDER BY last_activity DESC LIMIT 50',[TenantData::tenantBin()]);
+-        $out=[];foreach($editions as$e){$editionGuid=$this->guid($e['edition_guid']);$p=QueueService::editionProgress($editionGuid);$all=$p['rows'];$status=(string)$e['status'];if(array_filter($all,fn($r)=>$r['status']==='RUNNING'))$status='RUNNING';elseif(array_filter($all,fn($r)=>$r['status']==='RETRY_WAIT'))$status='RETRY_WAIT';elseif(array_filter($all,fn($r)=>$r['status']==='QUEUED'))$status='QUEUED';elseif($status==='NEEDS_ATTENTION')$status='NEEDS_ATTENTION';elseif($status==='READY')$status='READY';$errors=array_values(array_filter(array_map(fn($r)=>trim((string)($r['error_message']??'')),$all)));$latest='';$attempt=1;foreach($all as$r){if((string)$r['updated_at']>$latest)$latest=(string)$r['updated_at'];$attempt=max($attempt,(int)$r['attempt_count']);}$stage='Render '.$p['render']['completed'].'/'.$p['render']['total'].' · Assets '.$p['assets']['completed'].'/'.$p['assets']['total'].' · OCR '.$p['ocr']['completed'].'/'.$p['ocr']['total'];if($p['ocr']['retry']||$p['assets']['retry'])$stage.=' · Retry '.($p['ocr']['retry']+$p['assets']['retry']);$stale=(bool)array_filter($all,fn($r)=>$r['status']==='RUNNING'&&strtotime((string)$r['updated_at'])<time()-EditionOperations::STALE_SECONDS);$out[]=['job_guid'=>$editionGuid,'edition_guid'=>$editionGuid,'edition'=>trim((string)$e['publication_name'].' '.(string)$e['edition_date']),'status'=>$status,'progress'=>$p['overall'],'stage'=>'PIPELINE','page'=>0,'total_pages'=>0,'message'=>$stage,'updated_at'=>$latest?:$e['last_activity'],'error'=>$errors?implode(' | ',array_slice(array_unique($errors),0,2)):'','stale'=>$stale,'attempt_count'=>$attempt];}return$out;
++        $out=[];foreach($editions as$e){$editionGuid=$this->guid($e['edition_guid']);$p=QueueService::editionProgress($editionGuid);$all=$p['rows'];$status=(string)$e['status'];if(array_filter($all,fn($r)=>$r['status']==='RUNNING'))$status='RUNNING';elseif(array_filter($all,fn($r)=>$r['status']==='RETRY_WAIT'))$status='RETRY_WAIT';elseif(array_filter($all,fn($r)=>$r['status']==='QUEUED'))$status='QUEUED';elseif($status==='NEEDS_ATTENTION')$status='NEEDS_ATTENTION';elseif($status==='READY')$status='READY';$errors=array_values(array_filter(array_map(fn($r)=>trim((string)($r['error_message']??'')),$all)));$latest='';$attempt=1;foreach($all as$r){if((string)$r['updated_at']>$latest)$latest=(string)$r['updated_at'];$attempt=max($attempt,(int)$r['attempt_count']);}$stage='Render '.$p['render']['completed'].'/'.$p['render']['total'].' · Assets '.$p['assets']['completed'].'/'.$p['assets']['total'].' · OCR '.$p['ocr']['completed'].'/'.$p['ocr']['total'];if($p['ocr']['retry']||$p['assets']['retry'])$stage.=' · Retry '.($p['ocr']['retry']+$p['assets']['retry']);$stale=(bool)array_filter($all,fn($r)=>in_array($r['status'],['QUEUED','RUNNING','RETRY_WAIT'],true)&&(int)($r['age_seconds']??0)>EditionOperations::STALE_SECONDS);$out[]=['job_guid'=>$editionGuid,'edition_guid'=>$editionGuid,'edition'=>trim((string)$e['publication_name'].' '.(string)$e['edition_date']),'status'=>$status,'progress'=>$p['overall'],'stage'=>'PIPELINE','page'=>0,'total_pages'=>0,'message'=>$stage,'updated_at'=>$latest?:$e['last_activity'],'error'=>$errors?implode(' | ',array_slice(array_unique($errors),0,2)):'','stale'=>$stale,'attempt_count'=>$attempt];}return$out;
+     }
+     private function processingRowsHtml(array $rows): string
+     {
+         if(!$rows)return '<tr><td colspan="6"><div class="empty-inline">No processing jobs yet.</div></td></tr>';
+-        $h='';foreach($rows as$d){$pct=max(0,min(100,(float)$d['progress']));$action='';if(in_array($d['status'],['FAILED','NEEDS_ATTENTION'],true)||$d['stale'])$action='<form class="inline" method="post" action="/admin/editions/'.$this->e($d['edition_guid']).'/'.($d['stale']?'recover':'reprocess').'">'.$this->csrf().'<button class="text-btn">'.($d['stale']?'Recover':'Retry').'</button></form>';$err=$d['error']?'<span class="processing-error">'.$this->e($d['error']).'</span> ':'';$h.='<tr data-job-guid="'.$this->e($d['job_guid']).'"><td><a class="text-link" href="/admin/processing/'.$this->e($d['edition_guid']).'">'.$this->e($d['edition']).'</a></td><td><span class="status '.strtolower($d['status']).'">'.$this->e($d['status']).'</span>'.($d['stale']?' <span class="pill warning">STALE</span>':'').'</td><td><div class="processing-progress" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="'.$pct.'"><span style="width:'.$pct.'%"></span></div><div class="processing-progress-meta"><strong>'.number_format($pct,2).'%</strong><span>Attempt '.max(1,$d['attempt_count']).'</span></div></td><td>'.$this->e($d['message']?:'Waiting').'</td><td><time>'.$this->e($d['updated_at']).'</time></td><td>'.$err.$action.'</td></tr>';}
++        $h='';foreach($rows as$d){$pct=max(0,min(100,(float)$d['progress']));$action='';if(in_array($d['status'],['FAILED','NEEDS_ATTENTION'],true)||$d['stale'])$action='<form class="inline" method="post" action="/admin/editions/'.$this->e($d['edition_guid']).'/'.($d['stale']?'recover':'reprocess').'">'.$this->csrf().'<button class="console-icon-action is-process" title="'.($d['stale']?'Recover unfinished work':'Retry processing').'" aria-label="'.($d['stale']?'Recover unfinished work':'Retry processing').'">'.View::icon('refresh').'</button></form>';$err=$d['error']?'<span class="processing-error">'.$this->e($d['error']).'</span> ':'';$h.='<tr data-job-guid="'.$this->e($d['job_guid']).'"><td><a class="text-link" href="/admin/processing/'.$this->e($d['edition_guid']).'">'.$this->e($d['edition']).'</a></td><td><span class="status '.strtolower($d['status']).'">'.$this->e($d['status']).'</span>'.($d['stale']?' <span class="pill warning">STALE</span>':'').'</td><td><div class="processing-progress" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="'.$pct.'"><span style="width:'.$pct.'%"></span></div><div class="processing-progress-meta"><strong>'.number_format($pct,2).'%</strong><span>Attempt '.max(1,$d['attempt_count']).'</span></div></td><td>'.$this->e($d['message']?:'Waiting').'</td><td><time>'.$this->e($d['updated_at']).'</time></td><td>'.$err.$action.'</td></tr>';}
+         return$h;
+     }
+     private function adminSubscribers(): never
+@@ -1309,7 +1310,7 @@
+     }
+     private function adminProcessingDetail(string $editionGuid): never
+     {
+-        $e=Store::one('SELECT e.edition_date,e.status,p.name publication_name FROM ep_editions e JOIN ep_publications p ON p.tenant_guid=e.tenant_guid AND p.publication_guid=e.publication_guid WHERE e.tenant_guid=? AND e.edition_guid=?',[TenantData::tenantBin(),Uuid::toBinary($editionGuid)]);if(!$e)$this->notFound('Edition unavailable');$rows=Store::all('SELECT job_guid,job_type,status,progress,attempt_count,worker_id,error_message,payload_json,updated_at FROM ep_processing_jobs WHERE tenant_guid=? AND edition_guid=? ORDER BY created_at,job_type',[TenantData::tenantBin(),Uuid::toBinary($editionGuid)]);$h='<section class="admin-head"><div><span class="eyebrow">PROCESSING DETAIL</span><h1>'.$this->e($e['publication_name']).' · '.$this->e($e['edition_date']).'</h1></div><a class="btn ghost" href="/admin/processing">Back to Processing</a></section><div class="panel"><div class="table-wrap"><table><thead><tr><th>Stage / job</th><th>Profile</th><th>Status</th><th>Progress</th><th>Attempt</th><th>Worker</th><th>Error</th></tr></thead><tbody>';foreach($rows as$r){$payload=QueueService::payload($r);$profile=(string)($payload['processing_profile']??'default');if((int)($payload['auto_rescue_attempt']??0)>0)$profile='auto recovery '.(int)$payload['auto_rescue_attempt'];$h.='<tr><td><code>'.$this->e($r['job_type']).'</code></td><td><span class="pill">'.$this->e(ucwords(str_replace('_',' ',$profile))).'</span></td><td><span class="status '.strtolower($r['status']).'">'.$this->e($r['status']).'</span></td><td>'.number_format((float)$r['progress'],2).'%</td><td>'.(int)$r['attempt_count'].'</td><td>'.$this->e($r['worker_id']??'').'</td><td>'.$this->e($r['error_message']??'').'</td></tr>';}$h.='</tbody></table></div></div>';View::layout('Processing detail',$h,['brand'=>$this->brandName(),'admin'=>true]);
++        $e=Store::one('SELECT e.edition_date,e.status,p.name publication_name FROM ep_editions e JOIN ep_publications p ON p.tenant_guid=e.tenant_guid AND p.publication_guid=e.publication_guid WHERE e.tenant_guid=? AND e.edition_guid=?',[TenantData::tenantBin(),Uuid::toBinary($editionGuid)]);if(!$e)$this->notFound('Edition unavailable');$rows=Store::all('SELECT job_guid,job_type,status,progress,attempt_count,worker_id,error_message,payload_json,updated_at FROM ep_processing_jobs WHERE tenant_guid=? AND edition_guid=? ORDER BY created_at,job_type',[TenantData::tenantBin(),Uuid::toBinary($editionGuid)]);$recovery=DirectRecovery::status($editionGuid);$h='<section class="admin-head"><div><span class="eyebrow">PROCESSING DETAIL</span><h1>'.$this->e($e['publication_name']).' · '.$this->e($e['edition_date']).'</h1></div><a class="btn ghost" href="/admin/processing">Back to Processing</a></section><section class="panel"><h2>Immediate processing</h2><p>'.($recovery?'Status: '.$this->e($recovery['status']??'').' · Last activity: '.$this->e($recovery['last_activity']??'').' · Jobs handled: '.(int)($recovery['processed']??0):'Use the play button to process unfinished jobs directly.').'</p>'.(!empty($recovery['message'])?'<p>'.$this->e($recovery['message']).'</p>':'').(!empty($recovery['error'])?'<p>'.$this->e($recovery['error']).'</p>':'').'<form method="post" action="/admin/editions/'.$this->e($editionGuid).'/process-immediately">'.$this->csrf().'<button class="btn primary">'.View::icon('play').' Process immediately</button></form><p class="muted">An accepted request is not proof that processing started. If activity does not appear, a hosting administrator can start the direct recovery worker described in UPDATE-2.0.1.4.md.</p></section><div class="panel"><div class="table-wrap"><table><thead><tr><th>Stage / job</th><th>Profile</th><th>Status</th><th>Progress</th><th>Attempt</th><th>Worker</th><th>Error</th></tr></thead><tbody>';foreach($rows as$r){$payload=QueueService::payload($r);$profile=(string)($payload['processing_profile']??'default');if((int)($payload['auto_rescue_attempt']??0)>0)$profile='auto recovery '.(int)$payload['auto_rescue_attempt'];$trail='';foreach((array)($payload['trace']??[]) as$event)$trail.='<div><time>'.$this->e($event['at']??'').'</time> '.$this->e($event['event']??'').' · '.$this->e($event['detail']??'').'</div>';$h.='<tr><td><code>'.$this->e($r['job_type']).'</code>'.($trail?'<details><summary>Job trail</summary>'.$trail.'</details>':'').'</td><td><span class="pill">'.$this->e(ucwords(str_replace('_',' ',$profile))).'</span></td><td><span class="status '.strtolower($r['status']).'">'.$this->e($r['status']).'</span></td><td>'.number_format((float)$r['progress'],2).'%</td><td>'.(int)$r['attempt_count'].'</td><td>'.$this->e($r['worker_id']??'').'</td><td>'.$this->e($r['error_message']??'').'</td></tr>';}$h.='</tbody></table></div></div>';View::layout('Processing detail',$h,['brand'=>$this->brandName(),'admin'=>true]);
+     }
+     private function optionRows(array $rows,string $valueKey,string $labelKey,string $selected): string
+     {
+--- v2.0.1.3/app/Core/View.php
++++ v2.0.1.4/app/Core/View.php
+@@ -7,7 +7,7 @@
+     public static function e(mixed $v): string{return htmlspecialchars((string)$v,ENT_QUOTES|ENT_SUBSTITUTE,'UTF-8');}
+     public static function icon(string $name): string
+     {
+-        $p=[
++        $p=['play'=>'<path d="m8 4 12 8-12 8Z"/>','stop'=>'<rect x="5" y="5" width="14" height="14" rx="2"/>',
+             'menu'=>'<path d="M4 7h16M4 12h16M4 17h16"/>','search'=>'<circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/>','user'=>'<circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-5 14.5-5 16 0"/>','login'=>'<path d="M10 5H5v14h5"/><path d="M13 8l4 4-4 4M8 12h9"/>','dashboard'=>'<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>','chev-left'=>'<path d="m15 18-6-6 6-6"/>','chev-right'=>'<path d="m9 18 6-6-6-6"/>','plus'=>'<path d="M12 5v14M5 12h14"/>','minus'=>'<path d="M5 12h14"/>','fit'=>'<path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/>','width'=>'<path d="M4 12h16M8 8l-4 4 4 4M16 8l4 4-4 4"/>','reset'=>'<path d="M4 4v6h6M5.5 15a7 7 0 1 0 .5-7"/>','clip'=>'<path d="M6 3v12a3 3 0 1 0 3 3V9a3 3 0 1 0-3-3Zm12-3v12a3 3 0 1 1-3 3V6a3 3 0 1 1 3-3Z"/>','save'=>'<path d="M5 3h12l2 2v16H5V3Z"/><path d="M8 3v6h8V3M8 21v-7h8v7"/>','close'=>'<path d="M6 6l12 12M18 6 6 18"/>','bookmark'=>'<path d="M6 3h12v18l-6-4-6 4V3Z"/>','share'=>'<circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.6 10.5 6.8-4M8.6 13.5l6.8 4"/>','pages'=>'<path d="M4 5h12v16H4zM8 2h12v16"/>','signal'=>'<path d="M4 18h2M8 14h2v4H8zM12 10h2v8h-2zM16 6h2v12h-2zM20 3v15"/>','moon'=>'<path d="M20 15a8 8 0 1 1-11-11 7 7 0 0 0 11 11Z"/>','sun'=>'<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/>','download'=>'<path d="M12 3v12M7 10l5 5 5-5M5 21h14"/>','fullscreen'=>'<path d="M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5"/>','settings'=>'<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1-2.8 2.8-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.6V21h-4v-.1a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1L4.2 17l.1-.1a1.7 1.7 0 0 0 .3-1.9A1.7 1.7 0 0 0 3 14H3v-4h.1a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9L4.2 7 7 4.2l.1.1a1.7 1.7 0 0 0 1.9.3A1.7 1.7 0 0 0 10 3V3h4v.1a1.7 1.7 0 0 0 1 1.6 1.7 1.7 0 0 0 1.9-.3l.1-.1L19.8 7l-.1.1a1.7 1.7 0 0 0-.3 1.9A1.7 1.7 0 0 0 21 10h.1v4H21a1.7 1.7 0 0 0-1.6 1Z"/>','eye'=>'<path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12Z"/><circle cx="12" cy="12" r="2.5"/>','edit'=>'<path d="M4 20h4l11-11-4-4L4 16v4Z"/><path d="m13.5 6.5 4 4"/>','refresh'=>'<path d="M20 6v5h-5"/><path d="M19 11a7 7 0 1 0 1 5"/>','clock'=>'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>','activity'=>'<path d="M3 12h4l2-5 4 10 2-5h6"/>','archive'=>'<path d="M4 7h16v13H4z"/><path d="M3 4h18v3H3zM9 11h6"/>','trash'=>'<path d="M4 7h16"/><path d="M9 7V4h6v3"/><path d="m7 7 1 13h8l1-13"/><path d="M10 11v5M14 11v5"/>','restore'=>'<path d="M4 4v6h6"/><path d="M5.5 9A7.5 7.5 0 1 1 7 17.5"/>','more'=>'<circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/>','external'=>'<path d="M14 4h6v6M20 4l-9 9"/><path d="M19 13v6H5V5h6"/>','power'=>'<path d="M12 2v10"/><path d="M6.2 5.8a8 8 0 1 0 11.6 0"/>','send'=>'<path d="m22 2-7 20-4-9-9-4 20-7Z"/><path d="M22 2 11 13"/>','pause'=>'<path d="M8 5v14M16 5v14"/>','chev-up'=>'<path d="m6 15 6-6 6 6"/>','chev-down'=>'<path d="m6 9 6 6 6-6"/>'];
+         $path=$p[$name]??'<circle cx="12" cy="12" r="8"/>';
+         return '<svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">'.$path.'</svg>';
+--- v2.0.1.3/app/Services/DirectRecovery.php
++++ v2.0.1.4/app/Services/DirectRecovery.php
+@@ -0,0 +1,85 @@
++<?php
++namespace EpaperSaas\Services;
++use EpaperSaas\Core\{Config,RequestContext,Store,Uuid};
++
++/** Durable requests processed independently of RabbitMQ dispatch. */
++final class DirectRecovery
++{
++    private static function key(string $tenant,string $edition): string{return 'recovery.request.'.$tenant.'.'.$edition;}
++    public static function status(string $edition): array
++    {
++        $raw=Store::value('SELECT state_value FROM ep_system_state WHERE state_key=?',[self::key(RequestContext::tenantGuid(),$edition)]);
++        return json_decode((string)$raw,true)?:[];
++    }
++    private static function save(array $r): void
++    {
++        Store::exec('INSERT INTO ep_system_state(state_key,state_value,updated_at) VALUES(?,?,NOW(6)) ON DUPLICATE KEY UPDATE state_value=VALUES(state_value),updated_at=NOW(6)',[self::key($r['tenant'],$r['edition']),json_encode($r,JSON_UNESCAPED_SLASHES|JSON_INVALID_UTF8_SUBSTITUTE)]);
++    }
++    public static function request(string $edition): array
++    {
++        return EditionOperations::locked($edition,function()use($edition){
++            $row=Store::one('SELECT status FROM ep_editions WHERE tenant_guid=? AND edition_guid=?',[TenantData::tenantBin(),Uuid::toBinary($edition)]);
++            if(!$row)throw new \RuntimeException('Edition not found');EditionOperations::assertStartState($row['status']);
++            if(EditionOperations::stopIntent($edition))throw new \RuntimeException('Cancellation is pending. Complete cancellation before reprocessing.');
++            $old=self::status($edition);
++            if(in_array($old['status']??'', ['QUEUED','RUNNING','WAITING'],true))return $old;
++            if(!EditionOperations::active($edition)){
++                QueueService::maybeFinalize($edition);
++                if(!EditionOperations::active($edition))throw new \RuntimeException('No unfinished jobs remain. Use Reprocess to start a new complete attempt.');
++            }
++            $r=['tenant'=>RequestContext::tenantGuid(),'edition'=>$edition,'status'=>'QUEUED','requested_at'=>gmdate('c'),'last_activity'=>gmdate('c'),'processed'=>0];self::save($r);
++            Audit::log('edition.direct_recovery_requested','edition',$edition);return $r;
++        });
++    }
++    /** Browser request launches CLI work, never runs PDF work inside PHP-FPM. */
++    public static function launch(): bool
++    {
++        if(!(bool)Config::get('processing.direct_launch',true)||!function_exists('exec'))return false;
++        $lock='epdi_direct_launch';if((int)Store::value('SELECT GET_LOCK(?,0)',[$lock])!==1)return false;
++        try{
++            $last=Store::value('SELECT state_value FROM ep_system_state WHERE state_key="recovery.launch_at"');
++            if($last&&(time()-(int)$last)<10)return true;
++            $php=SupervisorRuntime::phpCli();if(empty($php['found'])||empty($php['path'])||empty($php['version'])||version_compare($php['version'],'8.1','<'))return false;
++            $root=dirname(__DIR__,2);$log=$root.'/storage/logs/direct-recovery.log';@mkdir(dirname($log),0775,true);
++            if(!is_writable(dirname($log)))return false;
++            $command=escapeshellarg((string)$php['path']).' '.escapeshellarg($root.'/bin/direct-recovery-worker.php').' --once --max-seconds=1800';
++            $out=[];$code=1;exec('nohup '.$command.' >> '.escapeshellarg($log).' 2>&1 < /dev/null &',$out,$code);
++            if($code!==0)return false;
++            Store::exec('INSERT INTO ep_system_state(state_key,state_value,updated_at) VALUES("recovery.launch_at",?,NOW(6)) ON DUPLICATE KEY UPDATE state_value=VALUES(state_value),updated_at=NOW(6)',[(string)time()]);
++            return true; // Launch attempted; RUNNING/heartbeat, not this return value, confirms execution.
++        }finally{Store::value('SELECT RELEASE_LOCK(?)',[$lock]);}
++    }
++    public static function tick(): int
++    {
++        $rows=Store::all('SELECT state_value FROM ep_system_state WHERE state_key LIKE "recovery.request.%" AND JSON_UNQUOTE(JSON_EXTRACT(state_value,"$.status")) IN ("QUEUED","RUNNING","WAITING") ORDER BY updated_at LIMIT 20');$done=0;
++        foreach($rows as$row){
++            $r=json_decode($row['state_value'],true);if(!is_array($r)||!in_array($r['status']??'', ['QUEUED','RUNNING','WAITING'],true))continue;
++            $old=RequestContext::all();RequestContext::set(['tenant_guid'=>$r['tenant']]);
++            $lock='epdi_direct_'.substr(hash('sha256',$r['tenant'].'|'.$r['edition']),0,40);
++            if((int)Store::value('SELECT GET_LOCK(?,0)',[$lock])!==1){RequestContext::set($old);continue;}
++            try{
++                if(EditionOperations::stopIntent($r['edition'])){$r['status']='CANCELLED';self::save($r);continue;}
++                $e=Store::value('SELECT status FROM ep_editions WHERE tenant_guid=? AND edition_guid=?',[TenantData::tenantBin(),Uuid::toBinary($r['edition'])]);
++                if(!in_array($e,['DRAFT','PROCESSING','NEEDS_ATTENTION','READY'],true)){$r['status']=$e==='PUBLISHED'?'COMPLETED':'STOPPED';self::save($r);continue;}
++                QueueService::maybeFinalize($r['edition']);
++                $jobs=EditionOperations::active($r['edition']);
++                if(!$jobs){if($e==='READY')PublishingScheduler::publishEditionIfDue($r['edition']);$r['status']=$e==='READY'?'COMPLETED':'NEEDS_ATTENTION';$r['last_activity']=gmdate('c');self::save($r);continue;}
++                $r['status']='WAITING';
++                foreach($jobs as$j){
++                    if($j['status']!=='RUNNING'&&!(bool)$j['is_due']){$r['message']='Waiting for the scheduled retry time.';continue;}
++                    $r['status']='RUNNING';$r['job_guid']=Uuid::fromBinary($j['job_guid']);$r['last_activity']=gmdate('c');self::save($r);
++                    $result=JobExecutor::run($r['tenant'],$r['job_guid'],(gethostname()?:'host').':direct:'.getmypid(),null,true);
++                    if(in_array($result['outcome'],['BUSY','NOT_DUE'],true)){$r['status']='WAITING';$r['message']='Another worker owns this job or its retry is not due. No parallel attempt was started.';continue;}
++                    $r['message']='Processing unfinished work directly.';$r['processed']++;$done++;$r['last_outcome']=$result['outcome'];$r['status']='QUEUED';break;
++                }
++                $r['last_activity']=gmdate('c');self::save($r);
++            }catch(\Throwable $e){$r['status']='NEEDS_ATTENTION';$r['error']=substr($e->getMessage(),0,500);self::save($r);}
++            finally{Store::value('SELECT RELEASE_LOCK(?)',[$lock]);RequestContext::set($old);}
++        }
++        return $done;
++    }
++    public static function pending(): int
++    {
++        return (int)Store::value('SELECT COUNT(*) FROM ep_system_state WHERE state_key LIKE "recovery.request.%" AND JSON_UNQUOTE(JSON_EXTRACT(state_value,"$.status")) IN ("QUEUED","RUNNING","WAITING")');
++    }
++}
+--- v2.0.1.3/app/Services/EditionOperations.php
++++ v2.0.1.4/app/Services/EditionOperations.php
+@@ -25,7 +25,7 @@
+     public static function clearStop(string $guid): void{Store::exec('DELETE FROM ep_system_state WHERE state_key=?',[self::key($guid)]);}
+     public static function active(string $guid): array
+     {
+-        return Store::all('SELECT * FROM ep_processing_jobs WHERE tenant_guid=? AND edition_guid=? AND status IN ("QUEUED","RUNNING","RETRY_WAIT") ORDER BY created_at,job_guid',[TenantData::tenantBin(),Uuid::toBinary($guid)]);
++        return Store::all('SELECT *,IF(available_at IS NULL OR available_at<=NOW(6),1,0) is_due FROM ep_processing_jobs WHERE tenant_guid=? AND edition_guid=? AND status IN ("QUEUED","RUNNING","RETRY_WAIT") ORDER BY created_at,job_guid',[TenantData::tenantBin(),Uuid::toBinary($guid)]);
+     }
+     public static function assertStartState(string $status): void
+     {
+@@ -74,23 +74,11 @@
+     }
+     public static function recover(string $guid): array
+     {
+-        return self::locked($guid,function()use($guid){
+-            $e=Store::one('SELECT status FROM ep_editions WHERE tenant_guid=? AND edition_guid=?',[TenantData::tenantBin(),Uuid::toBinary($guid)]);
+-            if(!$e)throw new \RuntimeException('Edition not found');self::assertStartState($e['status']);
+-            if(self::stopIntent($guid))throw new \RuntimeException('Cancellation is pending. Wait for workers to stop, then use Reprocess or Restore.');
+-            $changed=0;$busy=0;
+-            foreach(self::active($guid) as$j){$lock=self::jobLock(Uuid::fromBinary($j['job_guid']));if((int)Store::value('SELECT GET_LOCK(?,0)',[$lock])!==1){$busy++;continue;}
+-                try{
+-                    $fresh=Store::one('SELECT * FROM ep_processing_jobs WHERE tenant_guid=? AND job_guid=?',[$j['tenant_guid'],$j['job_guid']]);
+-                    if(!$fresh||!in_array($fresh['status'],['QUEUED','RUNNING','RETRY_WAIT'],true))continue;
+-                    // A live worker holds this lock; acquiring it proves no updated worker owns this job.
+-                    Store::tx(function()use($j){Store::exec('UPDATE ep_processing_jobs SET status="QUEUED",locked_at=NULL,worker_id=NULL,available_at=NOW(6),updated_at=NOW(6) WHERE tenant_guid=? AND job_guid=?',[$j['tenant_guid'],$j['job_guid']]);
+-                    QueueService::operatorRedispatch($j);});$changed++;
+-                }finally{Store::value('SELECT RELEASE_LOCK(?)',[$lock]);}}
+-            if(!$changed&&!$busy)throw new \RuntimeException('No active jobs remain. Use Reprocess to start a new complete attempt.');
+-            Audit::log('edition.recovery_requested','edition',$guid,'SUCCESS',['redispatched'=>$changed,'busy'=>$busy]);return ['redispatched'=>$changed,'busy'=>$busy];
+-        });
++        // Recovery now requests direct consumption of existing durable jobs. No duplicate broker publishes.
++        DirectRecovery::request($guid);$busy=0;foreach(self::active($guid) as$j){$key=self::jobLock(Uuid::fromBinary($j['job_guid']));if((int)Store::value('SELECT IS_FREE_LOCK(?)',[$key])!==1)$busy++;}
++        return ['redispatched'=>0,'busy'=>$busy,'direct'=>true];
+     }
++
+     public static function invalidate(string $guid): void
+     {
+         $e=Store::one('SELECT slug FROM ep_editions WHERE tenant_guid=? AND edition_guid=?',[TenantData::tenantBin(),Uuid::toBinary($guid)]);
+--- v2.0.1.3/app/Services/JobExecutor.php
++++ v2.0.1.4/app/Services/JobExecutor.php
+@@ -0,0 +1,62 @@
++<?php
++namespace EpaperSaas\Services;
++use EpaperSaas\Core\{RequestContext,Store,Uuid};
++
++/** One lock/claim/complete implementation shared by every transport. */
++final class JobExecutor
++{
++    public static function trace(array $job,string $event,string $detail=''): void
++    {
++        $fresh=Store::one('SELECT payload_json FROM ep_processing_jobs WHERE tenant_guid=? AND job_guid=?',[$job['tenant_guid'],$job['job_guid']]);
++        $p=QueueService::payload($fresh?:$job);$trail=(array)($p['trace']??[]);
++        $trail[]=['at'=>gmdate('c'),'event'=>$event,'detail'=>substr($detail,0,500)];$p['trace']=array_slice($trail,-16);
++        Store::exec('UPDATE ep_processing_jobs SET payload_json=? WHERE tenant_guid=? AND job_guid=?',[json_encode($p,JSON_UNESCAPED_SLASHES|JSON_INVALID_UTF8_SUBSTITUTE),$job['tenant_guid'],$job['job_guid']]);
++    }
++
++    public static function run(string $tenant,string $guid,string $worker,?string $lane=null,bool $direct=false): array
++    {
++        // Canonicalize UUIDs before deriving the advisory lock.
++        $tb=Uuid::toBinary($tenant);$jb=Uuid::toBinary($guid);$guid=Uuid::fromBinary($jb);
++        $lock=EditionOperations::jobLock($guid);
++        if((int)Store::value('SELECT GET_LOCK(?,0)',[$lock])!==1)return ['outcome'=>'BUSY'];
++        $original=RequestContext::all();$job=null;
++        try{
++            $job=Store::one('SELECT *,IF(available_at IS NULL OR available_at<=NOW(6),1,0) is_due FROM ep_processing_jobs WHERE tenant_guid=? AND job_guid=?',[$tb,$jb]);
++            if(!$job)return ['outcome'=>'ORPHAN'];
++            if($lane!==null&&QueueService::lane($job['job_type'])!==$lane)return ['outcome'=>'LANE_MISMATCH'];
++            if(in_array($job['status'],['COMPLETED','FAILED','CANCELLED'],true))return ['outcome'=>'TERMINAL'];
++            $t=Store::one('SELECT display_name,organisation_guid FROM ep_tenants WHERE tenant_guid=?',[$tb]);
++            if(!$t)throw new \RuntimeException('Job tenant is unavailable');
++            RequestContext::set(['tenant_guid'=>Uuid::fromBinary($tb),'tenant_name'=>$t['display_name'],'organisation_guid'=>!empty($t['organisation_guid'])?Uuid::fromBinary($t['organisation_guid']):null,'request_guid'=>Uuid::v7(),'correlation_guid'=>Uuid::v7()]);
++            $edition=Uuid::fromBinary($job['edition_guid']);
++            if(EditionOperations::stopIntent($edition)){EditionOperations::markCancelled($job);return ['outcome'=>'CANCELLED'];}
++            if(!in_array($job['status'],['QUEUED','RUNNING','RETRY_WAIT'],true))throw new \RuntimeException('Unexpected processing state');
++            // Owning this lock proves the previous RUNNING owner is gone, even with a recent heartbeat.
++            if($job['status']!=='RUNNING'&&!(bool)$job['is_due'])return ['outcome'=>'NOT_DUE'];
++            $wasAbandoned=$job['status']==='RUNNING';
++            Store::exec('UPDATE ep_processing_jobs SET status="RUNNING",attempt_count=attempt_count+1,worker_id=?,locked_at=NOW(6),updated_at=NOW(6),error_message=NULL WHERE tenant_guid=? AND job_guid=?',[$worker,$tb,$jb]);
++            $job=Store::one('SELECT *,IF(available_at IS NULL OR available_at<=NOW(6),1,0) is_due FROM ep_processing_jobs WHERE tenant_guid=? AND job_guid=?',[$tb,$jb]);
++            self::trace($job,$wasAbandoned?'ABANDONED_CLAIM':'CLAIM',$worker);
++            $job=Store::one('SELECT *,IF(available_at IS NULL OR available_at<=NOW(6),1,0) is_due FROM ep_processing_jobs WHERE tenant_guid=? AND job_guid=?',[$tb,$jb]);
++            try{
++                EditionOperations::assertJob($job);
++                $result=$job['job_type']==='EDITION_PROCESS'?(new Processing())->processEdition($edition,$guid):(new ProcessingPipeline())->handle($job);
++                if(EditionOperations::stopIntent($edition))throw new CancelledJobException('Cancellation requested');
++                Store::exec('UPDATE ep_processing_jobs SET status="COMPLETED",progress=100,completed_at=NOW(6),locked_at=NULL,worker_id=NULL,error_message=NULL,updated_at=NOW(6) WHERE tenant_guid=? AND job_guid=? AND status="RUNNING"',[$tb,$jb]);
++                self::trace($job,'COMPLETED',$worker);$outcome='COMPLETED';
++            }catch(CancelledJobException $e){EditionOperations::markCancelled($job);self::trace($job,'CANCELLED',$e->getMessage());$outcome='CANCELLED';}
++            catch(\Throwable $e){
++                $fresh=Store::one('SELECT *,IF(available_at IS NULL OR available_at<=NOW(6),1,0) is_due FROM ep_processing_jobs WHERE tenant_guid=? AND job_guid=?',[$tb,$jb])?:$job;
++                if($e instanceof PermanentJobException)QueueService::markDead($fresh,$e->getMessage());
++                else QueueService::scheduleRetry($fresh,$e->getMessage(),$direct);
++                self::trace($job,'ERROR',$e->getMessage());$outcome=(string)Store::value('SELECT status FROM ep_processing_jobs WHERE tenant_guid=? AND job_guid=?',[$tb,$jb]);
++            }
++            // A completion must never be rewritten as a failure merely because enqueueing finalize failed.
++            if(in_array($job['job_type'],['EDITION_RENDER','PAGE_ASSETS','PAGE_OCR'],true)){
++                try{QueueService::maybeFinalize($edition,(string)(QueueService::payload($job)['pipeline_guid']??$guid));}
++                catch(\Throwable $e){self::trace($job,'FINALIZE_DEFERRED',$e->getMessage());}
++            }
++            return ['outcome'=>$outcome,'job_guid'=>$guid];
++        }finally{Store::value('SELECT RELEASE_LOCK(?)',[$lock]);RequestContext::set($original);}
++    }
++}
+--- v2.0.1.3/app/Services/ProcessingPipeline.php
++++ v2.0.1.4/app/Services/ProcessingPipeline.php
+@@ -52,6 +52,11 @@
+         try {
+             // A partial fan-out must be cancelled before a fresh render can remove files.
+             $children=(int)Store::value('SELECT COUNT(*) FROM ep_processing_jobs WHERE tenant_guid=? AND edition_guid=? AND job_type IN ("PAGE_ASSETS","PAGE_OCR","EDITION_FINALIZE") AND JSON_UNQUOTE(JSON_EXTRACT(payload_json,"$.pipeline_guid"))=?',[Uuid::toBinary($tenant),Uuid::toBinary($editionGuid),$this->jobGuid]);
++            if($children>0&&(QueueService::payload($this->job)['stage']??'')==='RENDER_COMPLETE'){
++                $pages=(int)Store::value('SELECT page_count FROM ep_editions WHERE tenant_guid=? AND edition_guid=?',[Uuid::toBinary($tenant),Uuid::toBinary($editionGuid)]);
++                $stored=(int)Store::value('SELECT COUNT(*) FROM ep_pages WHERE tenant_guid=? AND edition_guid=?',[Uuid::toBinary($tenant),Uuid::toBinary($editionGuid)]);
++                if($pages>0&&$stored===$pages&&$children>=2*$pages)return ['ok'=>true,'pages'=>$pages,'resumed_render_handoff'=>true];
++            }
+             if($children>0)throw new PermanentJobException('Partial render already dispatched page jobs. Cancel processing, then Reprocess the edition.');
+             $this->report(2, 'PREPARING', 'Preparing edition');
+             Store::exec('UPDATE ep_editions SET status="PROCESSING",processing_completed_at=NULL,updated_at=NOW(6) WHERE tenant_guid=? AND edition_guid=?', [Uuid::toBinary($tenant), Uuid::toBinary($editionGuid)]);
+@@ -367,7 +372,10 @@
+     private function report(float $progress,string $stage,string $message): void
+     {
+         EditionOperations::assertJob($this->job);
+-        $payload=QueueService::payload($this->job);$payload['stage']=$stage;$payload['message']=$message;$payload['heartbeat_at']=gmdate('c');
++        $payload=QueueService::payload($this->job);
++        if(($payload['stage']??'')!==$stage){$trail=(array)($payload['trace']??[]);$trail[]=['at'=>gmdate('c'),'event'=>$stage,'detail'=>substr($message,0,500)];$payload['trace']=array_slice($trail,-16);}
++        $payload['stage']=$stage;$payload['message']=$message;$payload['heartbeat_at']=gmdate('c');
++        $this->job['payload_json']=json_encode($payload,JSON_UNESCAPED_SLASHES|JSON_UNESCAPED_UNICODE);
+         Store::exec('UPDATE ep_processing_jobs SET progress=?,payload_json=?,locked_at=NOW(6),updated_at=NOW(6) WHERE tenant_guid=? AND job_guid=?',[round(max(0,min(100,$progress)),2),json_encode($payload,JSON_UNESCAPED_SLASHES|JSON_UNESCAPED_UNICODE),$this->job['tenant_guid'],$this->job['job_guid']]);
+     }
+ 
+--- v2.0.1.3/app/Services/ProcessingSummary.php
++++ v2.0.1.4/app/Services/ProcessingSummary.php
+@@ -0,0 +1,21 @@
++<?php
++namespace EpaperSaas\Services;
++use EpaperSaas\Core\{Store,Uuid};
++final class ProcessingSummary
++{
++    /** Batch only current-pipeline jobs for the visible editions. */
++    public static function attach(array $editions): array
++    {
++        $roots=[];$editionBins=[];foreach($editions as$e)if(!empty($e['processing_root_guid'])){$roots[]=Uuid::fromBinary($e['processing_root_guid']);$editionBins[]=Uuid::toBinary($e['edition_guid']);}
++        if(!$roots)return $editions;
++        $ph=implode(',',array_fill(0,count($roots),'?'));
++        $jobs=Store::all('SELECT edition_guid,job_type,status,progress,updated_at,TIMESTAMPDIFF(SECOND,updated_at,NOW(6)) age_seconds FROM ep_processing_jobs WHERE tenant_guid=? AND edition_guid IN ('.$ph.') AND JSON_UNQUOTE(JSON_EXTRACT(payload_json,"$.pipeline_guid")) IN ('.$ph.')',array_merge([TenantData::tenantBin()],$editionBins,$roots));
++        $group=[];foreach($jobs as$j)$group[Uuid::fromBinary($j['edition_guid'])][]=$j;
++        foreach($editions as&$e){$rows=$group[$e['edition_guid']]??[];$counts=[];$averages=[];$stalled=false;
++            foreach($rows as$j){$type=$j['job_type'];$counts[$type]['total']=($counts[$type]['total']??0)+1;$counts[$type]['done']=($counts[$type]['done']??0)+($j['status']==='COMPLETED'?1:0);$averages[$type][]=(float)$j['progress'];if(in_array($j['status'],['QUEUED','RUNNING','RETRY_WAIT'],true)&&(int)$j['age_seconds']>EditionOperations::STALE_SECONDS)$stalled=true;}
++            $pct=0;foreach(['EDITION_RENDER'=>.1,'PAGE_ASSETS'=>.5,'PAGE_OCR'=>.35,'EDITION_FINALIZE'=>.05] as$type=>$w){$a=$averages[$type]??[];if($a)$pct+=array_sum($a)/count($a)*$w;}
++            $parts=[];foreach(['EDITION_RENDER'=>'Render','PAGE_ASSETS'=>'Assets','PAGE_OCR'=>'OCR'] as$type=>$label){$c=$counts[$type]??['done'=>0,'total'=>0];$parts[]=$label.' '.$c['done'].'/'.$c['total'];}
++            $e['overall_progress']=round($pct,1);$e['stage_summary']=implode(' · ',$parts);$e['processing_stalled']=$stalled;
++        }unset($e);return $editions;
++    }
++}
+--- v2.0.1.3/app/Services/PublishingRuntime.php
++++ v2.0.1.4/app/Services/PublishingRuntime.php
+@@ -8,7 +8,7 @@
+ {
+     public static function snapshot(bool $refresh=false): array
+     {
+-        $tenant=RequestContext::tenantGuid();$key='runtime:v2.0.1.3:'.$tenant;
++        $tenant=RequestContext::tenantGuid();$key='runtime:v2.0.1.4:'.$tenant;
+         if(!$refresh){$cached=RedisStore::getJson($key);if(is_array($cached))return$cached;}
+         $tb=TenantData::tenantBin();
+         $row=Store::one('SELECT
+@@ -16,7 +16,7 @@
+             (SELECT COUNT(*) FROM ep_pages WHERE tenant_guid=?) pages,
+             (SELECT COUNT(*) FROM ep_processing_jobs WHERE tenant_guid=? AND status IN ("QUEUED","RUNNING","RETRY_WAIT")) processing,
+             (SELECT COUNT(*) FROM ep_editions WHERE tenant_guid=? AND status="NEEDS_ATTENTION") failed_jobs,
+-            (SELECT COUNT(*) FROM ep_processing_jobs WHERE tenant_guid=? AND status="RUNNING" AND updated_at<DATE_SUB(NOW(6),INTERVAL 20 MINUTE)) stuck_jobs,
++            (SELECT COUNT(*) FROM ep_processing_jobs WHERE tenant_guid=? AND status IN ("QUEUED","RUNNING","RETRY_WAIT") AND updated_at<DATE_SUB(NOW(6),INTERVAL 20 MINUTE)) stuck_jobs,
+             (SELECT COUNT(*) FROM ep_outbox_events WHERE tenant_guid=? AND status="PENDING") outbox_pending,
+             (SELECT COUNT(*) FROM ep_outbox_events WHERE tenant_guid=? AND status="FAILED") outbox_failed,
+             (SELECT COUNT(*) FROM ep_error_events WHERE tenant_guid=? AND occurred_at>=DATE_SUB(NOW(6),INTERVAL 7 DAY)) recent_errors,
+@@ -29,7 +29,7 @@
+         if(!($schema['ok']??false))$attention[]=['code'=>'SCHEMA','severity'=>'danger','title'=>'Database upgrade required','detail'=>'One or more EP-DI v2 schema changes are missing. Open Upgrade Center to repair them safely.','href'=>'/admin/system/upgrade'];
+         if(!($workers['ok']??false))$attention[]=['code'=>'WORKERS','severity'=>'warning','title'=>'Background workers','detail'=>'One or more Supervisor lanes are below the configured worker count.','href'=>'/admin/system/infrastructure/supervisor'];
+         if((int)($row['outbox_failed']??0)>0)$attention[]=['code'=>'OUTBOX','severity'=>'danger','title'=>'Queue dispatch failures','detail'=>(int)$row['outbox_failed'].' outbox events need review.','href'=>'/admin/processing'];
+-        if((int)($row['stuck_jobs']??0)>0)$attention[]=['code'=>'STUCK_JOBS','severity'=>'danger','title'=>'Stuck processing jobs','detail'=>(int)$row['stuck_jobs'].' RUNNING job(s) have not updated for more than 20 minutes.','href'=>'/admin/processing'];
++        if((int)($row['stuck_jobs']??0)>0)$attention[]=['code'=>'STUCK_JOBS','severity'=>'danger','title'=>'Processing without progress','detail'=>(int)$row['stuck_jobs'].' queued/running job(s) have not updated for more than 20 minutes.','href'=>'/admin/processing'];
+         $schedulerAge=array_key_exists('scheduler_age_seconds',$row)&&$row['scheduler_age_seconds']!==null?(int)$row['scheduler_age_seconds']:null;
+         if($schedulerAge===null||$schedulerAge>150)$attention[]=['code'=>'SCHEDULER','severity'=>$schedulerAge===null?'warning':'danger','title'=>'Publishing scheduler','detail'=>$schedulerAge===null?'No scheduler heartbeat has been recorded.':'Scheduler heartbeat is '.(int)$schedulerAge.' seconds old.','href'=>'/admin/system/health'];
+         if((int)($row['failed_jobs']??0)>0)$attention[]=['code'=>'JOBS','severity'=>'danger','title'=>'Failed processing jobs','detail'=>(int)$row['failed_jobs'].' editions need processing recovery.','href'=>'/admin/processing'];
+--- v2.0.1.3/app/Services/PublishingScheduler.php
++++ v2.0.1.4/app/Services/PublishingScheduler.php
+@@ -6,6 +6,18 @@
+ /** Shared one-shot publishing scheduler used by cron and the Web Recovery Center. */
+ final class PublishingScheduler
+ {
++    /** Publish just this edition when its previously selected publishing intent is due. */
++    public static function publishEditionIfDue(string $editionGuid): bool
++    {
++        return EditionOperations::locked($editionGuid,function()use($editionGuid){
++            if(EditionOperations::stopIntent($editionGuid)||EditionOperations::active($editionGuid))return false;
++            $tenant=RequestContext::tenantGuid();
++            $changed=Store::exec('UPDATE ep_editions SET status="PUBLISHED",publish_mode="MANUAL",scheduled_at=NULL,schedule_timezone=NULL,published_at=NOW(6),updated_at=NOW(6),version=version+1 WHERE tenant_guid=? AND edition_guid=? AND ((publish_mode="SCHEDULED" AND status IN ("READY","SCHEDULED") AND scheduled_at IS NOT NULL AND scheduled_at<=NOW(6)) OR (publish_mode="AUTO_READY" AND status="READY"))',[Uuid::toBinary($tenant),Uuid::toBinary($editionGuid)]);
++            if($changed){RuntimeCache::broadcast($tenant,['dashboard','reader_state','public-editions']);RuntimeCache::queueWarm($tenant,$editionGuid);}
++            return $changed>0;
++        });
++    }
++
+     public static function runOnce(string $source='cron'): array
+     {
+         $source=in_array($source,['cron','web'],true)?$source:'unknown';$original=RequestContext::all();
+@@ -18,11 +30,7 @@
+             foreach($due as$r){
+                 $tenantGuid=Uuid::fromBinary($r['tenant_guid']);$editionGuid=Uuid::fromBinary($r['edition_guid']);
+                 RequestContext::set(['tenant_guid'=>$tenantGuid]);
+-                try{EditionOperations::locked($editionGuid,function()use($r,$tenantGuid,$editionGuid,$now,&$publishedNow){
+-                    if(EditionOperations::stopIntent($editionGuid)||EditionOperations::active($editionGuid))return;
+-                    $changed=Store::exec('UPDATE ep_editions SET status="PUBLISHED",publish_mode="MANUAL",scheduled_at=NULL,schedule_timezone=NULL,published_at=NOW(6),updated_at=NOW(6),version=version+1 WHERE tenant_guid=? AND edition_guid=? AND ((publish_mode="SCHEDULED" AND status IN ("READY","SCHEDULED") AND scheduled_at IS NOT NULL AND scheduled_at<=?) OR (publish_mode="AUTO_READY" AND status="READY"))',[$r['tenant_guid'],$r['edition_guid'],$now]);
+-                    if($changed>0){$publishedNow++;try{RuntimeCache::broadcast($tenantGuid,['dashboard','reader_state','public-editions']);RuntimeCache::queueWarm($tenantGuid,$editionGuid);}catch(\Throwable){}}
+-                });}catch(\RuntimeException){/* Busy edition is reconsidered on the next scheduler pass. */}
++                try{if(self::publishEditionIfDue($editionGuid))$publishedNow++;}catch(\RuntimeException){/* Reconsider a busy edition on the next pass. */}
+             }
+             if(QueueService::rabbitEnabled()){
+                 Store::exec('UPDATE ep_processing_jobs SET status="FAILED",error_message="Legacy processor expired after RabbitMQ migration",completed_at=NOW(6),locked_at=NULL,worker_id=NULL,updated_at=NOW(6) WHERE job_type="EDITION_PROCESS" AND status="RUNNING" AND updated_at<DATE_SUB(NOW(6),INTERVAL 30 MINUTE)');
+@@ -34,6 +42,8 @@
+                     try{RequestContext::set(['tenant_guid'=>Uuid::fromBinary($job['tenant_guid'])]);if(EditionOperations::stopIntent(Uuid::fromBinary($job['edition_guid'])))EditionOperations::markCancelled($job);else Store::exec('UPDATE ep_processing_jobs SET status="QUEUED",locked_at=NULL,worker_id=NULL,available_at=NOW(6),updated_at=NOW(6) WHERE tenant_guid=? AND job_guid=? AND status="RUNNING"',[$job['tenant_guid'],$job['job_guid']]);$staleRecovered++;}finally{Store::value('SELECT RELEASE_LOCK(?)',[$jobLock]);}}
+ 
+             }
++            $unfinished=Store::all('SELECT tenant_guid,edition_guid FROM ep_editions WHERE status="PROCESSING" ORDER BY updated_at LIMIT 100');
++            foreach($unfinished as$u){RequestContext::set(['tenant_guid'=>Uuid::fromBinary($u['tenant_guid'])]);try{QueueService::maybeFinalize(Uuid::fromBinary($u['edition_guid']));}catch(\Throwable){}}
+             $metrics=['queued_processing'=>(int)Store::value('SELECT COUNT(*) FROM ep_processing_jobs WHERE status="QUEUED"'),'running_processing'=>(int)Store::value('SELECT COUNT(*) FROM ep_processing_jobs WHERE status="RUNNING"'),'retry_wait_processing'=>(int)Store::value('SELECT COUNT(*) FROM ep_processing_jobs WHERE status="RETRY_WAIT"'),'failed_processing'=>(int)Store::value('SELECT COUNT(*) FROM ep_processing_jobs WHERE status="FAILED"'),'outbox_pending'=>(int)Store::value('SELECT COUNT(*) FROM ep_outbox_events WHERE status="PENDING"'),'outbox_failed'=>(int)Store::value('SELECT COUNT(*) FROM ep_outbox_events WHERE status="FAILED"'),'published_editions'=>(int)Store::value('SELECT COUNT(*) FROM ep_editions WHERE status="PUBLISHED"'),'queue_driver'=>QueueService::driver()];
+             try{PlatformClient::instance()->heartbeat($metrics);}catch(\Throwable){}
+             $entry=['at'=>gmdate('c'),'source'=>$source,'published_now'=>$publishedNow,'stale_recovered'=>$staleRecovered,'metrics'=>$metrics];$json=json_encode($entry,JSON_UNESCAPED_SLASHES);
+--- v2.0.1.3/app/Services/QueueService.php
++++ v2.0.1.4/app/Services/QueueService.php
+@@ -140,9 +140,12 @@
+ 
+     public static function enqueueFinalize(string $editionGuid, string $pipelineGuid): ?string
+     {
++        $lock='epdi_finalize_'.substr(hash('sha256',RequestContext::tenantGuid().'|'.$editionGuid),0,40);
++        if((int)Store::value('SELECT GET_LOCK(?,0)',[$lock])!==1)return null;
++        try{
+         $tenant = RequestContext::tenantGuid();
+         $existing = Store::one(
+-            'SELECT job_guid FROM ep_processing_jobs WHERE tenant_guid=? AND edition_guid=? AND job_type="EDITION_FINALIZE" AND status IN ("QUEUED","RUNNING","RETRY_WAIT","COMPLETED") AND JSON_UNQUOTE(JSON_EXTRACT(payload_json,"$.pipeline_guid"))=? ORDER BY created_at DESC LIMIT 1',
++            'SELECT job_guid FROM ep_processing_jobs WHERE tenant_guid=? AND edition_guid=? AND job_type="EDITION_FINALIZE" AND status IN ("QUEUED","RUNNING","RETRY_WAIT","COMPLETED","FAILED","CANCELLED") AND JSON_UNQUOTE(JSON_EXTRACT(payload_json,"$.pipeline_guid"))=? ORDER BY created_at DESC LIMIT 1',
+             [Uuid::toBinary($tenant), Uuid::toBinary($editionGuid), $pipelineGuid]
+         );
+         if ($existing) {
+@@ -151,10 +154,11 @@
+             return $jobGuid;
+         }
+         return self::enqueue('EDITION_FINALIZE', $editionGuid, ['edition_guid'=>$editionGuid,'pipeline_guid'=>$pipelineGuid], 'normal', $tenant);
++        }finally{Store::value('SELECT RELEASE_LOCK(?)',[$lock]);}
+     }
+ 
+     /** Called by worker after a transient failure. The current RabbitMQ delivery is ACKed after this transaction commits. */
+-    public static function scheduleRetry(array $job, string $error): string
++    public static function scheduleRetry(array $job, string $error, bool $direct = false): string
+     {
+         if(EditionOperations::stopIntent(Uuid::fromBinary($job['edition_guid']))){EditionOperations::markCancelled($job);return 'cancelled';}
+         $current=Store::one('SELECT status FROM ep_processing_jobs WHERE tenant_guid=? AND job_guid=?',[$job['tenant_guid'],$job['job_guid']]);
+@@ -173,15 +177,15 @@
+             2 => '5m',
+             default => '30m',
+         };
+-        Store::tx(function () use ($job, $jobGuid, $tenantGuid, $payload, $error, $delay) {
++        Store::tx(function () use ($job, $jobGuid, $tenantGuid, $payload, $error, $delay, $direct) {
+             $payload['stage'] = 'RETRY_WAIT';
+-            $payload['message'] = (self::rabbitEnabled() ? 'Retry scheduled via RabbitMQ (' : 'Retry scheduled via MariaDB (') . $delay . ')';
++            $payload['message'] = (self::rabbitEnabled() && !$direct ? 'Retry scheduled via RabbitMQ (' : 'Retry scheduled via MariaDB (') . $delay . ')';
+             $payload['last_error'] = substr($error, 0, 500);
+             $payload['retry_delay'] = $delay;
+             $payload['heartbeat_at'] = gmdate('c');
+-            if (self::rabbitEnabled()) {
++            if (self::rabbitEnabled() && !$direct) {
+                 Store::exec(
+-                    'UPDATE ep_processing_jobs SET status="RETRY_WAIT",error_message=?,locked_at=NULL,worker_id=NULL,payload_json=?,updated_at=NOW(6) WHERE tenant_guid=? AND job_guid=?',
++                    'UPDATE ep_processing_jobs SET status="RETRY_WAIT",available_at=DATE_ADD(NOW(6),INTERVAL '.($delay==='30s'?30:($delay==='5m'?300:1800)).' SECOND),error_message=?,locked_at=NULL,worker_id=NULL,payload_json=?,updated_at=NOW(6) WHERE tenant_guid=? AND job_guid=?',
+                     [substr($error,0,1000), json_encode($payload, JSON_UNESCAPED_SLASHES), $job['tenant_guid'], $job['job_guid']]
+                 );
+                 self::insertOutbox($tenantGuid, 'QUEUE_PUBLISH', [
+@@ -194,8 +198,8 @@
+                 $seconds = $delay === '30s' ? 30 : ($delay === '5m' ? 300 : 1800);
+                 $availableAt = gmdate('Y-m-d H:i:s.u', time() + $seconds);
+                 Store::exec(
+-                    'UPDATE ep_processing_jobs SET status="QUEUED",error_message=?,locked_at=NULL,worker_id=NULL,payload_json=?,available_at=?,updated_at=NOW(6) WHERE tenant_guid=? AND job_guid=?',
+-                    [substr($error,0,1000), json_encode($payload, JSON_UNESCAPED_SLASHES), $availableAt, $job['tenant_guid'], $job['job_guid']]
++                    'UPDATE ep_processing_jobs SET status="QUEUED",error_message=?,locked_at=NULL,worker_id=NULL,payload_json=?,available_at=DATE_ADD(NOW(6),INTERVAL ? SECOND),updated_at=NOW(6) WHERE tenant_guid=? AND job_guid=?',
++                    [substr($error,0,1000), json_encode($payload, JSON_UNESCAPED_SLASHES), $seconds, $job['tenant_guid'], $job['job_guid']]
+                 );
+             }
+         });
+@@ -271,7 +275,7 @@
+         $rootPayload = self::payload($root);
+         $pipelineGuid = (string)($rootPayload['pipeline_guid'] ?? Uuid::fromBinary($root['job_guid']));
+         $all = Store::all(
+-            'SELECT job_guid,job_type,status,progress,attempt_count,error_message,payload_json,updated_at,created_at FROM ep_processing_jobs WHERE tenant_guid=? AND edition_guid=? AND job_type IN ("EDITION_RENDER","PAGE_ASSETS","PAGE_OCR","EDITION_FINALIZE") ORDER BY created_at',
++            'SELECT job_guid,job_type,status,progress,attempt_count,error_message,payload_json,updated_at,created_at,TIMESTAMPDIFF(SECOND,updated_at,NOW(6)) age_seconds FROM ep_processing_jobs WHERE tenant_guid=? AND edition_guid=? AND job_type IN ("EDITION_RENDER","PAGE_ASSETS","PAGE_OCR","EDITION_FINALIZE") ORDER BY created_at',
+             [Uuid::toBinary($tenant), Uuid::toBinary($editionGuid)]
+         );
+         $rows=[];
+@@ -303,9 +307,12 @@
+             $root=Store::one('SELECT job_guid,payload_json FROM ep_processing_jobs WHERE tenant_guid=? AND edition_guid=? AND job_type="EDITION_RENDER" ORDER BY created_at DESC LIMIT 1',[Uuid::toBinary($tenant),Uuid::toBinary($editionGuid)]);
+             if(!$root)return;$rp=self::payload($root);$pipelineGuid=(string)($rp['pipeline_guid']??Uuid::fromBinary($root['job_guid']));
+         }
+-        $rows=Store::all('SELECT status,payload_json FROM ep_processing_jobs WHERE tenant_guid=? AND edition_guid=? AND job_type IN ("PAGE_ASSETS","PAGE_OCR")',[Uuid::toBinary($tenant),Uuid::toBinary($editionGuid)]);
+-        $remaining=0;$found=0;foreach($rows as$r){$p=self::payload($r);if((string)($p['pipeline_guid']??'')!==$pipelineGuid)continue;$found++;if(in_array((string)$r['status'],['QUEUED','RUNNING','RETRY_WAIT'],true))$remaining++;}
+-        if($found>0&&$remaining===0)self::enqueueFinalize($editionGuid,$pipelineGuid);
++        $latest=Store::value('SELECT job_guid FROM ep_processing_jobs WHERE tenant_guid=? AND edition_guid=? AND job_type="EDITION_RENDER" ORDER BY created_at DESC,job_guid DESC LIMIT 1',[Uuid::toBinary($tenant),Uuid::toBinary($editionGuid)]);
++        if(!$latest||Uuid::fromBinary($latest)!==$pipelineGuid)return;
++        $rootState=Store::value('SELECT status FROM ep_processing_jobs WHERE tenant_guid=? AND job_guid=?',[Uuid::toBinary($tenant),Uuid::toBinary($pipelineGuid)]);
++        if($rootState!=='COMPLETED')return;
++        $counts=Store::one('SELECT COUNT(*) found,COALESCE(SUM(status IN ("QUEUED","RUNNING","RETRY_WAIT")),0) remaining FROM ep_processing_jobs WHERE tenant_guid=? AND edition_guid=? AND job_type IN ("PAGE_ASSETS","PAGE_OCR") AND JSON_UNQUOTE(JSON_EXTRACT(payload_json,"$.pipeline_guid"))=?',[Uuid::toBinary($tenant),Uuid::toBinary($editionGuid),$pipelineGuid]);
++        if((int)$counts['found']>0&&(int)$counts['remaining']===0)self::enqueueFinalize($editionGuid,$pipelineGuid);
+     }
+ 
+     /**
+--- v2.0.1.3/app/Services/RuntimeCache.php
++++ v2.0.1.4/app/Services/RuntimeCache.php
+@@ -25,7 +25,7 @@
+     {
+         $deleted=0;$bumped=[];
+         foreach($tags as$tag){
+-            if($tag==='dashboard'){RedisStore::del('dashboard:v2:'.$tenantGuid);RedisStore::del('runtime:v2:'.$tenantGuid);RedisStore::del('runtime:v2.0.1.3:'.$tenantGuid);$deleted+=3;}
++            if($tag==='dashboard'){RedisStore::del('dashboard:v2:'.$tenantGuid);RedisStore::del('runtime:v2:'.$tenantGuid);RedisStore::del('runtime:v2.0.1.4:'.$tenantGuid);$deleted+=3;}
+             elseif($tag==='reader_state'){$deleted+=RedisStore::deleteByPrefix('reader:state:v2:'.$tenantGuid.':');}
+             elseif($tag==='settings'){$deleted+=RedisStore::deleteByPrefix('settings:v2:'.$tenantGuid.':');$bumped['settings']=self::bumpGeneration($tenantGuid,'settings');}
+             elseif($tag==='entitlements'){RedisStore::del('tenant:'.$tenantGuid.':entitlements');$deleted++;}
+--- v2.0.1.3/app/Services/TenantData.php
++++ v2.0.1.4/app/Services/TenantData.php
+@@ -163,7 +163,7 @@
+     public static function editionsForAdmin(string $where = '1=1', array $params = [], int $limit = 100, int $offset = 0): array
+     {
+         $sql='SELECT e.*,p.name publication_name,p.slug publication_slug,c.name city_name,l.name language_name,'
+-            .'j.status processing_status,j.progress processing_progress,j.attempt_count processing_attempt_count,'
++            .'j.job_guid processing_root_guid,j.status processing_status,j.progress processing_progress,j.attempt_count processing_attempt_count,'
+             .'j.error_message processing_error,j.payload_json processing_payload,j.created_at processing_started_at,(SELECT MAX(ja.updated_at) FROM ep_processing_jobs ja WHERE ja.tenant_guid=e.tenant_guid AND ja.edition_guid=e.edition_guid) processing_updated_at,'
+             .'(SELECT COUNT(*) FROM ep_processing_jobs ac WHERE ac.tenant_guid=e.tenant_guid AND ac.edition_guid=e.edition_guid AND ac.status IN ("QUEUED","RUNNING","RETRY_WAIT")) processing_active_count,'
+             .'(SELECT COUNT(*) FROM ep_processing_jobs rc WHERE rc.tenant_guid=e.tenant_guid AND rc.edition_guid=e.edition_guid AND rc.job_type="EDITION_RENDER") processing_run_count,'
+@@ -176,9 +176,9 @@
+             .'AND j.job_guid=(SELECT j2.job_guid FROM ep_processing_jobs j2 WHERE j2.tenant_guid=e.tenant_guid AND j2.edition_guid=e.edition_guid AND j2.job_type="EDITION_RENDER" ORDER BY j2.created_at DESC,j2.job_guid DESC LIMIT 1) '
+             .'WHERE e.tenant_guid=? AND '.$where.' '
+             .'ORDER BY e.edition_date DESC,e.created_at DESC LIMIT '.max(1,min(200,$limit)).' OFFSET '.max(0,$offset);
+-        return self::toGuidRows(Store::all($sql,array_merge([self::tenantBin()],$params)),[
++        return ProcessingSummary::attach(self::toGuidRows(Store::all($sql,array_merge([self::tenantBin()],$params)),[
+             'edition_guid','tenant_guid','publication_guid','city_guid','language_guid'
+-        ]);
++        ]));
+     }
+ 
+     /**
+--- v2.0.1.3/bin/direct-recovery-worker.php
++++ v2.0.1.4/bin/direct-recovery-worker.php
+@@ -0,0 +1,18 @@
++<?php
++declare(strict_types=1);
++if(PHP_SAPI!=='cli'){http_response_code(404);exit;}
++require dirname(__DIR__).'/app/bootstrap.php';
++use EpaperSaas\Core\Store;
++use EpaperSaas\Services\DirectRecovery;
++$once=in_array('--once',$argv,true);$seconds=1800;foreach($argv as$a)if(str_starts_with($a,'--max-seconds='))$seconds=max(10,min(7200,(int)substr($a,14)));
++// One runner per installation bounds CPU/memory; normal lane workers may continue under shared job locks.
++if((int)Store::value('SELECT GET_LOCK("epdi_direct_runner",0)')!==1)exit(0);
++$stop=false;if(function_exists('pcntl_async_signals')){pcntl_async_signals(true);pcntl_signal(SIGTERM,function()use(&$stop){$stop=true;});pcntl_signal(SIGINT,function()use(&$stop){$stop=true;});}
++$start=time();
++try{do{
++    Store::exec('INSERT INTO ep_system_state(state_key,state_value,updated_at) VALUES("recovery.worker",?,NOW(6)) ON DUPLICATE KEY UPDATE state_value=VALUES(state_value),updated_at=NOW(6)',[json_encode(['pid'=>getmypid(),'version'=>trim(file_get_contents(dirname(__DIR__).'/VERSION')),'at'=>gmdate('c')])]);
++    $count=DirectRecovery::tick();
++    if($once&&DirectRecovery::pending()===0)break;
++    if(!$count)sleep(2);
++}while(!$stop&&(!$once||time()-$start<$seconds));}
++finally{Store::value('SELECT RELEASE_LOCK("epdi_direct_runner")');}
+--- v2.0.1.3/bin/rabbit-worker.php
++++ v2.0.1.4/bin/rabbit-worker.php
+@@ -3,7 +3,7 @@
+ $root=require dirname(__DIR__).'/app/bootstrap.php';
+ 
+ use EpaperSaas\Core\{Config,RedisStore,RequestContext,Store,Uuid};
+-use EpaperSaas\Services\{CancelledJobException,EditionOperations,PermanentJobException,ProcessingPipeline,QueueService,RabbitMq,RetryableJobException};
++use EpaperSaas\Services\{CancelledJobException,EditionOperations,JobExecutor,PermanentJobException,ProcessingPipeline,QueueService,RabbitMq,RetryableJobException};
+ 
+ $lane='';$once=false;$maxJobs=max(1,(int)Config::get('queue.worker_max_jobs',250));
+ foreach(array_slice($argv,1) as$a){if(str_starts_with($a,'--lane='))$lane=substr($a,7);if(str_starts_with($a,'--max-jobs='))$maxJobs=max(1,(int)substr($a,11));if($a==='--once')$once=true;}
+@@ -23,75 +23,18 @@
+     if($probeGuid){try{if(!Uuid::isValid($probeGuid))throw new RuntimeException('invalid probe');Store::exec('INSERT INTO ep_system_state(state_key,state_value,updated_at) VALUES(?,?,NOW(6)) ON DUPLICATE KEY UPDATE state_value=VALUES(state_value),updated_at=NOW(6)',['queue.probe.'.$probeGuid.'.'.$lane,json_encode(['probe_guid'=>$probeGuid,'lane'=>$lane,'worker'=>$worker,'pid'=>getmypid(),'at'=>gmdate('c')],JSON_UNESCAPED_SLASHES)]);$delivery('PROBE_ACK',['probe_guid'=>$probeGuid]);}catch(Throwable){}$msg->ack();$processed++;if($once||$processed>=$maxJobs)$stop=true;return;}
+ 
+     $jobGuid=is_array($data)?(string)($data['job_guid']??''):'';$messageTenantGuid=is_array($data)?(string)($data['tenant_guid']??''):'';
+-    if(!$jobGuid||!$messageTenantGuid){$delivery('INVALID_MESSAGE');$msg->ack();return;}
++    if(!Uuid::isValid($jobGuid)||!Uuid::isValid($messageTenantGuid)){$delivery('INVALID_MESSAGE');$msg->ack();return;}
+     try{$messageTenantBin=Uuid::toBinary($messageTenantGuid);}catch(Throwable){$delivery('INVALID_TENANT',['job_guid'=>$jobGuid]);$msg->ack();return;}
+ 
+-    $jobLock='epaper_job_'.substr(hash('sha256',$jobGuid),0,40);$got=0;
+-    try{$got=(int)Store::value('SELECT GET_LOCK(?,0)',[$jobLock]);}catch(Throwable$e){$delivery('JOB_LOCK_ERROR',['job_guid'=>$jobGuid,'error'=>substr($e->getMessage(),0,240)]);}
+-    if($got!==1){
+-        // Never ACK an active business job merely because the MariaDB advisory lock is busy.
+-        // ACKing here loses the only RabbitMQ delivery while the MariaDB job remains QUEUED.
+-        $delivery('JOB_LOCK_BUSY_REQUEUED',['job_guid'=>$jobGuid]);
+-        usleep(350000);
+-        try{$msg->reject(true);}catch(Throwable){}
+-        return;
+-    }
++    try{
++        $result=JobExecutor::run($messageTenantGuid,$jobGuid,$worker,$lane);
++        $outcome=$result['outcome'];$delivery($outcome,['job_guid'=>$jobGuid]);
++        if(in_array($outcome,['BUSY','NOT_DUE'],true)){usleep(250000);$msg->reject(true);}
++        elseif($outcome==='LANE_MISMATCH')$msg->reject(false);
++        else $msg->ack();
++    }catch(\Throwable $e){$delivery('EXECUTION_ERROR',['job_guid'=>$jobGuid,'error'=>substr($e->getMessage(),0,240)]);usleep(250000);$msg->reject(true);}
++    $processed++;if($once||$processed>=$maxJobs)$stop=true;
+ 
+-    $job=null;$claimed=false;
+-    try{
+-        $job=Store::one('SELECT * FROM ep_processing_jobs WHERE tenant_guid=? AND job_guid=?',[$messageTenantBin,Uuid::toBinary($jobGuid)]);
+-        if(!$job){$delivery('ORPHAN_MESSAGE',['job_guid'=>$jobGuid]);$msg->ack();return;}
+-        if(QueueService::lane((string)$job['job_type'])!==$lane){$delivery('LANE_MISMATCH',['job_guid'=>$jobGuid,'job_type'=>(string)$job['job_type']]);try{$msg->reject(false);}catch(Throwable){$msg->ack();}return;}
+-        $status=(string)$job['status'];
+-        if(in_array($status,['COMPLETED','FAILED','CANCELLED'],true)){$delivery('TERMINAL_DUPLICATE',['job_guid'=>$jobGuid,'status'=>$status]);$msg->ack();return;}
+-        if($status==='RUNNING'){
+-            if(strtotime((string)$job['updated_at'])>=time()-EditionOperations::STALE_SECONDS){$delivery('ACTIVE_DUPLICATE',['job_guid'=>$jobGuid]);$msg->ack();return;}
+-            Store::exec('UPDATE ep_processing_jobs SET status="QUEUED",locked_at=NULL,worker_id=NULL,available_at=NOW(6),error_message="Recovered stale RUNNING job at RabbitMQ delivery",updated_at=NOW(6) WHERE tenant_guid=? AND job_guid=?',[$job['tenant_guid'],$job['job_guid']]);
+-            $status='QUEUED';
+-        }
+-        if(!in_array($status,['QUEUED','RETRY_WAIT'],true)){
+-            $delivery('UNEXPECTED_JOB_STATE_REQUEUED',['job_guid'=>$jobGuid,'status'=>$status]);
+-            usleep(250000);try{$msg->reject(true);}catch(Throwable){}return;
+-        }
+-
+-        $payload=QueueService::payload($job);$payload['stage']='STARTING';$payload['message']='Supervisor '.$lane.' worker acquired job';$payload['heartbeat_at']=gmdate('c');
+-        Store::exec('UPDATE ep_processing_jobs SET status="RUNNING",attempt_count=attempt_count+1,locked_at=NOW(6),worker_id=?,error_message=NULL,payload_json=?,updated_at=NOW(6) WHERE tenant_guid=? AND job_guid=? AND status IN ("QUEUED","RETRY_WAIT")',[$worker,json_encode($payload,JSON_UNESCAPED_SLASHES),$job['tenant_guid'],$job['job_guid']]);
+-        $job=Store::one('SELECT * FROM ep_processing_jobs WHERE tenant_guid=? AND job_guid=?',[$messageTenantBin,$job['job_guid']]);
+-        if(!$job|| (string)$job['status']!=='RUNNING' || (string)($job['worker_id']??'')!==$worker){
+-            $delivery('CLAIM_RACE_REQUEUED',['job_guid'=>$jobGuid,'status'=>(string)($job['status']??'MISSING')]);
+-            usleep(250000);try{$msg->reject(true);}catch(Throwable){}return;
+-        }
+-        $claimed=true;
+-
+-        $tenant=Uuid::fromBinary($job['tenant_guid']);$t=Store::one('SELECT display_name,organisation_guid FROM ep_tenants WHERE tenant_guid=?',[$job['tenant_guid']]);
+-        if(!$t){QueueService::markDead($job,'Local tenant not found');$delivery('LOCAL_TENANT_MISSING',['job_guid'=>$jobGuid]);$msg->ack();return;}
+-        RequestContext::set(['tenant_guid'=>$tenant,'tenant_name'=>$t['display_name']??'Publisher','organisation_guid'=>!empty($t['organisation_guid'])?Uuid::fromBinary($t['organisation_guid']):null,'request_guid'=>is_array($data)&&!empty($data['request_guid'])?$data['request_guid']:Uuid::v7(),'correlation_guid'=>is_array($data)&&!empty($data['correlation_guid'])?$data['correlation_guid']:Uuid::v7()]);
+-
+-        try{
+-            $result=(new ProcessingPipeline())->handle($job);
+-            if(EditionOperations::stopIntent(Uuid::fromBinary($job['edition_guid'])))throw new CancelledJobException('Cancellation requested');
+-            $p=QueueService::payload(Store::one('SELECT payload_json FROM ep_processing_jobs WHERE tenant_guid=? AND job_guid=?',[$job['tenant_guid'],$job['job_guid']])?:$job);$p['result']=$result;$p['heartbeat_at']=gmdate('c');
+-            Store::exec('UPDATE ep_processing_jobs SET status="COMPLETED",progress=100,completed_at=NOW(6),locked_at=NULL,worker_id=NULL,error_message=NULL,payload_json=?,updated_at=NOW(6) WHERE tenant_guid=? AND job_guid=?',[json_encode($p,JSON_UNESCAPED_SLASHES|JSON_UNESCAPED_UNICODE),$job['tenant_guid'],$job['job_guid']]);
+-            if(in_array((string)$job['job_type'],['PAGE_ASSETS','PAGE_OCR'],true))QueueService::maybeFinalize(Uuid::fromBinary($job['edition_guid']),(string)(QueueService::payload($job)['pipeline_guid']??''));
+-            $delivery('COMPLETED',['job_guid'=>$jobGuid,'job_type'=>(string)$job['job_type']]);$msg->ack();
+-        }catch(CancelledJobException$e){
+-            EditionOperations::markCancelled($job);$delivery('CANCELLED',['job_guid'=>$jobGuid]);$msg->ack();
+-        }catch(PermanentJobException$e){
+-            QueueService::markDead($job,$e->getMessage());
+-            if(in_array((string)$job['job_type'],['PAGE_ASSETS','PAGE_OCR'],true))QueueService::maybeFinalize(Uuid::fromBinary($job['edition_guid']),(string)(QueueService::payload($job)['pipeline_guid']??''));
+-            $delivery('PERMANENT_FAILURE',['job_guid'=>$jobGuid,'error'=>substr($e->getMessage(),0,240)]);$msg->ack();
+-        }catch(RetryableJobException$e){
+-            $fresh=Store::one('SELECT * FROM ep_processing_jobs WHERE tenant_guid=? AND job_guid=?',[$job['tenant_guid'],$job['job_guid']])?:$job;QueueService::scheduleRetry($fresh,$e->getMessage());$fresh=Store::one('SELECT * FROM ep_processing_jobs WHERE tenant_guid=? AND job_guid=?',[$job['tenant_guid'],$job['job_guid']])?:$fresh;if((string)$fresh['status']==='FAILED'&&in_array((string)$job['job_type'],['PAGE_ASSETS','PAGE_OCR'],true))QueueService::maybeFinalize(Uuid::fromBinary($job['edition_guid']),(string)(QueueService::payload($job)['pipeline_guid']??''));$delivery('RETRY_SCHEDULED',['job_guid'=>$jobGuid,'error'=>substr($e->getMessage(),0,240)]);$msg->ack();
+-        }catch(Throwable$e){
+-            $fresh=Store::one('SELECT * FROM ep_processing_jobs WHERE tenant_guid=? AND job_guid=?',[$job['tenant_guid'],$job['job_guid']])?:$job;QueueService::scheduleRetry($fresh,$e->getMessage());$delivery('UNHANDLED_RETRY',['job_guid'=>$jobGuid,'error'=>substr($e->getMessage(),0,240)]);$msg->ack();
+-        }
+-        $processed++;if($once||$processed>=$maxJobs)$stop=true;
+-    }catch(Throwable$e){
+-        $delivery('CALLBACK_EXCEPTION',['job_guid'=>$jobGuid,'claimed'=>$claimed,'error'=>substr($e->getMessage(),0,240)]);
+-        $scheduled=false;
+-        if($job&&$claimed){try{$fresh=Store::one('SELECT * FROM ep_processing_jobs WHERE tenant_guid=? AND job_guid=?',[$job['tenant_guid'],$job['job_guid']])?:$job;QueueService::scheduleRetry($fresh,$e->getMessage());$scheduled=true;}catch(Throwable){}}
+-        try{if($scheduled)$msg->ack();else{$msg->reject(true);}}catch(Throwable){}
+-    }finally{try{Store::value('SELECT RELEASE_LOCK(?)',[$jobLock]);}catch(Throwable){}}
+ };
+ $ch->basic_consume($queue,'',false,false,false,false,$callback);
+ echo "ePaper SaaS RabbitMQ worker started lane=$lane queue=$queue worker=$worker version=$version max_jobs=$maxJobs\n";
+--- v2.0.1.3/bin/worker.php
++++ v2.0.1.4/bin/worker.php
+@@ -1,35 +1,12 @@
+ <?php
+ declare(strict_types=1);
+ require dirname(__DIR__).'/app/bootstrap.php';
+-use EpaperSaas\Core\{RequestContext,Store,Uuid};
+-use EpaperSaas\Services\{Processing,ProcessingPipeline,QueueService,PermanentJobException,CancelledJobException,EditionOperations};
++use EpaperSaas\Core\{Store,Uuid};
++use EpaperSaas\Services\{QueueService,JobExecutor};
+ $once=in_array('--once',$argv,true);$worker=(gethostname()?:'host').':db:'.getmypid();
+-if(QueueService::rabbitEnabled()){fwrite(STDERR,"Database worker is disabled for RabbitMQ installations. Use rabbit-worker.php.\n");exit(2);}
++if(QueueService::rabbitEnabled()){fwrite(STDERR,"Database worker is disabled for RabbitMQ installations. Use direct-recovery-worker.php for requested recovery.\n");exit(2);}
+ do{
+-    $candidate=Store::one('SELECT job_guid FROM ep_processing_jobs WHERE status="QUEUED" AND (available_at IS NULL OR available_at<=NOW(6)) ORDER BY created_at,job_guid LIMIT 1');
+-    if(!$candidate){if($once)break;sleep(3);continue;}
+-    $lock=EditionOperations::jobLock(Uuid::fromBinary($candidate['job_guid']));
+-    if((int)Store::value('SELECT GET_LOCK(?,0)',[$lock])!==1){if($once)break;usleep(200000);continue;}
+-    try{
+-        $job=Store::tx(function()use($candidate,$worker){
+-            $j=Store::one('SELECT * FROM ep_processing_jobs WHERE job_guid=? AND status="QUEUED" FOR UPDATE',[$candidate['job_guid']]);if(!$j)return null;
+-            Store::exec('UPDATE ep_processing_jobs SET status="RUNNING",attempt_count=attempt_count+1,locked_at=NOW(6),worker_id=?,updated_at=NOW(6) WHERE tenant_guid=? AND job_guid=?',[$worker,$j['tenant_guid'],$j['job_guid']]);
+-            return Store::one('SELECT * FROM ep_processing_jobs WHERE tenant_guid=? AND job_guid=?',[$j['tenant_guid'],$j['job_guid']]);
+-        });
+-        if(!$job)continue;
+-        $tenant=Uuid::fromBinary($job['tenant_guid']);$edition=Uuid::fromBinary($job['edition_guid']);$jg=Uuid::fromBinary($job['job_guid']);
+-        $t=Store::one('SELECT display_name,organisation_guid FROM ep_tenants WHERE tenant_guid=?',[$job['tenant_guid']]);
+-        RequestContext::set(['tenant_guid'=>$tenant,'tenant_name'=>$t['display_name']??'Publisher','organisation_guid'=>!empty($t['organisation_guid'])?Uuid::fromBinary($t['organisation_guid']):null,'request_guid'=>Uuid::v7(),'correlation_guid'=>Uuid::v7()]);
+-        try{
+-            EditionOperations::assertJob($job);
+-            $result=$job['job_type']==='EDITION_PROCESS'?(new Processing())->processEdition($edition,$jg):(new ProcessingPipeline())->handle($job);
+-            if(EditionOperations::stopIntent($edition))throw new CancelledJobException('Cancellation requested');
+-            Store::exec('UPDATE ep_processing_jobs SET status="COMPLETED",progress=100,completed_at=NOW(6),locked_at=NULL,worker_id=NULL,error_message=NULL,updated_at=NOW(6) WHERE tenant_guid=? AND job_guid=? AND status="RUNNING"',[$job['tenant_guid'],$job['job_guid']]);
+-            if(in_array($job['job_type'],['PAGE_ASSETS','PAGE_OCR'],true))QueueService::maybeFinalize($edition,(string)(QueueService::payload($job)['pipeline_guid']??''));
+-            echo "Processed $jg\n";
+-        }catch(CancelledJobException $e){EditionOperations::markCancelled($job);}
+-        catch(PermanentJobException $e){QueueService::markDead($job,$e->getMessage());if(in_array($job['job_type'],['PAGE_ASSETS','PAGE_OCR'],true))QueueService::maybeFinalize($edition,(string)(QueueService::payload($job)['pipeline_guid']??''));}
+-        catch(\Throwable $e){QueueService::scheduleRetry($job,$e->getMessage());fwrite(STDERR,"Retry $jg: {$e->getMessage()}\n");}
+-    }finally{Store::value('SELECT RELEASE_LOCK(?)',[$lock]);}
+-    if($once)break;
++    $jobs=Store::all('SELECT tenant_guid,job_guid FROM ep_processing_jobs WHERE status IN ("QUEUED","RETRY_WAIT","RUNNING") AND (status="RUNNING" OR available_at IS NULL OR available_at<=NOW(6)) ORDER BY created_at,job_guid LIMIT 20');$processed=false;
++    foreach($jobs as$j){try{$result=JobExecutor::run(Uuid::fromBinary($j['tenant_guid']),Uuid::fromBinary($j['job_guid']),$worker);if(!in_array($result['outcome'],['BUSY','NOT_DUE'],true)){$processed=true;break;}}catch(\Throwable $e){fwrite(STDERR,$e->getMessage()."\n");}}
++    if($once)break;if(!$processed)sleep(2);
+ }while(true);
+--- v2.0.1.3/public_html/assets/admin-operations.css
++++ v2.0.1.4/public_html/assets/admin-operations.css
+@@ -3,3 +3,10 @@
+ .admin-shell .app-nav-link{min-height:40px}.admin-shell .app-nav-link>span{font-size:13px}.admin-shell .nav-group-label{font-size:10px}.admin-shell .editions-table th{font-size:11px}.admin-shell .editions-table td{font-size:13px}.admin-shell .edition-identity strong{font-size:14px}.admin-shell .edition-identity small,.admin-shell .edition-identity span,.admin-shell .edition-status-note{font-size:12px;line-height:1.5}.admin-shell .editions-table .status{font-size:11px}.admin-shell .edition-actions{white-space:normal;flex-wrap:wrap;max-width:260px;justify-content:flex-start}.admin-shell .edition-actions .console-icon-action{min-width:44px!important;min-height:44px!important;width:44px!important;height:44px!important}.admin-shell .edition-actions .btn,.admin-shell .edition-reprocess-primary{min-height:44px;font-size:12px}.admin-shell .desk-header .btn,.admin-shell .desk-editions .btn{min-height:44px;font-size:13px}.desk-editions .section-head{gap:16px}.desk-editions .section-head h2,.desk-bottom h2,.desk-attention h2{font-size:18px!important}.admin-shell .ops-hud{display:none}.admin-shell .desk-editions{padding:20px;border-radius:12px}
+ @media(max-width:1100px){.desk-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.desk-bottom{grid-template-columns:1fr}.desk-header{align-items:flex-start}.desk-header-actions{flex-direction:column}}
+ @media(max-width:600px){.desk-header{flex-direction:column;gap:16px}.desk-header-actions{flex-direction:row;flex-wrap:wrap}.desk-header h1{font-size:28px}.desk-metric{padding:16px;gap:10px}.desk-metric span{font-size:12px}.desk-metric small{font-size:11px}.desk-metric strong{font-size:28px}.desk-alert{align-items:flex-start;gap:12px}.desk-alert>span{font-size:12px}.desk-shortcuts{grid-template-columns:1fr}.desk-schedule-row{flex-direction:column}.desk-editions .section-head{flex-direction:column;align-items:flex-start}.admin-shell .edition-actions{max-width:none}.edition-pagination{flex-wrap:wrap}}
++
++/* v2.0.1.4 processing actions and responsive diagnostics. */
++.admin-shell .processing-kpis{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px}.admin-shell .processing-kpis .kpi{min-width:0}.admin-shell .edition-actions .console-icon-action svg{width:18px;height:18px}.admin-shell .processing-table details{max-width:360px;white-space:normal;overflow-wrap:anywhere}
++@media(max-width:1100px){.admin-shell .processing-kpis{grid-template-columns:repeat(3,minmax(0,1fr))}}
++@media(max-width:600px){.admin-shell .processing-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
++
++.admin-shell .processing-table .console-icon-action{width:44px;height:44px;min-width:44px;min-height:44px}
+--- v2.0.1.3/public_html/assets/app.js
++++ v2.0.1.4/public_html/assets/app.js
+@@ -17,6 +17,7 @@
+   const body=center.querySelector('[data-processing-body]');
+   const activeEl=document.querySelector('[data-processing-active]');
+   const failedEl=document.querySelector('[data-processing-failed]');
++  const stalledEl=document.querySelector('[data-processing-stalled]');
+   const liveLabel=document.querySelector('[data-processing-live-label]');
+   const liveWrap=liveLabel?.closest('.processing-live');
+   const csrf=window.EpaperSaas?.csrf||'';
+@@ -27,7 +28,7 @@
+     if(!(r.status==='FAILED'||r.status==='NEEDS_ATTENTION'||r.stale)||!r.edition_guid)return null;
+     const f=node('form','inline');f.method='post';f.action='/admin/editions/'+encodeURIComponent(r.edition_guid)+(r.stale?'/recover':'/reprocess');
+     const i=document.createElement('input');i.type='hidden';i.name='_csrf';i.value=csrf;f.append(i);
+-    const b=node('button','text-btn',r.stale?'Recover':'Retry');b.type='submit';f.append(b);return f;
++    const label=r.stale?'Recover unfinished work':'Retry processing';const b=node('button','console-icon-action is-process');b.type='submit';b.title=label;b.setAttribute('aria-label',label);const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');svg.setAttribute('viewBox','0 0 24 24');svg.setAttribute('class','ui-icon');svg.setAttribute('aria-hidden','true');svg.setAttribute('fill','none');svg.setAttribute('stroke','currentColor');svg.setAttribute('stroke-width','1.8');const path=document.createElementNS('http://www.w3.org/2000/svg','path');path.setAttribute('d','M20 6v5h-5 M19 11a7 7 0 1 0 1 5');svg.append(path);b.append(svg);f.append(b);return f;
+   };
+   const renderRow=(r)=>{
+     const tr=document.createElement('tr');tr.dataset.jobGuid=r.job_guid||'';
+@@ -46,7 +47,7 @@
+       lastFingerprint=nextFingerprint;body.replaceChildren();
+       if(!rows.length){const tr=document.createElement('tr');const td=node('td');td.colSpan=6;td.append(node('div','empty-inline','No processing jobs yet.'));tr.append(td);body.append(tr);}else rows.forEach(r=>body.append(renderRow(r)));
+     }
+-    const active=Number(data.active)||0;const failed=rows.filter(r=>r.status==='FAILED').length;if(activeEl)activeEl.textContent=String(active);if(failedEl)failedEl.textContent=String(failed);if(liveLabel)liveLabel.textContent=active?'Live updates':'Idle';liveWrap?.classList.toggle('is-idle',!active);
++    const active=Number(data.active)||0;const failed=rows.filter(r=>r.status==='FAILED'||r.status==='NEEDS_ATTENTION').length;if(activeEl)activeEl.textContent=String(active);if(failedEl)failedEl.textContent=String(failed);if(stalledEl){const stalled=rows.filter(r=>r.stale).length;stalledEl.textContent=String(stalled);stalledEl.className=stalled?'bad':'good';}if(liveLabel)liveLabel.textContent=active?'Live updates':'Idle';liveWrap?.classList.toggle('is-idle',!active);
+     return active;
+   };
+   const schedule=(delay)=>{clearTimeout(timer);timer=setTimeout(poll,delay)};
+--- v2.0.1.3/public_html/service-worker.js
++++ v2.0.1.4/public_html/service-worker.js
+@@ -1,12 +1,12 @@
+-const VERSION='epdi-v2.0.1.3';
++const VERSION='epdi-v2.0.1.4';
+ const SHELL_CACHE=`${VERSION}:shell`;
+ const PAGE_CACHE=`${VERSION}:pages`;
+ const SHELL=[
+-  '/assets/app.css?v=2.0.1.3',
+-  '/assets/app.js?v=2.0.1.3',
+-  '/assets/offline-vault.js?v=2.0.1.3',
+-  '/assets/offline-vault.css?v=2.0.1.3',
+-  '/manifest.webmanifest?v=2.0.1.3',
++  '/assets/app.css?v=2.0.1.4',
++  '/assets/app.js?v=2.0.1.4',
++  '/assets/offline-vault.js?v=2.0.1.4',
++  '/assets/offline-vault.css?v=2.0.1.4',
++  '/manifest.webmanifest?v=2.0.1.4',
+   '/offline.html',
+   '/offline-library.html',
+   '/offline-reader.html',

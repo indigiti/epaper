@@ -1,0 +1,28 @@
+<?php
+declare(strict_types=1);
+$root=dirname(__DIR__);$fails=[];
+$pass=function(bool $ok,string $name)use(&$fails):void{echo($ok?'PASS':'FAIL')." — {$name}\n";if(!$ok)$fails[]=$name;};
+$read=fn(string$f):string=>is_file($root.'/'.$f)?(string)file_get_contents($root.'/'.$f):'';
+$version=trim($read('VERSION'));$app=$read('app/App.php');$view=$read('app/Core/View.php');$redis=$read('app/Core/RedisStore.php');$nav=$read('app/Services/ReaderNavigation.php');$runtime=$read('app/Services/PublishingRuntime.php');$cache=$read('app/Services/RuntimeCache.php');$outbox=$read('app/Services/OutboxPublisher.php');$infra=$read('app/Services/InfrastructureConfig.php');$schema=$read('database/schema.sql');$sw=$read('public_html/service-worker.js');$css=$read('public_html/assets/app.css');
+$pass($version==='2.0.0-alpha.2','VERSION locked to 2.0.0-alpha.2');
+$pass(!is_file($root.'/config/config.php')&&!is_file($root.'/config/runtime.php'),'production config/secrets are not packaged');
+foreach(['ep_navigation_scopes','ep_navigation_items','ep_navigation_versions'] as$t)$pass(str_contains($schema,'CREATE TABLE IF NOT EXISTS '.$t),'schema includes '.$t);
+$pass(is_file($root.'/database/upgrade-v2.0.0-alpha.2.sql'),'alpha.2 upgrade migration included');
+$pass(str_contains($nav,'Public reads never require MariaDB')&&str_contains($nav,'publicSnapshot')&&str_contains($nav,'writeCompiledFile'),'Reader Navigation has cache/file/default data-plane path');
+$pass(str_contains($nav,'scopeCandidates')&&str_contains($nav,'publication_guid')&&str_contains($nav,'language_guid'),'Reader Navigation supports scoped fallback');
+$pass(str_contains($nav,'nav_navigation_versions')===false&&str_contains($nav,'ep_navigation_versions'),'Reader Navigation persists immutable versions');
+$pass(str_contains($nav,'restore(')&&str_contains($nav,"'restored_from'"),'Reader Navigation rollback is append-only');
+$pass(str_contains($nav,'applySchedule')&&str_contains($nav,"'starts_at'=>")&&str_contains($nav,"'expires_at'=>"),'scheduled navigation activates/expires without MariaDB reads');
+$pass(str_contains($app,"'/admin/navigation'")&&str_contains($app,'adminNavigationPublish'),'Publisher control exposes Reader Navigation draft/publish workflow');
+$pass(str_contains($view,'ReaderNavigation::publicSnapshot')&&str_contains($view,'publicNavigation'),'public header consumes compiled navigation');
+$pass(str_contains($css,'reader-focus-bar')&&str_contains($css,'navigation-preview-bar'),'compiled public/admin navigation surfaces styled');
+$pass(str_contains($redis,'scanJson')&&str_contains($redis,'deleteByPrefix')&&!str_contains($redis,'->keys('),'Redis uses SCAN primitives, not blocking KEYS');
+$pass(str_contains($infra, "\$source='redis'")&&str_contains($infra,'worker:heartbeat:v2:'),'worker health is Redis-first with fallback');
+$pass(str_contains($runtime,'runtime:v2:')&&str_contains($runtime,'attention'),'short-lived publisher operational snapshot exists');
+$pass(str_contains($app,'PublishingRuntime::snapshot')&&str_contains($app,'ATTENTION CENTER'),'dashboard consumes operational snapshot');
+$pass(str_contains($cache,'CACHE_INVALIDATE')&&str_contains($outbox,"\$eventType==='CACHE_INVALIDATE'"),'cache invalidation propagates through transactional outbox');
+$pass(str_contains($app,'RuntimeCache::broadcast')&&str_contains($app,"['dashboard','reader_state']"),'edition publishing invalidates relevant hot caches');
+$pass(str_contains($infra,'saveMedia')&&str_contains($app,'adminInfrastructureMediaSave'),'media X-Accel/token bucket configuration is controllable');
+$pass(str_contains($sw,"const VERSION='epdi-v2.0.0-alpha.2'")&&str_contains($sw,'legacy-reader-media'),'service worker aligned; legacy plaintext media explicitly temporary');
+$pass(str_contains($app,"'navigation_scope'=>['publication_guid'=>")&&str_contains($app,"'city_guid'=>\$ed['city_guid']??null")&&str_contains($app,"'language_guid'=>\$ed['language_guid']??null"),'Reader selects publication/city/language navigation scope');
+if($fails){fwrite(STDERR,"\nBUILD GUARD FAILED: ".implode(', ',$fails)."\n");exit(1);}echo"\nALL EP-DI v2.0.0-alpha.2 BUILD GUARDS PASSED\n";

@@ -1,0 +1,9 @@
+PASS public_html/assets/admin-beta.js
+PASS public_html/assets/app.js
+PASS public_html/assets/crud.js
+PASS public_html/assets/guest-clipping.js
+PASS public_html/assets/offline-vault.js
+PASS public_html/assets/reader-prefetch.js
+PASS public_html/assets/reader.js
+PASS public_html/service-worker.js
+JS_FILES=8

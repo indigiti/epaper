@@ -1,0 +1,24 @@
+PASS — current v2 alpha VERSION format
+PASS — cumulative infrastructure app/Services/RabbitMq.php
+PASS — cumulative infrastructure app/Services/QueueService.php
+PASS — cumulative infrastructure app/Services/ProcessingPipeline.php
+PASS — cumulative infrastructure app/Services/InfrastructureConfig.php
+PASS — cumulative infrastructure app/Services/SupervisorRuntime.php
+PASS — cumulative infrastructure bin/rabbit-worker.php
+PASS — cumulative infrastructure bin/outbox-publisher.php
+PASS — cumulative infrastructure bin/supervisor-preflight.php
+PASS — cumulative infrastructure composer.json
+PASS — infrastructure route
+PASS — Supervisor setup route
+PASS — queue incomplete guard
+PASS — current-release recovery wording
+PASS — service worker aligned with VERSION
+PASS — legacy parity release artifact release/CITY-EPAPER-COMPATIBILITY-1.1.4.json
+PASS — legacy parity release artifact release/READER-BEHAVIORS-1.1.4.json
+PASS — legacy parity release artifact release/PROCESSING-STAGES-1.1.4.json
+PASS — legacy parity release artifact release/FINAL-REAUDIT-1.1.4.md
+PASS — Rabbit HIGHRES WebP
+PASS — fallback HIGHRES WebP
+PASS — Supervisor log directory packaged
+
+PASS cumulative v2 guard

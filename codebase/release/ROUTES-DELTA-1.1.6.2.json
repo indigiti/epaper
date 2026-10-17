@@ -1,0 +1,11 @@
+{
+  "version": "1.1.6.2",
+  "baseline": "1.1.6.1",
+  "added": [],
+  "removed": [],
+  "changed_behavior": [
+    "POST /account/{library}/clear",
+    "GET|POST /admin/master-data",
+    "POST /admin/master-data/{type}/{guid}/{action}"
+  ]
+}

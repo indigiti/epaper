@@ -1,0 +1,58 @@
+PASS — 1920x1080 no JS errors
+PASS — 1920x1080 wrapper cannot reserve height :: contents
+PASS — 1920x1080 card shrink-wraps content :: {'x': 750, 'y': 284.9375, 'width': 420, 'height': 552.109375}
+PASS — 1920x1080 quote inside card
+PASS — 1920x1080 quote directly follows security note :: 10.0px
+PASS — 1920x1080 no lower blank zone :: 21.0px
+PASS — 1920x1080 no upper blank zone :: 47.0px
+PASS — 1440x900 no JS errors
+PASS — 1440x900 wrapper cannot reserve height :: contents
+PASS — 1440x900 card shrink-wraps content :: {'x': 510, 'y': 194.9375, 'width': 420, 'height': 552.109375}
+PASS — 1440x900 quote inside card
+PASS — 1440x900 quote directly follows security note :: 10.0px
+PASS — 1440x900 no lower blank zone :: 21.0px
+PASS — 1440x900 no upper blank zone :: 47.0px
+PASS — 1024x768 no JS errors
+PASS — 1024x768 wrapper cannot reserve height :: contents
+PASS — 1024x768 card shrink-wraps content :: {'x': 302, 'y': 128.9375, 'width': 420, 'height': 552.109375}
+PASS — 1024x768 quote inside card
+PASS — 1024x768 quote directly follows security note :: 10.0px
+PASS — 1024x768 no lower blank zone :: 21.0px
+PASS — 1024x768 no upper blank zone :: 47.0px
+PASS — 768x1024 no JS errors
+PASS — 768x1024 wrapper cannot reserve height :: contents
+PASS — 768x1024 card shrink-wraps content :: {'x': 174, 'y': 256.9375, 'width': 420, 'height': 552.109375}
+PASS — 768x1024 quote inside card
+PASS — 768x1024 quote directly follows security note :: 10.0px
+PASS — 768x1024 no lower blank zone :: 21.0px
+PASS — 768x1024 no upper blank zone :: 47.0px
+PASS — 430x932 no JS errors
+PASS — 430x932 wrapper cannot reserve height :: contents
+PASS — 430x932 card shrink-wraps content :: {'x': 15, 'y': 219.515625, 'width': 400, 'height': 536.953125}
+PASS — 430x932 quote inside card
+PASS — 430x932 quote directly follows security note :: 9.0px
+PASS — 430x932 no lower blank zone :: 19.0px
+PASS — 430x932 no upper blank zone :: 44.0px
+PASS — 390x844 no JS errors
+PASS — 390x844 wrapper cannot reserve height :: contents
+PASS — 390x844 card shrink-wraps content :: {'x': 14, 'y': 175.515625, 'width': 362, 'height': 536.953125}
+PASS — 390x844 quote inside card
+PASS — 390x844 quote directly follows security note :: 9.0px
+PASS — 390x844 no lower blank zone :: 19.0px
+PASS — 390x844 no upper blank zone :: 44.0px
+PASS — 360x800 no JS errors
+PASS — 360x800 wrapper cannot reserve height :: contents
+PASS — 360x800 card shrink-wraps content :: {'x': 14, 'y': 144.453125, 'width': 332, 'height': 555.078125}
+PASS — 360x800 quote inside card
+PASS — 360x800 quote directly follows security note :: 9.0px
+PASS — 360x800 no lower blank zone :: 19.0px
+PASS — 360x800 no upper blank zone :: 44.0px
+PASS — 320x720 no JS errors
+PASS — 320x720 wrapper cannot reserve height :: contents
+PASS — 320x720 card shrink-wraps content :: {'x': 14, 'y': 87.390625, 'width': 292, 'height': 589.21875}
+PASS — 320x720 quote inside card
+PASS — 320x720 quote directly follows security note :: 9.0px
+PASS — 320x720 no lower blank zone :: 19.0px
+PASS — 320x720 no upper blank zone :: 44.0px
+
+ALL v1.1.9.10 SINGLE-FLOW AUTH CHECKS PASSED

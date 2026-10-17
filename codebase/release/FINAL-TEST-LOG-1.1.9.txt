@@ -1,0 +1,17 @@
+ePaper SaaS v1.1.9 final test summary
+
+PHP lint: PASS
+crud.js syntax: PASS
+guest-clipping.js syntax: PASS
+reader-prefetch.js syntax: PASS
+service-worker.js syntax: PASS
+v1.1.9 cumulative build guard: PASS
+v1.1.5.1 Settings normalization: PASS
+v1.1.6.1 responsive header regression: PASS
+v1.1.6.2 Admin CRUD drawer regression: PASS
+v1.1.8 Guest clipping/subscription regression: PASS
+v1.1.8 Reader prefetch regression: PASS
+v1.1.9 Auth Chromium desktop/mobile: PASS
+Release check: PASS
+Database migration: NONE
+RabbitMQ/Supervisor changes: NONE

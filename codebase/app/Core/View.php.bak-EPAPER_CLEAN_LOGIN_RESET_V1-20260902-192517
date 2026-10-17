@@ -1,0 +1,168 @@
+<?php
+namespace EpaperSaas\Core;
+use EpaperSaas\Services\TenantData;
+
+final class View
+{
+    public static function e(mixed $v): string{return htmlspecialchars((string)$v,ENT_QUOTES|ENT_SUBSTITUTE,'UTF-8');}
+    public static function icon(string $name): string
+    {
+        $p=[
+            'menu'=>'<path d="M4 7h16M4 12h16M4 17h16"/>','search'=>'<circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/>','user'=>'<circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-5 14.5-5 16 0"/>','chev-left'=>'<path d="m15 18-6-6 6-6"/>','chev-right'=>'<path d="m9 18 6-6-6-6"/>','plus'=>'<path d="M12 5v14M5 12h14"/>','minus'=>'<path d="M5 12h14"/>','fit'=>'<path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/>','width'=>'<path d="M4 12h16M8 8l-4 4 4 4M16 8l4 4-4 4"/>','reset'=>'<path d="M4 4v6h6M5.5 15a7 7 0 1 0 .5-7"/>','clip'=>'<path d="M6 3v12a3 3 0 1 0 3 3V9a3 3 0 1 0-3-3Zm12-3v12a3 3 0 1 1-3 3V6a3 3 0 1 1 3-3Z"/>','save'=>'<path d="M5 3h12l2 2v16H5V3Z"/><path d="M8 3v6h8V3M8 21v-7h8v7"/>','close'=>'<path d="M6 6l12 12M18 6 6 18"/>','bookmark'=>'<path d="M6 3h12v18l-6-4-6 4V3Z"/>','share'=>'<circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.6 10.5 6.8-4M8.6 13.5l6.8 4"/>','pages'=>'<path d="M4 5h12v16H4zM8 2h12v16"/>','signal'=>'<path d="M4 18h2M8 14h2v4H8zM12 10h2v8h-2zM16 6h2v12h-2zM20 3v15"/>','moon'=>'<path d="M20 15a8 8 0 1 1-11-11 7 7 0 0 0 11 11Z"/>','sun'=>'<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/>','download'=>'<path d="M12 3v12M7 10l5 5 5-5M5 21h14"/>','fullscreen'=>'<path d="M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5"/>','settings'=>'<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1-2.8 2.8-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.6V21h-4v-.1a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1L4.2 17l.1-.1a1.7 1.7 0 0 0 .3-1.9A1.7 1.7 0 0 0 3 14H3v-4h.1a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9L4.2 7 7 4.2l.1.1a1.7 1.7 0 0 0 1.9.3A1.7 1.7 0 0 0 10 3V3h4v.1a1.7 1.7 0 0 0 1 1.6 1.7 1.7 0 0 0 1.9-.3l.1-.1L19.8 7l-.1.1a1.7 1.7 0 0 0-.3 1.9A1.7 1.7 0 0 0 21 10h.1v4H21a1.7 1.7 0 0 0-1.6 1Z"/>'];
+        $path=$p[$name]??'<circle cx="12" cy="12" r="8"/>';
+        return '<svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">'.$path.'</svg>';
+    }
+    private static function currentPath(): string
+    {
+        return (string)(parse_url((string)($_SERVER['REQUEST_URI']??'/'),PHP_URL_PATH)?:'/');
+    }
+    private static function navLink(string $name,string $href,string $current,string $hint=''): string
+    {
+        $rootExact=in_array($href,['/','/admin','/account'],true);$active=$rootExact?$current===$href:($current===$href||str_starts_with($current,rtrim($href,'/').'/'));
+        return '<a class="app-nav-link'.($active?' active':'').'" href="'.self::e($href).'"'.($active?' aria-current="page"':'').'><span>'.self::e($name).'</span>'.($hint!==''?'<small>'.self::e($hint).'</small>':'').'</a>';
+    }
+    private static function adminNav(): string
+    {
+        $current=self::currentPath();$m=Auth::currentMembership();$role=strtoupper((string)($m['role_key']??'VIEWER'));
+        $full=in_array($role,['OWNER','ADMIN','PUBLISHER_ADMIN'],true);$editor=in_array($role,['OWNER','ADMIN','PUBLISHER_ADMIN','EDITOR'],true);$operator=in_array($role,['OWNER','ADMIN','PUBLISHER_ADMIN','EDITOR','OPERATOR'],true);
+        $groups=[];
+        $groups['WORKSPACE']=[['Overview','/admin','Publisher at a glance']];
+        if($editor)$groups['CONTENT']=[['Editions','/admin/editions','Create, preview & publish'],['Publications','/admin/publications','Titles & editions'],['Highlights','/admin/highlights','Homepage promotion'],['Master data','/admin/master-data','Cities, languages & sections']];
+        if($operator)$groups['PUBLISHING']=[['Processing Center','/admin/processing','Render, assets, OCR & finalize']];
+        if($full)$groups['AUDIENCE']=[['Subscribers','/admin/subscribers','Readers & access']];
+        if($full)$groups['INSIGHTS']=[['Performance','/admin/performance','Reader, content & queue signals']];
+        if($full)$groups['CONFIGURATION']=[['Settings','/admin/settings','Appearance, brand, SEO, Reader & processing']];
+        if($full)$groups['ACCESS & GOVERNANCE']=[['Roles & access','/admin/access','Membership & security'],['Audit','/admin/audit','Administrative activity']];
+        if($operator){$groups['OPERATIONS']=[['System health','/admin/system/health','Application readiness'],['Error Center','/admin/errors','Request & processing failures']];if(!$full)$groups['OPERATIONS'][]=['Performance','/admin/performance','Content & queue pressure'];if($full){$groups['OPERATIONS'][]=['Storage & backups','/admin/storage','Storage diagnostics'];$groups['OPERATIONS'][]=['Release audit','/admin/system/release-audit','Parity & release guard'];}}
+        $canonical=parse_url((string)Config::get('app.url',''),PHP_URL_HOST);$infraRoles=Config::get('auth.infrastructure_roles',['OWNER','ADMIN']);
+        if($canonical&&strcasecmp((string)$canonical,Http::host())===0&&$m&&in_array($role,$infraRoles,true))$groups['OPERATIONS'][]=['Infrastructure','/admin/system/infrastructure','RabbitMQ & Supervisor'];
+        if($full)$groups['ACCOUNT']=[['Subscription & usage','/admin/account','Plan, entitlement & usage']];
+        $html='<div class="sidebar-context"><span class="eyebrow">PUBLISHER</span><strong>'.self::e(RequestContext::get('tenant_name')?:'ePaper SaaS').'</strong><span class="role-pill">'.self::e(str_replace('_',' ',$role)).'</span></div><nav class="app-nav grouped-nav" aria-label="Publisher control">';
+        foreach($groups as$label=>$items){if(!$items)continue;$html.='<div class="nav-group"><span class="nav-group-label">'.self::e($label).'</span>';foreach($items as[$name,$href,$hint])$html.=self::navLink($name,$href,$current,$hint);$html.='</div>';}
+        return $html.'</nav>';
+    }
+    private static function accountNav(): string
+    {
+        $current=self::currentPath();$items=[
+            ['Library','/account','Continue reading'],['Subscription','/account/subscription','Plan & ePaper access'],['Saved Articles','/account/saved-articles','Smart Article saves'],['Bookmarks','/account/bookmarks','Saved newspaper pages'],['Clips','/account/clips','Your clipping gallery'],['History','/account/history','Recently viewed editions'],['Offline','/account/offline','Downloaded editions'],['Notifications','/account/notifications','Updates & activity']
+        ];
+        $html='<div class="sidebar-context"><span class="eyebrow">MY EPAPER</span><strong>Reading Library</strong></div><nav class="app-nav account-nav" aria-label="Account library">';foreach($items as[$name,$href,$hint])$html.=self::navLink($name,$href,$current,$hint);return$html.'</nav>';
+    }
+    private static function adminColorMode(?array $user): string
+    {
+        if(!$user||!RequestContext::tenantGuid()||empty($user['user_guid']))return '';
+        try{
+            $row=Store::one('SELECT preferences_json FROM ep_subscribers WHERE tenant_guid=? AND platform_user_guid=? LIMIT 1',[Uuid::toBinary(RequestContext::tenantGuid()),Uuid::toBinary((string)$user['user_guid'])]);
+            $prefs=$row&&$row['preferences_json']?json_decode((string)$row['preferences_json'],true):[];
+            $mode=is_array($prefs)?strtolower((string)($prefs['admin_theme_mode']??'')):'';
+            return in_array($mode,['light','dark'],true)?$mode:'';
+        }catch(\Throwable){return '';}
+    }
+    private static function opsHud(): string
+    {
+        $db=Store::metrics();$cache=RedisStore::metrics();$rate=$cache['hit_rate'];
+        $cacheText=$rate===null?'Cache —':'Cache '.(int)$rate.'%';
+        return '<div class="ops-hud" data-ops-hud title="Request performance"><span><b>DB</b> '.(int)$db['queries'].'</span><span>'.number_format((float)$db['query_ms'],2).' ms</span><span>'.$cacheText.'</span><span>'.self::e((string)$cache['driver']).'</span></div>';
+    }
+    private static function authQuote(): array
+    {
+        $quotes=[
+            ['The press is the immune system of democracy.','Roy Greenslade'],
+            ['Comment is free, but facts are sacred.','C. P. Scott'],
+            ['A good newspaper, I suppose, is a nation talking to itself.','Arthur Miller'],
+            ['The newspaper is the first rough draft of history.','Philip L. Graham'],
+            ['Freedom of the press is not just important to democracy, it is democracy.','Walter Cronkite'],
+            ['The press was to serve the governed, not the governors.','Hugo Black'],
+            ['Our Republic and its press will rise or fall together.','Joseph Pulitzer'],
+            ['The only security of all is in a free press.','Thomas Jefferson'],
+            ['A critical, independent and investigative press is the lifeblood of any democracy.','Nelson Mandela'],
+            ['There can be no higher law in journalism than to tell the truth and to shame the devil.','Walter Lippmann'],
+            ['A free press can be good or bad, but without freedom a press will never be anything but bad.','Albert Camus'],
+            ['The job of the newspaper is to comfort the afflicted and afflict the comfortable.','Finley Peter Dunne']
+        ];
+        $count=count($quotes);if($count<2)return $quotes[0]??['',''];
+        $last=null;if(session_status()===PHP_SESSION_ACTIVE&&isset($_SESSION['epaper_auth_quote_index']))$last=(int)$_SESSION['epaper_auth_quote_index'];
+        try{$idx=random_int(0,$count-1);}catch(\Throwable){$idx=(int)(microtime(true)*1000)%$count;}
+        if($last!==null&&$idx===$last)$idx=($idx+1)%$count;
+        if(session_status()===PHP_SESSION_ACTIVE)$_SESSION['epaper_auth_quote_index']=$idx;
+        return $quotes[$idx];
+    }
+    private static function authFormIsolated(string $html): string
+    {
+        // Authentication markup originally uses global auth classes from app.css.
+        // Rename them for this surface so legacy v1.1.9.x rules cannot change
+        // the card geometry in real browsers or at non-100% browser zoom.
+        return str_replace(
+            [
+                'class="btn primary auth-submit"',
+                'class="auth-panel"',
+                'class="auth-brand"',
+                'class="eyebrow"',
+                'class="muted"',
+                'class="auth-form"',
+                'class="auth-security"',
+                'class="auth-error"'
+            ],
+            [
+                'class="auth-fit-submit"',
+                'class="auth-fit-panel"',
+                'class="auth-fit-legacy-brand"',
+                'class="auth-fit-eyebrow"',
+                'class="auth-fit-muted"',
+                'class="auth-fit-fields"',
+                'class="auth-fit-security"',
+                'class="auth-fit-error"'
+            ],
+            $html
+        );
+    }
+    private static function authExperience(string $formBody,string $brand,bool $hasTenant,string $logo,string $logoDark): string
+    {
+        $square=$hasTenant&&class_exists(TenantData::class)?trim((string)TenantData::setting('brand.square_mark_path','')):'';
+        if($logo!=='')$identity='<span class="auth-fit-logo-stack"><img class="auth-fit-logo auth-fit-logo-light" src="'.self::e($logo).'" alt="'.self::e($brand).'"><img class="auth-fit-logo auth-fit-logo-dark" src="'.self::e($logoDark!==''?$logoDark:$logo).'" alt="'.self::e($brand).'"></span>';
+        elseif($square!=='')$identity='<span class="auth-fit-identity"><img class="auth-fit-mark" src="'.self::e($square).'" alt=""><strong>'.self::e($brand).'</strong></span>';
+        else{$letter=function_exists('mb_substr')?mb_substr(trim($brand),0,1):substr(trim($brand),0,1);$identity='<span class="auth-fit-identity"><span class="auth-fit-monogram" aria-hidden="true">'.self::e(strtoupper($letter?:'E')).'</span><strong>'.self::e($brand).'</strong></span>';}
+        [$quote,$author]=self::authQuote();
+        $isolated=self::authFormIsolated($formBody);
+        $quoteHtml='<figure class="auth-fit-quote-card" aria-label="Editorial quote"><span class="auth-fit-quote-mark" aria-hidden="true">“</span><blockquote>'.self::e($quote).'</blockquote><figcaption>— '.self::e($author).'</figcaption></figure>';
+        // v1.1.9.11: remove the legacy auth panel wrapper from layout completely.
+        // Some live themes/inline rules can force that wrapper to a viewport-like height;
+        // direct-flow children make the reported upper/middle/lower blank zones impossible.
+        $content=$isolated;
+        if(preg_match('/<section\b[^>]*class="[^"]*\bauth-fit-panel\b[^"]*"[^>]*>(.*)<\/section>\s*$/is',$isolated,$m))$content=$m[1];
+        // Do not allow inline geometry from legacy form markup to survive into the compact surface.
+        $content=preg_replace('/(<(?:form|div)\b[^>]*class="[^"]*\bauth-fit-fields\b[^"]*"[^>]*)\sstyle=(?:"[^"]*"|\'[^\']*\')/i','$1',$content)??$content;
+        return '<section class="auth-fit auth-fit-v11911" data-auth-version="1.1.9.11">'
+            .'<a class="auth-fit-brand" href="/" aria-label="'.self::e($brand).' home">'.$identity.'</a>'
+            .'<div class="auth-fit-orbit auth-fit-orbit-one" aria-hidden="true"></div><div class="auth-fit-orbit auth-fit-orbit-two" aria-hidden="true"></div>'
+            .'<div class="auth-fit-cloud auth-fit-cloud-one" aria-hidden="true"></div><div class="auth-fit-cloud auth-fit-cloud-two" aria-hidden="true"></div>'
+            .'<div class="auth-fit-card" style="height:auto!important;min-height:0!important;max-height:none!important;align-self:center!important;flex:none!important">'
+                .'<div class="auth-fit-icon" aria-hidden="true">'.self::icon('user').'</div>'
+                .'<div class="auth-fit-content">'.$content.$quoteHtml.'</div>'
+            .'</div>'
+        .'</section>';
+    }
+    public static function layout(string $title,string $body,array $opts=[]): never
+    {
+        $ctx=RequestContext::all();$brand=$opts['brand']??($ctx['tenant_name']??'ePaper SaaS');$admin=(bool)($opts['admin']??false);$account=(bool)($opts['account']??false);$reader=(bool)($opts['reader']??false);$auth=(bool)($opts['auth']??false);
+        $workspace=$admin||$account;$nav=$admin?self::adminNav():($account?self::accountNav():'<nav class="site-nav-links"><a href="/">Today</a><a href="/archive">Archive</a><a href="/search">Search</a></nav>');
+        $user=Auth::user();$adminColorMode=$admin?self::adminColorMode($user):'';$accountLink=$user?'<a class="icon-link" href="/account" aria-label="Account">'.self::icon('user').'</a><a class="text-link" href="/logout">Sign out</a>':'<a class="text-link" href="/login">Sign in</a>';
+        $hasTenant=(bool)RequestContext::get('tenant_guid');$adminTheme=$hasTenant&&class_exists(TenantData::class)?(string)TenantData::setting('appearance.admin_theme','Publisher Pro'):'Publisher Pro';
+        $readerTheme=$hasTenant&&class_exists(TenantData::class)?(string)TenantData::setting('appearance.reader_theme',TenantData::setting('reader.theme','Newsstand Replica')):'Newsstand Replica';
+        $authTheme=$hasTenant&&class_exists(TenantData::class)?(string)TenantData::setting('appearance.auth_theme','Split Editorial'):'Split Editorial';
+        $theme=$reader?$readerTheme:($admin?$adminTheme:($auth?$authTheme:'Default'));$themeClass='theme-'.strtolower(trim(preg_replace('/[^a-z0-9]+/i','-',$theme),'-'));
+        $logo=$hasTenant&&class_exists(TenantData::class)?trim((string)TenantData::setting('brand.logo_path','')):'';$logoDark=$hasTenant&&class_exists(TenantData::class)?trim((string)TenantData::setting('brand.logo_dark_path','')):'';$logoAlt=trim((string)$brand)!==''?(string)$brand:'ePaper';$mark=$logo?'<span class="brand-logo-stack"><img class="brand-logo brand-logo-light" src="'.self::e($logo).'" alt="'.self::e($logoAlt).'" decoding="async">'.($logoDark?'<img class="brand-logo brand-logo-dark" src="'.self::e($logoDark).'" alt="'.self::e($logoAlt).'" decoding="async">':'').'</span>':'<span class="brand-name brand-name-fallback">'.self::e($brand).'</span>';$brandText='';
+        $accent=$hasTenant&&class_exists(TenantData::class)?(string)TenantData::setting('brand.accent','#2563eb'):'#2563eb';$footer=$hasTenant&&class_exists(TenantData::class)?(string)TenantData::setting('brand.footer_text',''):'';
+        $seo=$hasTenant&&class_exists(TenantData::class)?(string)TenantData::setting('seo.description',''):'';$titleSuffix=$hasTenant&&class_exists(TenantData::class)?trim((string)TenantData::setting('seo.title_suffix','ePaper')):'ePaper';$robots=trim((string)($opts['robots']??''));if($robots==='')$robots=$hasTenant&&class_exists(TenantData::class)?(string)TenantData::setting('seo.robots','index,follow'):'index,follow';$defaultSocialImage=$hasTenant&&class_exists(TenantData::class)?trim((string)TenantData::setting('seo.social_image','')):'';$socialImage=trim((string)($opts['social_image']??$defaultSocialImage));$ogTitle=trim((string)($opts['og_title']??$title));$ogDescription=trim((string)($opts['og_description']??$seo));$canonicalUrl=trim((string)($opts['canonical_url']??''));$socialImageAlt=trim((string)($opts['social_image_alt']??($ogTitle!==''?$ogTitle:$brand)));$ogType=trim((string)($opts['og_type']??'website'))?:'website';$favicon=$hasTenant&&class_exists(TenantData::class)?trim((string)TenantData::setting('brand.favicon_path','')):'';$appleTouch=$hasTenant&&class_exists(TenantData::class)?trim((string)TenantData::setting('brand.apple_touch_icon_path','')):'';$density=$hasTenant&&class_exists(TenantData::class)?(string)TenantData::setting('appearance.density','comfortable'):'comfortable';
+        header('Content-Type: text/html; charset=utf-8');
+        echo '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="color-scheme" content="light dark"><meta name="theme-color" content="'.self::e($accent).'"><title>'.self::e($title).' · '.self::e($brand).($titleSuffix!==''?' · '.self::e($titleSuffix):'').'</title>'.($seo?'<meta name="description" content="'.self::e($seo).'">':'').'<meta name="robots" content="'.self::e($robots).'"><meta property="og:type" content="'.self::e($ogType).'"><meta property="og:title" content="'.self::e($ogTitle).'">'.($ogDescription!==''?'<meta property="og:description" content="'.self::e($ogDescription).'"><meta name="twitter:description" content="'.self::e($ogDescription).'">':'').($canonicalUrl!==''?'<link rel="canonical" href="'.self::e($canonicalUrl).'"><meta property="og:url" content="'.self::e($canonicalUrl).'">':'').($socialImage?'<meta property="og:image" content="'.self::e($socialImage).'"><meta property="og:image:alt" content="'.self::e($socialImageAlt).'"><meta name="twitter:card" content="summary_large_image"><meta name="twitter:title" content="'.self::e($ogTitle).'"><meta name="twitter:image" content="'.self::e($socialImage).'"><meta name="twitter:image:alt" content="'.self::e($socialImageAlt).'">':'').($favicon?'<link rel="icon" href="'.self::e($favicon).'">':'').($appleTouch?'<link rel="apple-touch-icon" href="'.self::e($appleTouch).'">':'').'<link rel="manifest" href="/manifest.webmanifest"><link rel="stylesheet" href="/assets/app.css?v=1.1.9.11">'.($auth?'<link rel="stylesheet" href="/assets/auth-v1.1.9.11.css?v=1.1.9.11">':'').($reader?'<link rel="stylesheet" href="/assets/reader.css?v=1.1.9.11">':'').'</head><body class="'.($admin?'admin-shell':($account?'account-shell':($reader?'reader-page':($auth?'auth-shell':'public-shell')))).' '.self::e($themeClass).' density-'.self::e(preg_replace('/[^a-z0-9_-]+/i','-',strtolower($density))).($adminColorMode==='dark'?' dark':'').'" style="--brand-accent:'.self::e($accent).'" data-theme-name="'.self::e($theme).'" data-admin-color-mode="'.self::e($adminColorMode).'">';
+        echo '<a class="skip" href="#main">Skip to content</a>';
+        if(!$auth)echo '<header class="site-header"><div class="site-header-inner"><a class="brand'.($logo?' brand-with-logo':'').'" href="/" aria-label="'.self::e($brand).' home">'.$mark.$brandText.'</a>'.(!$workspace?$nav:'').'<div class="header-actions">'.($workspace?'<button class="icon-btn app-nav-toggle" type="button" data-app-nav-toggle aria-label="Open navigation">'.self::icon('menu').'</button>':'').($admin?'<button class="icon-btn command-trigger" type="button" data-command-trigger aria-label="Open command palette" title="Command palette (Ctrl/Cmd+K)">'.self::icon('search').'</button><button class="icon-btn admin-theme-toggle" type="button" data-theme-toggle aria-label="Toggle light and dark mode" title="Toggle appearance"><span class="theme-icon theme-icon-moon">'.self::icon('moon').'</span><span class="theme-icon theme-icon-sun">'.self::icon('sun').'</span></button>':'').$accountLink.'</div></div></header>';
+        if($workspace){echo '<div class="app-workspace"><aside class="app-sidebar" data-app-sidebar>'.$nav.'</aside><div class="sidebar-scrim" data-sidebar-scrim></div><main id="main" class="main-container workspace-main">'.$body.'</main></div>';}elseif($auth)echo '<main id="main" class="auth-main">'.self::authExperience($body,(string)$brand,$hasTenant,$logo,$logoDark).'</main>';else echo '<main id="main" class="'.($reader?'reader-main':'main-container').'">'.$body.'</main>';
+        if(!$reader&&!$auth&&$footer!=='')echo '<footer class="site-footer">'.self::e($footer).'</footer>';
+        echo '<div id="toast-region" class="toast-region" aria-live="polite"></div>';
+        if($admin)echo self::opsHud();
+        if($admin)echo '<div class="command-palette hidden" data-command-palette role="dialog" aria-modal="true" aria-label="Command palette"><div class="command-card"><div class="command-input-wrap">'.self::icon('search').'<input data-command-input placeholder="Search publisher actions…" autocomplete="off"><kbd>Esc</kbd></div><div class="command-results" data-command-results></div></div></div>';
+        echo '<script>window.EpaperSaas={csrf:'.json_encode(Http::csrf()).',requestGuid:'.json_encode(Http::requestGuid()).',version:"1.1.9.11",userGuid:'.json_encode($user['user_guid']??null).',adminThemeMode:'.json_encode($adminColorMode).'}</script><script src="/assets/app.js?v=1.1.9.11" defer></script><script src="/assets/crud.js?v=1.1.9.11" defer></script>'.($reader?'<script src="/assets/guest-clipping.js?v=1.1.9.11" defer></script><script src="/assets/reader-prefetch.js?v=1.1.9.11" defer></script><script src="/assets/reader.js?v=1.1.9.11" defer></script>':'').'</body></html>';exit;
+    }
+}

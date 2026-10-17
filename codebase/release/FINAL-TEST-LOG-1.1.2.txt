@@ -1,0 +1,432 @@
+=== ePaper SaaS v1.1.2 Final Test Log ===
+
+=== PHP + JS syntax ===
+No syntax errors detected in app/Services/ClipService.php
+No syntax errors detected in app/Services/ErrorCenter.php
+No syntax errors detected in app/Services/DomainResolver.php
+No syntax errors detected in app/Services/TenantData.php
+No syntax errors detected in app/Services/OutboxPublisher.php
+No syntax errors detected in app/Services/AnalyticsCatalog.php
+No syntax errors detected in app/Services/PlatformClient.php
+No syntax errors detected in app/Services/QueueService.php
+No syntax errors detected in app/Services/InfrastructureConfig.php
+No syntax errors detected in app/Services/RetryableJobException.php
+No syntax errors detected in app/Services/Entitlements.php
+No syntax errors detected in app/Services/Audit.php
+No syntax errors detected in app/Services/RabbitMq.php
+No syntax errors detected in app/Services/PermanentJobException.php
+No syntax errors detected in app/Services/Processing.php
+No syntax errors detected in app/Services/Media.php
+No syntax errors detected in app/Services/ProcessingPipeline.php
+No syntax errors detected in app/Services/SettingsCatalog.php
+No syntax errors detected in app/Core/RateLimiter.php
+No syntax errors detected in app/Core/Config.php
+No syntax errors detected in app/Core/Database.php
+No syntax errors detected in app/Core/View.php
+No syntax errors detected in app/Core/Store.php
+No syntax errors detected in app/Core/Auth.php
+No syntax errors detected in app/Core/Uuid.php
+No syntax errors detected in app/Core/Http.php
+No syntax errors detected in app/Core/RequestContext.php
+No syntax errors detected in app/Core/RedisStore.php
+No syntax errors detected in app/App.php
+No syntax errors detected in app/bootstrap.php
+No syntax errors detected in bin/platform-diagnostic.php
+No syntax errors detected in bin/configure-rabbitmq.php
+No syntax errors detected in bin/tenant-isolation-diagnostic.php
+No syntax errors detected in bin/rabbit-worker.php
+No syntax errors detected in bin/health.php
+No syntax errors detected in bin/release-check.php
+No syntax errors detected in bin/outbox-publisher.php
+No syntax errors detected in bin/scheduler.php
+No syntax errors detected in bin/process.php
+No syntax errors detected in bin/queue-diagnostic.php
+No syntax errors detected in bin/worker.php
+No syntax errors detected in public_html/install.php
+No syntax errors detected in public_html/index.php
+No syntax errors detected in tests/reader-parity.php
+No syntax errors detected in tests/tenant-query-guard.php
+No syntax errors detected in tests/core-smoke.php
+No syntax errors detected in tests/build-guard-v1.1.0.php
+No syntax errors detected in tests/build-guard-v1.1.2.php
+No syntax errors detected in tests/parity-manifest.php
+No syntax errors detected in tests/build-guard-v1.1.1.php
+
+=== Build guard ===
+PASS — VERSION 1.1.2
+PASS — no production config/secrets packaged
+PASS — release manifest ROUTES
+PASS — release manifest CAPABILITIES
+PASS — release manifest SETTINGS-MANIFEST
+PASS — release manifest ANALYTICS-EVENTS
+PASS — release manifest TENANT-DATA-MANIFEST
+PASS — release manifest READER-BEHAVIORS
+PASS — release manifest PROCESSING-STAGES
+PASS — release manifest CITY-EPAPER-COMPATIBILITY
+PASS — protected route /media/{token}
+PASS — protected route /edition/{slug}/page/{page}
+PASS — protected route /api/v1/pages/{page_guid}/tiles
+PASS — protected route /api/v1/pages/{page_guid}/tiles/{level}/{x}/{y}.webp
+PASS — protected route /api/v1/clips
+PASS — protected route /account/saved-articles
+PASS — protected route /account/offline
+PASS — protected route /admin/processing/{edition_guid}
+PASS — protected route /admin/settings/reader
+PASS — protected route /admin/system/release-audit
+PASS — protected route /admin/system/infrastructure
+PASS — capability saas.tenant_isolation
+PASS — capability public.continue_reading
+PASS — capability public.archive_filters
+PASS — capability reader.fit_page
+PASS — capability reader.fit_width
+PASS — capability reader.cursor_centered_zoom
+PASS — capability reader.pinch
+PASS — capability reader.seamless_navigation
+PASS — capability reader.clip
+PASS — capability reader.smart_article
+PASS — capability reader.resume
+PASS — capability account.saved_articles
+PASS — capability account.offline
+PASS — capability publisher.settings_grouped
+PASS — capability processing.rabbitmq
+PASS — capability processing.supervisor_workers
+PASS — capability processing.transactional_outbox
+PASS — capability processing.ocr_language_profile
+PASS — capability operations.release_guard
+PASS — capability design.command_palette
+PASS — reader behavior fitPageScale
+PASS — reader behavior fitWidthScale
+PASS — reader behavior reader.scrollZoomEnabled
+PASS — reader behavior data-clip-actions
+PASS — reader behavior history.pushState
+PASS — reader behavior popstate
+PASS — reader behavior prefetchAdjacent
+PASS — reader behavior pointerdown
+PASS — reader behavior pinching
+PASS — reader behavior reader_clip_started
+PASS — reader behavior reader_clip_saved
+PASS — reader behavior article-at
+PASS — reader behavior /api/v1/offline
+PASS — reader behavior epaper.progress.
+PASS — reader honors scoped default fit
+PASS — reader honors scoped scroll-zoom default
+PASS — reader has no legacy absolute 0.5 mobile zoom floor
+PASS — application parity guard /admin/settings/(appearance|brand|seo|reader|processing|clipping)
+PASS — application parity guard adminProcessingDetail
+PASS — application parity guard adminReleaseAudit
+PASS — application parity guard publicClipImage
+PASS — application parity guard Continue reading
+PASS — theme catalog Publisher Pro
+PASS — theme catalog Executive Slate
+PASS — theme catalog Midnight Desk
+PASS — theme catalog Editorial Luxe
+PASS — theme catalog Metro Pulse
+PASS — theme catalog Heritage Press
+PASS — theme catalog Apple Editorial
+PASS — theme catalog Split Editorial
+PASS — theme catalog Gradient Focus
+PASS — theme catalog Minimal Access
+PASS — processing parity EDITION_RENDER
+PASS — processing parity PAGE_ASSETS
+PASS — processing parity PAGE_OCR
+PASS — processing parity EDITION_FINALIZE
+PASS — processing parity mar+eng
+PASS — processing parity hin+eng
+PASS — Rabbit pipeline HIGHRES is WebP
+PASS — database fallback HIGHRES is WebP
+PASS — no reader HIGHRES JPEG registration
+PASS — private renderer source separated from reader HIGHRES
+PASS — RabbitMQ queue epaper.render
+PASS — RabbitMQ queue epaper.assets
+PASS — RabbitMQ queue epaper.ocr
+PASS — RabbitMQ queue epaper.finalize
+PASS — RabbitMQ queue epaper.dead
+PASS — transactional outbox claim
+PASS — worker lock-busy is not silently ACKed
+PASS — analytics manifest equals backend registry
+PASS — frontend event registered reader_fit
+PASS — frontend event registered reader_zoom
+PASS — frontend event registered reader_scroll_zoom
+PASS — frontend event registered reader_clip_started
+PASS — frontend event registered reader_clip_saved
+PASS — frontend event registered article_opened
+PASS — frontend event registered tts_started
+PASS — frontend event registered page_view
+PASS — frontend event registered share
+PASS — frontend event registered page_dwell
+PASS — service worker and assets aligned
+PASS — SaaS schema retained
+PASS — no duplicate tables
+PASS — City compatibility baseline locked
+PASS — baseline route retained GET /health/live
+PASS — baseline route retained GET /health/ready
+PASS — baseline route retained GET /health/platform
+PASS — baseline route retained GET /health/queue
+PASS — baseline route retained GET /
+PASS — baseline route retained GET /archive
+PASS — baseline route retained GET /search
+PASS — baseline route retained GET /epaper/{publication}
+PASS — baseline route retained GET /epaper/{publication}/{date}
+PASS — baseline route retained GET /edition/{slug}/page/{page}
+PASS — baseline route retained GET /c/{slug}
+PASS — baseline route retained GET /media/{token}
+PASS — baseline route retained GET /login
+PASS — baseline route retained GET /auth/callback
+PASS — baseline route retained GET /logout
+PASS — baseline route retained GET /api/v1/reader/{slug}/page/{page}/state
+PASS — baseline route retained GET /api/v1/pages/{page_guid}/tiles
+PASS — baseline route retained GET /api/v1/pages/{page_guid}/tiles/{level}/{x}/{y}.webp
+PASS — baseline route retained GET /api/v1/pages/{page_guid}/article-at
+PASS — baseline route retained GET /api/v1/search
+PASS — baseline route retained POST /api/v1/analytics/events
+PASS — baseline route retained POST /api/v1/clips
+PASS — baseline route retained POST /api/v1/bookmarks
+PASS — baseline route retained POST /api/v1/saved-articles
+PASS — baseline route retained POST /api/v1/offline
+PASS — baseline route retained POST /api/v1/progress
+PASS — baseline route retained GET /account
+PASS — baseline route retained GET /account/saved-articles
+PASS — baseline route retained GET /account/bookmarks
+PASS — baseline route retained GET /account/clips
+PASS — baseline route retained GET /account/history
+PASS — baseline route retained GET /account/offline
+PASS — baseline route retained GET /account/notifications
+PASS — baseline route retained GET /admin
+PASS — baseline route retained GET|POST /admin/publications
+PASS — baseline route retained GET|POST /admin/highlights
+PASS — baseline route retained GET|POST /admin/master-data
+PASS — baseline route retained GET|POST /admin/editions
+PASS — baseline route retained POST /admin/editions/{guid}/process-now
+PASS — baseline route retained POST /admin/editions/{guid}/publish
+PASS — baseline route retained POST /admin/editions/{guid}/schedule
+PASS — baseline route retained GET /admin/processing
+PASS — baseline route retained POST /admin/processing/repair-queue
+PASS — baseline route retained GET /admin/subscribers
+PASS — baseline route retained GET|POST /admin/settings
+PASS — baseline route retained GET /admin/audit
+PASS — baseline route retained GET /admin/errors
+PASS — baseline route retained GET /admin/system/health
+PASS — baseline route retained GET /admin/account
+PASS — baseline route retained GET /admin/system/infrastructure
+PASS — baseline route retained POST /admin/system/infrastructure/rabbitmq/save
+PASS — baseline route retained POST /admin/system/infrastructure/rabbitmq/test
+PASS — baseline route retained POST /admin/system/infrastructure/probe
+PASS — baseline route retained GET /admin/system/infrastructure/probe-status
+PASS — baseline capability retained saas.domain_resolution
+PASS — baseline capability retained saas.request_context
+PASS — baseline capability retained saas.tenant_isolation
+PASS — baseline capability retained saas.platform_identity
+PASS — baseline capability retained saas.entitlements
+PASS — baseline capability retained saas.usage_reporting
+PASS — baseline capability retained saas.redis_namespacing
+PASS — baseline capability retained saas.audit_forwarding
+PASS — baseline capability retained saas.error_forwarding
+PASS — baseline capability retained publisher.publications
+PASS — baseline capability retained publisher.master_data
+PASS — baseline capability retained publisher.editions
+PASS — baseline capability retained publisher.pdf_upload
+PASS — baseline capability retained publisher.process_now
+PASS — baseline capability retained publisher.worker_processing
+PASS — baseline capability retained publisher.schedule_publish
+PASS — baseline capability retained publisher.highlights
+PASS — baseline capability retained publisher.settings
+PASS — baseline capability retained publisher.audit
+PASS — baseline capability retained publisher.error_center
+PASS — baseline capability retained publisher.health
+PASS — baseline capability retained processing.pdf_render
+PASS — baseline capability retained processing.thumbnails
+PASS — baseline capability retained processing.webp_preview
+PASS — baseline capability retained processing.deep_zoom_tiles
+PASS — baseline capability retained processing.ocr
+PASS — baseline capability retained processing.ocr_coordinates
+PASS — baseline capability retained reader.highres
+PASS — baseline capability retained reader.deep_zoom
+PASS — baseline capability retained reader.fit_page
+PASS — baseline capability retained reader.fit_width
+PASS — baseline capability retained reader.scroll_zoom
+PASS — baseline capability retained reader.cursor_centered_zoom
+PASS — baseline capability retained reader.pan
+PASS — baseline capability retained reader.pinch
+PASS — baseline capability retained reader.swipe
+PASS — baseline capability retained reader.keyboard
+PASS — baseline capability retained reader.seamless_navigation
+PASS — baseline capability retained reader.prefetch
+PASS — baseline capability retained reader.clip
+PASS — baseline capability retained reader.smart_article
+PASS — baseline capability retained reader.tts
+PASS — baseline capability retained reader.bookmark
+PASS — baseline capability retained reader.offline
+PASS — baseline capability retained reader.share
+PASS — baseline capability retained reader.fullscreen
+PASS — baseline capability retained public.home
+PASS — baseline capability retained public.archive
+PASS — baseline capability retained public.ocr_search
+PASS — baseline capability retained public.clipping
+PASS — baseline capability retained account.library
+PASS — baseline capability retained account.bookmarks
+PASS — baseline capability retained account.clips
+PASS — baseline capability retained account.history
+PASS — baseline capability retained account.offline
+PASS — baseline capability retained account.notifications
+PASS — baseline capability retained pwa.service_worker
+PASS — baseline capability retained processing.rabbitmq
+PASS — baseline capability retained processing.supervisor_workers
+PASS — baseline capability retained processing.transactional_outbox
+PASS — baseline capability retained processing.publisher_confirms
+PASS — baseline capability retained processing.retry_queues
+PASS — baseline capability retained processing.dead_letter_queue
+PASS — baseline capability retained processing.stage_parallelism
+PASS — baseline capability retained processing.edition_pipeline_progress
+PASS — baseline capability retained processing.database_queue_fallback
+PASS — baseline capability retained operations.infrastructure_dashboard
+PASS — baseline capability retained operations.rabbitmq_dashboard_config
+PASS — baseline capability retained operations.rabbitmq_connection_test
+PASS — baseline capability retained operations.supervisor_heartbeat_test
+PASS — baseline capability retained operations.worker_pipeline_probe
+PASS — baseline setting retained brand.site_name
+PASS — baseline setting retained brand.tagline
+PASS — baseline setting retained reader.theme
+PASS — baseline setting retained reader.default_fit
+PASS — baseline setting retained seo.description
+PASS — baseline setting retained processing.ocr_languages
+PASS — baseline setting retained clipping.default_visibility
+PASS — baseline setting retained queue.driver
+PASS — baseline setting retained queue.rabbitmq.host
+PASS — baseline setting retained queue.rabbitmq.port
+PASS — baseline setting retained queue.rabbitmq.username
+PASS — baseline setting retained queue.rabbitmq.vhost
+PASS — baseline setting retained queue.rabbitmq.connection_timeout
+PASS — baseline setting retained queue.rabbitmq.read_write_timeout
+PASS — baseline setting retained queue.rabbitmq.heartbeat
+PASS — baseline setting retained queue.rabbitmq.confirm_timeout
+PASS — baseline setting retained queue.expected_workers.outbox
+PASS — baseline setting retained queue.expected_workers.render
+PASS — baseline setting retained queue.expected_workers.assets
+PASS — baseline setting retained queue.expected_workers.ocr
+PASS — baseline setting retained queue.expected_workers.finalize
+PASS — setting wired appearance.admin_theme
+PASS — setting wired appearance.reader_theme
+PASS — setting wired appearance.auth_theme
+PASS — setting wired appearance.density
+PASS — setting wired brand.site_name
+PASS — setting wired brand.tagline
+PASS — setting wired brand.logo_path
+PASS — setting wired brand.favicon_path
+PASS — setting wired brand.accent
+PASS — setting wired brand.footer_text
+PASS — setting wired seo.title_suffix
+PASS — setting wired seo.description
+PASS — setting wired seo.robots
+PASS — setting wired seo.social_image
+PASS — setting wired reader.theme
+PASS — setting wired reader.default_fit
+PASS — setting wired reader.scroll_zoom_default
+PASS — setting wired reader.smart_article
+PASS — setting wired reader.prefetch
+PASS — setting wired reader.resume
+PASS — setting wired reader.offline
+PASS — setting wired processing.pdf_dpi
+PASS — setting wired processing.preview_width
+PASS — setting wired processing.thumbnail_width
+PASS — setting wired processing.tile_size
+PASS — setting wired processing.ocr_languages
+PASS — setting wired processing.ocr_timeout_seconds
+PASS — setting wired processing.auto_language
+PASS — setting wired clipping.enabled
+PASS — setting wired clipping.default_visibility
+PASS — setting wired clipping.watermark
+PASS — setting wired clipping.expiry_days
+PASS — reader/settings enforcement data-clipping-enabled
+PASS — reader/settings enforcement data-smart-article-enabled
+PASS — reader/settings enforcement data-prefetch-enabled
+PASS — reader/settings enforcement data-offline-enabled
+PASS — reader/settings enforcement CLIPPING_DISABLED
+PASS — reader/settings enforcement OFFLINE_DISABLED
+PASS — clipping managed setting clipping.watermark
+PASS — clipping managed setting clipping.expiry_days
+PASS — clipping managed setting expires_at
+PASS — database fallback OCR language profile
+PASS — processing setting applied processing.pdf_dpi
+PASS — processing setting applied processing.preview_width
+PASS — processing setting applied processing.thumbnail_width
+PASS — processing setting applied processing.tile_size
+PASS — processing setting applied processing.auto_language
+PASS — method-call integrity app/App.php
+PASS — method-call integrity app/Services/Processing.php
+PASS — method-call integrity app/Services/ProcessingPipeline.php
+PASS — workspace UX app-workspace
+PASS — workspace UX app-sidebar
+PASS — workspace UX sidebar-context
+PASS — workspace UX role-pill
+PASS — workspace UX accountNav
+PASS — workspace UX settings consolidated navigation
+PASS — account visual UX library-media-card
+PASS — account visual UX notification-feed
+PASS — account visual UX reading-progress
+PASS — account visual UX clip-gallery-card
+PASS — account visual UX Continue reading
+PASS — reader idle threshold extended
+PASS — reader header persistent during idle
+PASS — reader pager persistent during idle
+PASS — command palette follows visible role-aware nav
+PASS — admin per-user theme control rendered
+PASS — admin theme preference endpoint wired
+PASS — admin theme persisted without schema migration
+PASS — theme toggle optimistic save + rollback
+PASS — luxury system health UI
+PASS — admin DB performance HUD instrumentation
+PASS — admin cache hit-rate instrumentation
+PASS — theme preference route manifest
+PASS — theme preference capability
+PASS — luxury health capability
+
+ALL v1.1.2 BUILD GUARDS PASSED
+
+=== Tenant SQL guard ===
+Tenant SQL statements checked: 178
+PASS — every application SQL statement touching tenant-owned tables carries tenant_guid
+PASS — documented platform-wide CLI operation bin/worker.php
+PASS — documented platform-wide CLI operation bin/rabbit-worker.php
+PASS — documented platform-wide CLI operation bin/outbox-publisher.php
+PASS — documented platform-wide CLI operation bin/scheduler.php
+
+=== Parity manifest ===
+PASS — CITY-EPAPER-COMPATIBILITY-1.1.1.json
+PASS — READER-BEHAVIORS-1.1.1.json
+PASS — SETTINGS-MANIFEST-1.1.1.json
+PASS — PROCESSING-STAGES-1.1.1.json
+
+=== Reader parity ===
+PASS — Reader JS fitPageScale
+PASS — Reader JS fitWidthScale
+PASS — Reader JS scaleLimits
+PASS — Reader JS zoomAt
+PASS — Reader JS normalizePan
+PASS — Reader JS pointers=new Map
+PASS — Reader JS pinch={
+PASS — Reader JS setClipMode
+PASS — Reader JS data-clip-reselect
+PASS — Reader JS data-clip-cancel
+PASS — Reader JS gotoPage
+PASS — Reader JS prefetchAdjacent
+PASS — Reader JS history.pushState
+PASS — Reader JS popstate
+PASS — Reader JS saveProgress
+PASS — Reader CSS reader-shell
+PASS — Reader CSS reader-stage
+PASS — Reader CSS reader-rail
+PASS — Reader CSS reader-pages
+PASS — Reader CSS clip-selection
+PASS — Reader CSS reader-clip-actions
+PASS — Reader CSS article-modal
+PASS — Reader SSR hook data-default-fit
+PASS — Reader SSR hook data-scroll-zoom-default
+PASS — Reader SSR hook data-clip-visibility
+PASS — Reader SSR hook data-reader-prev
+PASS — Reader SSR hook data-reader-next
+PASS — Reader SSR hook data-reader-page-link
+PASS — fit-relative minimum zoom
+PASS — two-finger pinch handling
+PASS — Esc cancels clip mode
+PASS — Reader header persists while idle
+PASS — Reader pager persists while idle

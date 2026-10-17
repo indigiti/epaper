@@ -1,0 +1,15 @@
+{
+  "release": "1.1.9.3",
+  "added": [
+    "auth typography legibility guard",
+    "desktop auth geometry regression at 2048x1664"
+  ],
+  "removed": [
+    "serif quote typography on branded auth"
+  ],
+  "changed": [
+    "desktop auth shell fixed to compact 1020\u00d7590 landscape geometry",
+    "auth typography normalized to system UI stack",
+    "control-plane note pinned independently from centered sign-in form"
+  ]
+}

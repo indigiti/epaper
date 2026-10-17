@@ -1,0 +1,16 @@
+PASS — nested settings[] preserves appearance.admin_theme
+PASS — nested settings[] preserves brand.site_name
+PASS — nested settings[] preserves brand.accent
+PASS — nested settings[] preserves seo.title_suffix
+PASS — nested settings[] preserves reader.default_fit
+PASS — nested settings[] preserves processing.pdf_dpi
+PASS — nested settings[] preserves clipping.default_visibility
+PASS — legacy PHP-normalized field remains accepted for brand.site_name
+PASS — legacy PHP-normalized field remains accepted for appearance.admin_theme
+PASS — legacy PHP-normalized field remains accepted for seo.title_suffix
+PASS — legacy PHP-normalized field remains accepted for reader.default_fit
+PASS — legacy PHP-normalized field remains accepted for processing.pdf_dpi
+PASS — legacy PHP-normalized field remains accepted for clipping.default_visibility
+PASS — intentional empty optional setting is preserved
+PASS — missing partial-update field falls back safely
+ALL SETTINGS POST NORMALIZATION CHECKS PASSED

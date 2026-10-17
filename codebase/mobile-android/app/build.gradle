@@ -1,0 +1,56 @@
+plugins { id 'com.android.application' }
+
+def releaseKeystorePath = System.getenv('EPDI_KEYSTORE_FILE')
+def releaseStorePassword = System.getenv('EPDI_KEYSTORE_PASSWORD')
+def releaseKeyAlias = System.getenv('EPDI_KEY_ALIAS')
+def releaseKeyPassword = System.getenv('EPDI_KEY_PASSWORD')
+def hasReleaseSigning = releaseKeystorePath && releaseStorePassword && releaseKeyAlias && releaseKeyPassword && file(releaseKeystorePath).exists()
+def q = { String value -> '"' + (value ?: '').replace('\\','\\\\').replace('"','\\"') + '"' }
+
+android {
+    namespace 'in.digiti.epdi'
+    compileSdk 36
+
+    defaultConfig {
+        applicationId 'in.digiti.epdi'
+        minSdk 23
+        targetSdk 36
+        versionCode 20200
+        versionName '2.0.2.0'
+        buildConfigField 'String', 'FIREBASE_APPLICATION_ID', q(System.getenv('EPDI_FIREBASE_APPLICATION_ID'))
+        buildConfigField 'String', 'FIREBASE_API_KEY', q(System.getenv('EPDI_FIREBASE_API_KEY'))
+        buildConfigField 'String', 'FIREBASE_PROJECT_ID', q(System.getenv('EPDI_FIREBASE_PROJECT_ID'))
+        buildConfigField 'String', 'FIREBASE_SENDER_ID', q(System.getenv('EPDI_FIREBASE_SENDER_ID'))
+    }
+
+    signingConfigs {
+        if (hasReleaseSigning) {
+            release {
+                storeFile file(releaseKeystorePath)
+                storePassword releaseStorePassword
+                keyAlias releaseKeyAlias
+                keyPassword releaseKeyPassword
+            }
+        }
+    }
+
+    buildTypes {
+        debug { debuggable true }
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            if (hasReleaseSigning) signingConfig signingConfigs.release
+        }
+    }
+
+    buildFeatures { buildConfig true }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
+
+dependencies {
+    implementation platform('com.google.firebase:firebase-bom:34.19.0')
+    implementation 'com.google.firebase:firebase-messaging'
+}

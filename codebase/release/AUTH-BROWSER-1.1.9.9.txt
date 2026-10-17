@@ -1,0 +1,116 @@
+PASS — 1920x1080 no JS errors
+PASS — 1920x1080 compact width :: {'x': 750, 'y': 288.015625, 'width': 420, 'height': 545.96875}
+PASS — 1920x1080 compact content-fit height :: {'x': 750, 'y': 288.015625, 'width': 420, 'height': 545.96875}
+PASS — 1920x1080 editorial quote inside card
+PASS — 1920x1080 submit inside card
+PASS — 1920x1080 brand visible
+PASS — 1920x1080 no excessive top blank space :: 47.0px
+PASS — 1920x1080 no excessive bottom blank space :: 21.0px
+PASS — 1920x1080 quote follows security note :: 11.0px
+PASS — 1920x1080 quote visible
+PASS — 1600x900 no JS errors
+PASS — 1600x900 compact width :: {'x': 590, 'y': 198.015625, 'width': 420, 'height': 545.96875}
+PASS — 1600x900 compact content-fit height :: {'x': 590, 'y': 198.015625, 'width': 420, 'height': 545.96875}
+PASS — 1600x900 editorial quote inside card
+PASS — 1600x900 submit inside card
+PASS — 1600x900 brand visible
+PASS — 1600x900 no excessive top blank space :: 47.0px
+PASS — 1600x900 no excessive bottom blank space :: 21.0px
+PASS — 1600x900 quote follows security note :: 11.0px
+PASS — 1600x900 quote visible
+PASS — 1440x900 no JS errors
+PASS — 1440x900 compact width :: {'x': 510, 'y': 198.015625, 'width': 420, 'height': 545.96875}
+PASS — 1440x900 compact content-fit height :: {'x': 510, 'y': 198.015625, 'width': 420, 'height': 545.96875}
+PASS — 1440x900 editorial quote inside card
+PASS — 1440x900 submit inside card
+PASS — 1440x900 brand visible
+PASS — 1440x900 no excessive top blank space :: 47.0px
+PASS — 1440x900 no excessive bottom blank space :: 21.0px
+PASS — 1440x900 quote follows security note :: 11.0px
+PASS — 1440x900 quote visible
+PASS — 1366x768 no JS errors
+PASS — 1366x768 compact width :: {'x': 473, 'y': 132.015625, 'width': 420, 'height': 545.96875}
+PASS — 1366x768 compact content-fit height :: {'x': 473, 'y': 132.015625, 'width': 420, 'height': 545.96875}
+PASS — 1366x768 editorial quote inside card
+PASS — 1366x768 submit inside card
+PASS — 1366x768 brand visible
+PASS — 1366x768 no excessive top blank space :: 47.0px
+PASS — 1366x768 no excessive bottom blank space :: 21.0px
+PASS — 1366x768 quote follows security note :: 11.0px
+PASS — 1366x768 quote visible
+PASS — 1280x720 no JS errors
+PASS — 1280x720 compact width :: {'x': 430, 'y': 123.015625, 'width': 420, 'height': 507.96875}
+PASS — 1280x720 compact content-fit height :: {'x': 430, 'y': 123.015625, 'width': 420, 'height': 507.96875}
+PASS — 1280x720 editorial quote inside card
+PASS — 1280x720 submit inside card
+PASS — 1280x720 brand visible
+PASS — 1280x720 no excessive top blank space :: 41.0px
+PASS — 1280x720 no excessive bottom blank space :: 18.0px
+PASS — 1280x720 quote follows security note :: 8.0px
+PASS — 1280x720 quote visible
+PASS — 1024x768 no JS errors
+PASS — 1024x768 compact width :: {'x': 302, 'y': 132.015625, 'width': 420, 'height': 545.96875}
+PASS — 1024x768 compact content-fit height :: {'x': 302, 'y': 132.015625, 'width': 420, 'height': 545.96875}
+PASS — 1024x768 editorial quote inside card
+PASS — 1024x768 submit inside card
+PASS — 1024x768 brand visible
+PASS — 1024x768 no excessive top blank space :: 47.0px
+PASS — 1024x768 no excessive bottom blank space :: 21.0px
+PASS — 1024x768 quote follows security note :: 11.0px
+PASS — 1024x768 quote visible
+PASS — 768x1024 no JS errors
+PASS — 768x1024 compact width :: {'x': 174, 'y': 260.015625, 'width': 420, 'height': 545.96875}
+PASS — 768x1024 compact content-fit height :: {'x': 174, 'y': 260.015625, 'width': 420, 'height': 545.96875}
+PASS — 768x1024 editorial quote inside card
+PASS — 768x1024 submit inside card
+PASS — 768x1024 brand visible
+PASS — 768x1024 no excessive top blank space :: 47.0px
+PASS — 768x1024 no excessive bottom blank space :: 21.0px
+PASS — 768x1024 quote follows security note :: 11.0px
+PASS — 768x1024 quote visible
+PASS — 430x932 no JS errors
+PASS — 430x932 compact width :: {'x': 15, 'y': 224.390625, 'width': 400, 'height': 527.21875}
+PASS — 430x932 compact content-fit height :: {'x': 15, 'y': 224.390625, 'width': 400, 'height': 527.21875}
+PASS — 430x932 editorial quote inside card
+PASS — 430x932 submit inside card
+PASS — 430x932 brand visible
+PASS — 430x932 no excessive top blank space :: 44.0px
+PASS — 430x932 no excessive bottom blank space :: 19.0px
+PASS — 430x932 quote follows security note :: 10.0px
+PASS — 430x932 quote visible
+PASS — 430x932 mobile width :: {'x': 15, 'y': 224.390625, 'width': 400, 'height': 527.21875}
+PASS — 390x844 no JS errors
+PASS — 390x844 compact width :: {'x': 14, 'y': 180.390625, 'width': 362, 'height': 527.21875}
+PASS — 390x844 compact content-fit height :: {'x': 14, 'y': 180.390625, 'width': 362, 'height': 527.21875}
+PASS — 390x844 editorial quote inside card
+PASS — 390x844 submit inside card
+PASS — 390x844 brand visible
+PASS — 390x844 no excessive top blank space :: 44.0px
+PASS — 390x844 no excessive bottom blank space :: 19.0px
+PASS — 390x844 quote follows security note :: 10.0px
+PASS — 390x844 quote visible
+PASS — 390x844 mobile width :: {'x': 14, 'y': 180.390625, 'width': 362, 'height': 527.21875}
+PASS — 360x800 no JS errors
+PASS — 360x800 compact width :: {'x': 14, 'y': 149.328125, 'width': 332, 'height': 545.34375}
+PASS — 360x800 compact content-fit height :: {'x': 14, 'y': 149.328125, 'width': 332, 'height': 545.34375}
+PASS — 360x800 editorial quote inside card
+PASS — 360x800 submit inside card
+PASS — 360x800 brand visible
+PASS — 360x800 no excessive top blank space :: 44.0px
+PASS — 360x800 no excessive bottom blank space :: 19.0px
+PASS — 360x800 quote follows security note :: 10.0px
+PASS — 360x800 quote visible
+PASS — 360x800 mobile width :: {'x': 14, 'y': 149.328125, 'width': 332, 'height': 545.34375}
+PASS — 320x720 no JS errors
+PASS — 320x720 compact width :: {'x': 14, 'y': 94.890625, 'width': 292, 'height': 574.203125}
+PASS — 320x720 compact content-fit height :: {'x': 14, 'y': 94.890625, 'width': 292, 'height': 574.203125}
+PASS — 320x720 editorial quote inside card
+PASS — 320x720 submit inside card
+PASS — 320x720 brand visible
+PASS — 320x720 no excessive top blank space :: 44.0px
+PASS — 320x720 no excessive bottom blank space :: 19.0px
+PASS — 320x720 quote follows security note :: 10.0px
+PASS — 320x720 quote visible
+PASS — 320x720 mobile width :: {'x': 14, 'y': 94.890625, 'width': 292, 'height': 574.203125}
+
+ALL v1.1.9.9 COMPACT AUTH SPACING CHECKS PASSED

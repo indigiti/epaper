@@ -1,0 +1,136 @@
+PASS — 2560x1440 no JS errors
+PASS — 2560x1440 Searchable Archive absent
+PASS — 2560x1440 exactly two feature rows
+PASS — 2560x1440 original-layout desktop width :: {'x': 740, 'y': 378.296875, 'width': 1080, 'height': 683.390625}
+PASS — 2560x1440 compact landscape height :: {'x': 740, 'y': 378.296875, 'width': 1080, 'height': 683.390625}
+PASS — 2560x1440 landscape aspect
+PASS — 2560x1440 complete story header/content visible
+PASS — 2560x1440 quote visible
+PASS — 2560x1440 complete form block visible
+PASS — 2560x1440 submit visible
+PASS — 2560x1440 security copy visible
+PASS — 2560x1440 story has no retained transform/scroll offset :: {'scrollTop': 0, 'sh': 681, 'ch': 681, 'transform': 'none', 'overflow': 'hidden'}
+PASS — 2560x1440 story content does not clip :: {'scrollTop': 0, 'sh': 681, 'ch': 681, 'transform': 'none', 'overflow': 'hidden'}
+PASS — 2048x1202 no JS errors
+PASS — 2048x1202 Searchable Archive absent
+PASS — 2048x1202 exactly two feature rows
+PASS — 2048x1202 original-layout desktop width :: {'x': 484, 'y': 259.296875, 'width': 1080, 'height': 683.390625}
+PASS — 2048x1202 compact landscape height :: {'x': 484, 'y': 259.296875, 'width': 1080, 'height': 683.390625}
+PASS — 2048x1202 landscape aspect
+PASS — 2048x1202 complete story header/content visible
+PASS — 2048x1202 quote visible
+PASS — 2048x1202 complete form block visible
+PASS — 2048x1202 submit visible
+PASS — 2048x1202 security copy visible
+PASS — 2048x1202 story has no retained transform/scroll offset :: {'scrollTop': 0, 'sh': 681, 'ch': 681, 'transform': 'none', 'overflow': 'hidden'}
+PASS — 2048x1202 story content does not clip :: {'scrollTop': 0, 'sh': 681, 'ch': 681, 'transform': 'none', 'overflow': 'hidden'}
+PASS — 1920x1080 no JS errors
+PASS — 1920x1080 Searchable Archive absent
+PASS — 1920x1080 exactly two feature rows
+PASS — 1920x1080 original-layout desktop width :: {'x': 420, 'y': 198.296875, 'width': 1080, 'height': 683.390625}
+PASS — 1920x1080 compact landscape height :: {'x': 420, 'y': 198.296875, 'width': 1080, 'height': 683.390625}
+PASS — 1920x1080 landscape aspect
+PASS — 1920x1080 complete story header/content visible
+PASS — 1920x1080 quote visible
+PASS — 1920x1080 complete form block visible
+PASS — 1920x1080 submit visible
+PASS — 1920x1080 security copy visible
+PASS — 1920x1080 story has no retained transform/scroll offset :: {'scrollTop': 0, 'sh': 681, 'ch': 681, 'transform': 'none', 'overflow': 'hidden'}
+PASS — 1920x1080 story content does not clip :: {'scrollTop': 0, 'sh': 681, 'ch': 681, 'transform': 'none', 'overflow': 'hidden'}
+PASS — 1600x900 no JS errors
+PASS — 1600x900 Searchable Archive absent
+PASS — 1600x900 exactly two feature rows
+PASS — 1600x900 original-layout desktop width :: {'x': 260, 'y': 108.296875, 'width': 1080, 'height': 683.390625}
+PASS — 1600x900 compact landscape height :: {'x': 260, 'y': 108.296875, 'width': 1080, 'height': 683.390625}
+PASS — 1600x900 landscape aspect
+PASS — 1600x900 complete story header/content visible
+PASS — 1600x900 quote visible
+PASS — 1600x900 complete form block visible
+PASS — 1600x900 submit visible
+PASS — 1600x900 security copy visible
+PASS — 1600x900 story has no retained transform/scroll offset :: {'scrollTop': 0, 'sh': 681, 'ch': 681, 'transform': 'none', 'overflow': 'hidden'}
+PASS — 1600x900 story content does not clip :: {'scrollTop': 0, 'sh': 681, 'ch': 681, 'transform': 'none', 'overflow': 'hidden'}
+PASS — 1440x900 no JS errors
+PASS — 1440x900 Searchable Archive absent
+PASS — 1440x900 exactly two feature rows
+PASS — 1440x900 original-layout desktop width :: {'x': 180, 'y': 113.984375, 'width': 1080, 'height': 672.015625}
+PASS — 1440x900 compact landscape height :: {'x': 180, 'y': 113.984375, 'width': 1080, 'height': 672.015625}
+PASS — 1440x900 landscape aspect
+PASS — 1440x900 complete story header/content visible
+PASS — 1440x900 quote visible
+PASS — 1440x900 complete form block visible
+PASS — 1440x900 submit visible
+PASS — 1440x900 security copy visible
+PASS — 1440x900 story has no retained transform/scroll offset :: {'scrollTop': 0, 'sh': 670, 'ch': 670, 'transform': 'none', 'overflow': 'hidden'}
+PASS — 1440x900 story content does not clip :: {'scrollTop': 0, 'sh': 670, 'ch': 670, 'transform': 'none', 'overflow': 'hidden'}
+PASS — 1366x768 no JS errors
+PASS — 1366x768 Searchable Archive absent
+PASS — 1366x768 exactly two feature rows
+PASS — 1366x768 original-layout desktop width :: {'x': 143, 'y': 69, 'width': 1080, 'height': 630}
+PASS — 1366x768 compact landscape height :: {'x': 143, 'y': 69, 'width': 1080, 'height': 630}
+PASS — 1366x768 landscape aspect
+PASS — 1366x768 complete story header/content visible
+PASS — 1366x768 quote visible
+PASS — 1366x768 complete form block visible
+PASS — 1366x768 submit visible
+PASS — 1366x768 security copy visible
+PASS — 1366x768 story has no retained transform/scroll offset :: {'scrollTop': 0, 'sh': 628, 'ch': 628, 'transform': 'none', 'overflow': 'hidden'}
+PASS — 1366x768 story content does not clip :: {'scrollTop': 0, 'sh': 628, 'ch': 628, 'transform': 'none', 'overflow': 'hidden'}
+PASS — 1280x720 no JS errors
+PASS — 1280x720 Searchable Archive absent
+PASS — 1280x720 exactly two feature rows
+PASS — 1280x720 original-layout desktop width :: {'x': 120, 'y': 79, 'width': 1040, 'height': 562}
+PASS — 1280x720 compact landscape height :: {'x': 120, 'y': 79, 'width': 1040, 'height': 562}
+PASS — 1280x720 landscape aspect
+PASS — 1280x720 complete story header/content visible
+PASS — 1280x720 quote visible
+PASS — 1280x720 complete form block visible
+PASS — 1280x720 submit visible
+PASS — 1280x720 security copy visible
+PASS — 1280x720 story has no retained transform/scroll offset :: {'scrollTop': 0, 'sh': 560, 'ch': 560, 'transform': 'none', 'overflow': 'hidden'}
+PASS — 1280x720 story content does not clip :: {'scrollTop': 0, 'sh': 560, 'ch': 560, 'transform': 'none', 'overflow': 'hidden'}
+PASS — 1024x768 no JS errors
+PASS — 1024x768 Searchable Archive absent
+PASS — 1024x768 exactly two feature rows
+PASS — 1024x768 original-layout desktop width :: {'x': 24, 'y': 59.25, 'width': 976, 'height': 649.5}
+PASS — 1024x768 compact landscape height :: {'x': 24, 'y': 59.25, 'width': 976, 'height': 649.5}
+PASS — 1024x768 landscape aspect
+PASS — 1024x768 complete story header/content visible
+PASS — 1024x768 quote visible
+PASS — 1024x768 complete form block visible
+PASS — 1024x768 submit visible
+PASS — 1024x768 security copy visible
+PASS — 1024x768 story has no retained transform/scroll offset :: {'scrollTop': 0, 'sh': 648, 'ch': 648, 'transform': 'none', 'overflow': 'hidden'}
+PASS — 1024x768 story content does not clip :: {'scrollTop': 0, 'sh': 648, 'ch': 648, 'transform': 'none', 'overflow': 'hidden'}
+PASS — 900x900 no JS errors
+PASS — 900x900 Searchable Archive absent
+PASS — 900x900 exactly two feature rows
+PASS — 900x900 mobile/tablet sign-in first
+PASS — 900x900 mobile publisher brand visible
+PASS — 900x900 mobile form visible
+PASS — 768x1024 no JS errors
+PASS — 768x1024 Searchable Archive absent
+PASS — 768x1024 exactly two feature rows
+PASS — 768x1024 mobile/tablet sign-in first
+PASS — 768x1024 mobile publisher brand visible
+PASS — 768x1024 mobile form visible
+PASS — 430x932 no JS errors
+PASS — 430x932 Searchable Archive absent
+PASS — 430x932 exactly two feature rows
+PASS — 430x932 mobile/tablet sign-in first
+PASS — 430x932 mobile publisher brand visible
+PASS — 430x932 mobile form visible
+PASS — 390x844 no JS errors
+PASS — 390x844 Searchable Archive absent
+PASS — 390x844 exactly two feature rows
+PASS — 390x844 mobile/tablet sign-in first
+PASS — 390x844 mobile publisher brand visible
+PASS — 390x844 mobile form visible
+PASS — 360x800 no JS errors
+PASS — 360x800 Searchable Archive absent
+PASS — 360x800 exactly two feature rows
+PASS — 360x800 mobile/tablet sign-in first
+PASS — 360x800 mobile publisher brand visible
+PASS — 360x800 mobile form visible
+
+ALL v1.1.9.5 RESPONSIVE AUTH CHECKS PASSED

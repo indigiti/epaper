@@ -1,0 +1,20 @@
+PASS — 1440x900 no JS errors
+PASS — 1440x900 only active master panel visible
+PASS — 1440x900 tab switches cleanly
+PASS — 1440x900 inline edit form hidden
+PASS — 1440x900 menu has Edit action
+PASS — 1440x900 edit drawer opens
+PASS — 1440x900 editor stays within viewport
+PASS — 1440x900 add uses shared editor
+PASS — 1440x900 search filters records
+PASS — 390x844 no JS errors
+PASS — 390x844 only active master panel visible
+PASS — 390x844 tab switches cleanly
+PASS — 390x844 inline edit form hidden
+PASS — 390x844 menu has Edit action
+PASS — 390x844 edit drawer opens
+PASS — 390x844 editor stays within viewport
+PASS — 390x844 add uses shared editor
+PASS — 390x844 search filters records
+
+ALL v1.1.6.2 CRUD UI BROWSER CHECKS PASSED

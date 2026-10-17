@@ -1,0 +1,1 @@
+No syntax errors detected in /mnt/data/epaper_v11911_hotfix_stage/app/Core/View.php

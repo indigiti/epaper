@@ -1,0 +1,15 @@
+{
+  "version": "1.1.6",
+  "baseline": "1.1.5.1",
+  "added": {
+    "social.reader_page_thumbnail_preview": "implemented_existing_thumb_no_derivative_storage",
+    "social.reader_open_graph": "implemented_page_specific",
+    "social.reader_twitter_card": "implemented_page_specific",
+    "social.clip_open_graph": "implemented_public_only",
+    "social.thumbnail_cache_versioning": "implemented_asset_guid_etag",
+    "brand.header_responsive_logo": "implemented_desktop_tablet_mobile",
+    "brand.header_logo_alt": "implemented_site_name_accessible_text",
+    "storage.social_card_derivatives": "not_created_reuses_thumb_preview"
+  },
+  "removed": {}
+}

@@ -1,0 +1,17 @@
+{
+  "name": "digiti/epaper-saas",
+  "description": "ePaper SaaS multi-tenant publishing and reader application",
+  "type": "project",
+  "require": {
+    "php": "^8.2 || ^8.3 || ^8.4 || ^8.5",
+    "ext-json": "*",
+    "ext-mbstring": "*",
+    "ext-sockets": "*",
+    "php-amqplib/php-amqplib": "3.7.4"
+  },
+  "config": {
+    "optimize-autoloader": true,
+    "sort-packages": true,
+    "allow-plugins": {}
+  }
+}

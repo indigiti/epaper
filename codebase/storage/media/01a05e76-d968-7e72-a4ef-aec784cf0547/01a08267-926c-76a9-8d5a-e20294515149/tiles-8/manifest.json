@@ -1,0 +1,30 @@
+{
+    "ok": true,
+    "page_guid": "01a08b52-ee32-7813-ae5e-31452784c623",
+    "width": 3225,
+    "height": 2062,
+    "tile_size": 512,
+    "levels": [
+        {
+            "level": 0,
+            "width": 807,
+            "height": 516,
+            "cols": 2,
+            "rows": 2
+        },
+        {
+            "level": 1,
+            "width": 1613,
+            "height": 1031,
+            "cols": 4,
+            "rows": 3
+        },
+        {
+            "level": 2,
+            "width": 3225,
+            "height": 2062,
+            "cols": 7,
+            "rows": 5
+        }
+    ]
+}

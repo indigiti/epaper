@@ -1,0 +1,96 @@
+PASS — 2048x1664 no runtime errors
+PASS — 2048x1664 Searchable Archive remains removed
+PASS — 2048x1664 exactly two feature rows
+PASS — 2048x1664 auth card rendered
+PASS — 2048x1664 desktop card width locked near 1020px
+PASS — 2048x1664 desktop card height locked near 590px
+PASS — 2048x1664 landscape proportion
+PASS — 2048x1664 equal columns
+PASS — 2048x1664 hero typography readable
+PASS — 2048x1664 intro typography readable
+PASS — 2048x1664 feature title readable
+PASS — 2048x1664 feature description readable
+PASS — 2048x1664 sign-in title readable
+PASS — 2048x1664 form labels readable
+PASS — 2048x1664 security copy readable
+PASS — 2048x1664 quote uses same system UI family
+PASS — 2048x1664 sign-in block fully inside card
+PASS — 2048x1664 bottom control-plane note fully inside card
+PASS — 2048x1664 footer note has bottom clearance
+PASS — 2048x1664 sign-in block vertically centered
+PASS — 2048x1664 left story not clipped
+PASS — 2048x1664 form stage not clipped
+PASS — 1440x900 no runtime errors
+PASS — 1440x900 Searchable Archive remains removed
+PASS — 1440x900 exactly two feature rows
+PASS — 1440x900 auth card rendered
+PASS — 1440x900 desktop card width locked near 1020px
+PASS — 1440x900 desktop card height locked near 590px
+PASS — 1440x900 landscape proportion
+PASS — 1440x900 equal columns
+PASS — 1440x900 hero typography readable
+PASS — 1440x900 intro typography readable
+PASS — 1440x900 feature title readable
+PASS — 1440x900 feature description readable
+PASS — 1440x900 sign-in title readable
+PASS — 1440x900 form labels readable
+PASS — 1440x900 security copy readable
+PASS — 1440x900 quote uses same system UI family
+PASS — 1440x900 sign-in block fully inside card
+PASS — 1440x900 bottom control-plane note fully inside card
+PASS — 1440x900 footer note has bottom clearance
+PASS — 1440x900 sign-in block vertically centered
+PASS — 1440x900 left story not clipped
+PASS — 1440x900 form stage not clipped
+PASS — 1366x768 no runtime errors
+PASS — 1366x768 Searchable Archive remains removed
+PASS — 1366x768 exactly two feature rows
+PASS — 1366x768 auth card rendered
+PASS — 1366x768 desktop card width locked near 1020px
+PASS — 1366x768 desktop card height locked near 590px
+PASS — 1366x768 landscape proportion
+PASS — 1366x768 equal columns
+PASS — 1366x768 hero typography readable
+PASS — 1366x768 intro typography readable
+PASS — 1366x768 feature title readable
+PASS — 1366x768 feature description readable
+PASS — 1366x768 sign-in title readable
+PASS — 1366x768 form labels readable
+PASS — 1366x768 security copy readable
+PASS — 1366x768 quote uses same system UI family
+PASS — 1366x768 sign-in block fully inside card
+PASS — 1366x768 bottom control-plane note fully inside card
+PASS — 1366x768 footer note has bottom clearance
+PASS — 1366x768 sign-in block vertically centered
+PASS — 1366x768 left story not clipped
+PASS — 1366x768 form stage not clipped
+PASS — 1280x720 no runtime errors
+PASS — 1280x720 Searchable Archive remains removed
+PASS — 1280x720 exactly two feature rows
+PASS — 1280x720 auth card rendered
+PASS — 1280x720 desktop card width locked near 1020px
+PASS — 1280x720 desktop card height locked near 590px
+PASS — 1280x720 landscape proportion
+PASS — 1280x720 equal columns
+PASS — 1280x720 hero typography readable
+PASS — 1280x720 intro typography readable
+PASS — 1280x720 feature title readable
+PASS — 1280x720 feature description readable
+PASS — 1280x720 sign-in title readable
+PASS — 1280x720 form labels readable
+PASS — 1280x720 security copy readable
+PASS — 1280x720 quote uses same system UI family
+PASS — 1280x720 sign-in block fully inside card
+PASS — 1280x720 bottom control-plane note fully inside card
+PASS — 1280x720 footer note has bottom clearance
+PASS — 1280x720 sign-in block vertically centered
+PASS — 1280x720 left story not clipped
+PASS — 1280x720 form stage not clipped
+PASS — 390x844 no runtime errors
+PASS — 390x844 Searchable Archive remains removed
+PASS — 390x844 exactly two feature rows
+PASS — 390x844 auth card rendered
+PASS — 390x844 mobile sign-in remains first
+PASS — 390x844 mobile shell naturally stacks
+
+ALL v1.1.9.3 AUTH TYPOGRAPHY/PROPORTION CHECKS PASSED

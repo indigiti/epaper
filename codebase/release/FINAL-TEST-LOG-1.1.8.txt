@@ -1,0 +1,128 @@
+
+=== tests/build-guard-v1.1.8.php ===
+PASS — VERSION 1.1.8
+PASS — no production config/secrets packaged
+PASS — v1.1.4.1 exact QR baseline hash retained app/Services/QrCode.php
+PASS — v1.1.4.1 exact QR baseline hash retained app/Services/ClipService.php
+PASS — Source Page QR behavior BRANDING_VERSION = 'source-qr-v1'
+PASS — Source Page QR behavior sourcePageUrl
+PASS — Source Page QR behavior QrCode::drawImagick
+PASS — v1.1.5.1 settings normalization private function postedSetting
+PASS — v1.1.5.1 settings normalization settings[brand.site_name]
+PASS — v1.1.5.1 settings normalization str_replace(['.',' '],'_',$key)
+PASS — v1.1.5.1 settings normalization formnovalidate data-brand-remove
+PASS — v1.1.6 smart sharing /social/edition/
+PASS — v1.1.6 smart sharing socialPageThumb
+PASS — v1.1.6 smart sharing asset=$assets['THUMB']??$assets['PREVIEW']
+PASS — v1.1.6 smart sharing Cache-Control: public, max-age=86400
+PASS — v1.1.6.1 header dedup $logoAlt
+PASS — v1.1.6.1 header dedup brand-with-logo
+PASS — v1.1.6.1 header dedup brand-name-fallback
+PASS — v1.1.6.1 header dedup $brandText=''
+PASS — bulk account clear accountRemovableCount
+PASS — bulk account clear deleted_count
+PASS — bulk account clear library_type
+PASS — bulk account clear cleanupClipFiles
+PASS — bulk account clear account.clip.file_cleanup.failed
+PASS — bulk clear audit uses null resource GUID
+PASS — invalid pathType audit resource removed
+PASS — clip bulk delete tenant/user scoped
+PASS — bulk clear redirects with affected count
+PASS — Clear all shown only with removable records
+PASS — Master Data UX master-tabs
+PASS — Master Data UX data-master-tab="city"
+PASS — Master Data UX data-master-tab="language"
+PASS — Master Data UX data-master-tab="section"
+PASS — Master Data UX master-data-panel
+PASS — Master Data UX data-open-master-create
+PASS — Master Data UX data-master-search
+PASS — Master Data UX data-editor-title
+PASS — shared CRUD drawer JS record-editor-layer
+PASS — shared CRUD drawer JS openForm
+PASS — shared CRUD drawer JS data-open-record-editor
+PASS — shared CRUD drawer JS data-open-master-create
+PASS — shared CRUD drawer JS activateMaster
+PASS — shared CRUD drawer JS data-master-search
+PASS — shared CRUD drawer CSS record-editor
+PASS — shared CRUD drawer CSS master-tabs
+PASS — shared CRUD drawer CSS master-data-panel.active
+PASS — shared CRUD drawer CSS master-record-main
+PASS — shared CRUD drawer CSS record-editor-layer.hidden
+PASS — form-heavy record menus converted to Edit action
+PASS — Master Data action returns to active tab
+PASS — section creation supports sort order
+PASS — audit/error/processing deletion remains prohibited
+PASS — service worker aligned to v1.1.7
+PASS — runtime/assets aligned to v1.1.7
+PASS — v1.1.7 guest clipping backend guestClipUsed
+PASS — v1.1.7 guest clipping backend guestClipMarkUsed
+PASS — v1.1.7 guest clipping backend claimGuestClipAfterLogin
+PASS — v1.1.7 guest clipping backend GUEST_CLIP_LIMIT
+PASS — v1.1.7 guest clipping backend GUEST_CLIP_RATE_LIMIT
+PASS — v1.1.7 guest clipping backend guest-clip-ip:
+PASS — v1.1.7 guest clipping backend quota_remaining
+PASS — v1.1.7 guest clipping backend guest_clip.created
+PASS — v1.1.7 guest clipping backend guest_clip.claimed
+PASS — guest clipping is always link-shareable PUBLIC
+PASS — guest clip claim is ownership-safe and only claims ownerless clip
+PASS — Reader exposes guest/subscription conversion state
+PASS — guest conversion UI rendered
+PASS — View supports route-level robots override
+PASS — guest clipping pages are noindex/nofollow
+PASS — guest clipping frontend guest clipping conversion gate
+PASS — guest clipping frontend guestClipUsed
+PASS — guest clipping frontend ENTITLEMENT_REQUIRED
+PASS — guest clipping frontend GUEST_CLIP_LIMIT
+PASS — guest clipping frontend data-clip-save
+PASS — guest clipping styling guest-free-clip-note
+PASS — guest clipping styling guest-clip-gate
+PASS — guest clipping styling guest-claim-banner
+PASS — service worker caches guest clipping module
+PASS — Reader/runtime aligned to v1.1.7
+PASS — Reader Redis state cache reader:state:v1:
+PASS — Reader Redis state cache RedisStore::getJson
+PASS — Reader Redis state cache RedisStore::setJson($cacheKey,$data,300)
+PASS — Reader Redis state cache X-Reader-State-Cache: HIT
+PASS — Reader Redis state cache X-Reader-State-Cache: MISS
+PASS — Reader prefetch runtime data-state-endpoint
+PASS — Reader prefetch runtime reader-prefetch.js?v=1.1.8
+PASS — Predictive prefetch stateCache
+PASS — Predictive prefetch imageCache
+PASS — Predictive prefetch img.decode
+PASS — Predictive prefetch currentPage()+1
+PASS — Predictive prefetch currentPage()-1
+PASS — Predictive prefetch state(c+2)
+PASS — Predictive prefetch lastDirection
+PASS — Predictive prefetch reader.qualityMode
+PASS — bounded Reader media cache
+PASS — media cache preserves network/token authority
+PASS — same-domain subscription if($path==='/subscribe')
+PASS — same-domain subscription /account/subscription
+PASS — same-domain subscription private function publicSubscribe
+PASS — same-domain subscription private function accountSubscription
+PASS — Reader subscription CTA remains same-domain
+PASS — no user-facing Platform URL fallback
+PASS — Account sidebar exposes local Subscription
+PASS — Service Worker caches prefetch module
+
+ALL v1.1.8 BUILD GUARDS PASSED
+
+=== tests/settings-post-v1.1.5.1.php ===
+PASS — nested settings[] preserves appearance.admin_theme
+PASS — nested settings[] preserves brand.site_name
+PASS — nested settings[] preserves brand.accent
+PASS — nested settings[] preserves seo.title_suffix
+PASS — nested settings[] preserves reader.default_fit
+PASS — nested settings[] preserves processing.pdf_dpi
+PASS — nested settings[] preserves clipping.default_visibility
+PASS — legacy PHP-normalized field remains accepted for brand.site_name
+PASS — legacy PHP-normalized field remains accepted for appearance.admin_theme
+PASS — legacy PHP-normalized field remains accepted for seo.title_suffix
+PASS — legacy PHP-normalized field remains accepted for reader.default_fit
+PASS — legacy PHP-normalized field remains accepted for processing.pdf_dpi
+PASS — legacy PHP-normalized field remains accepted for clipping.default_visibility
+PASS — intentional empty optional setting is preserved
+PASS — missing partial-update field falls back safely
+ALL SETTINGS POST NORMALIZATION CHECKS PASSED
+
+RELEASE CHECK PASSED

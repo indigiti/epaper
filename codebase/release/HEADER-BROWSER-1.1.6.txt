@@ -1,0 +1,13 @@
+PASS — 1440x900 uploaded wide logo is not forced to 30px
+PASS — 1440x900 logo height stays inside header
+PASS — 1440x900 brand block stays compact
+PASS — 1440x900 logo alt text uses site name
+PASS — 1440x900 visible brand name avoids duplicate screen-reader name
+PASS — 1440x900 desktop logo respects masthead width
+PASS — 390x844 uploaded wide logo is not forced to 30px
+PASS — 390x844 logo height stays inside header
+PASS — 390x844 brand block stays compact
+PASS — 390x844 logo alt text uses site name
+PASS — 390x844 visible brand name avoids duplicate screen-reader name
+PASS — 390x844 mobile logo respects compact width
+ALL v1.1.6 HEADER BROWSER CHECKS PASSED

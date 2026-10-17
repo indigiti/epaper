@@ -1,0 +1,15 @@
+{
+  "version": "1.1.5",
+  "base": "1.1.4.1",
+  "sha256": {
+    "app/App.php": "9bd2ba3e623d4b91ae85b96204b8caa9dc7b16016777cf60c0bbe7ed2de34fd7",
+    "app/Core/View.php": "72b957f0c83183b98ff312da5204b4aa97bf9d20172e98832b69230ca1074884",
+    "app/Services/QrCode.php": "2ca83d8f5cd585d0a1d983a540acd1a01027349362d4c293f427f11cd7eb1716",
+    "app/Services/ClipService.php": "d57ece49dc21bc45f7cf4c261c3390d6f7538a0d79c98f4ff9a983dd209c06f6",
+    "public_html/assets/app.css": "033722d2709004d8e9c7002af36e68451c7d3b897678ff859fd09bb08dac8cbc",
+    "public_html/assets/crud.js": "9cca6a4f5ad84b61ea7094e25da053706edc88840d627548be2a4399fe894b87",
+    "public_html/service-worker.js": "34de070674057219baeb03ba806bd9d4bcc1b40033998b550d114aef8a114257",
+    "bin/release-check.php": "9cd751244ebf56f0833021bfb8135cfe571a3d9981cd59bf1c68fd9f537b3a57",
+    "tests/build-guard-v1.1.5.php": "56e62b6e7d94a2c5cd7d15e34925f08b87b05dfca88edf9f3bac30c073b27230"
+  }
+}

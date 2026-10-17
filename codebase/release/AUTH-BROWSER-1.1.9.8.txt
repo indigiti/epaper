@@ -1,0 +1,105 @@
+PASS — 1920x1080 no JS errors
+PASS — 1920x1080 compact width :: {'x': 740, 'y': 274.265625, 'width': 440, 'height': 573.46875}
+PASS — 1920x1080 content-fit height :: {'x': 740, 'y': 274.265625, 'width': 440, 'height': 573.46875}
+PASS — 1920x1080 editorial quote inside card
+PASS — 1920x1080 quote mark inside quote card
+PASS — 1920x1080 submit inside card
+PASS — 1920x1080 brand visible
+PASS — 1920x1080 quote text visible
+PASS — 1920x1080 quote author visible
+PASS — 1600x900 no JS errors
+PASS — 1600x900 compact width :: {'x': 580, 'y': 184.265625, 'width': 440, 'height': 573.46875}
+PASS — 1600x900 content-fit height :: {'x': 580, 'y': 184.265625, 'width': 440, 'height': 573.46875}
+PASS — 1600x900 editorial quote inside card
+PASS — 1600x900 quote mark inside quote card
+PASS — 1600x900 submit inside card
+PASS — 1600x900 brand visible
+PASS — 1600x900 quote text visible
+PASS — 1600x900 quote author visible
+PASS — 1440x900 no JS errors
+PASS — 1440x900 compact width :: {'x': 500, 'y': 184.265625, 'width': 440, 'height': 573.46875}
+PASS — 1440x900 content-fit height :: {'x': 500, 'y': 184.265625, 'width': 440, 'height': 573.46875}
+PASS — 1440x900 editorial quote inside card
+PASS — 1440x900 quote mark inside quote card
+PASS — 1440x900 submit inside card
+PASS — 1440x900 brand visible
+PASS — 1440x900 quote text visible
+PASS — 1440x900 quote author visible
+PASS — 1366x768 no JS errors
+PASS — 1366x768 compact width :: {'x': 463, 'y': 118.265625, 'width': 440, 'height': 573.46875}
+PASS — 1366x768 content-fit height :: {'x': 463, 'y': 118.265625, 'width': 440, 'height': 573.46875}
+PASS — 1366x768 editorial quote inside card
+PASS — 1366x768 quote mark inside quote card
+PASS — 1366x768 submit inside card
+PASS — 1366x768 brand visible
+PASS — 1366x768 quote text visible
+PASS — 1366x768 quote author visible
+PASS — 1280x720 no JS errors
+PASS — 1280x720 compact width :: {'x': 420, 'y': 94.265625, 'width': 440, 'height': 573.46875}
+PASS — 1280x720 content-fit height :: {'x': 420, 'y': 94.265625, 'width': 440, 'height': 573.46875}
+PASS — 1280x720 editorial quote inside card
+PASS — 1280x720 quote mark inside quote card
+PASS — 1280x720 submit inside card
+PASS — 1280x720 brand visible
+PASS — 1280x720 quote text visible
+PASS — 1280x720 quote author visible
+PASS — 1024x768 no JS errors
+PASS — 1024x768 compact width :: {'x': 292, 'y': 118.265625, 'width': 440, 'height': 573.46875}
+PASS — 1024x768 content-fit height :: {'x': 292, 'y': 118.265625, 'width': 440, 'height': 573.46875}
+PASS — 1024x768 editorial quote inside card
+PASS — 1024x768 quote mark inside quote card
+PASS — 1024x768 submit inside card
+PASS — 1024x768 brand visible
+PASS — 1024x768 quote text visible
+PASS — 1024x768 quote author visible
+PASS — 768x1024 no JS errors
+PASS — 768x1024 compact width :: {'x': 164, 'y': 246.265625, 'width': 440, 'height': 573.46875}
+PASS — 768x1024 content-fit height :: {'x': 164, 'y': 246.265625, 'width': 440, 'height': 573.46875}
+PASS — 768x1024 editorial quote inside card
+PASS — 768x1024 quote mark inside quote card
+PASS — 768x1024 submit inside card
+PASS — 768x1024 brand visible
+PASS — 768x1024 quote text visible
+PASS — 768x1024 quote author visible
+PASS — 430x932 no JS errors
+PASS — 430x932 compact width :: {'x': 12, 'y': 222.65625, 'width': 406, 'height': 540.6875}
+PASS — 430x932 content-fit height :: {'x': 12, 'y': 222.65625, 'width': 406, 'height': 540.6875}
+PASS — 430x932 editorial quote inside card
+PASS — 430x932 quote mark inside quote card
+PASS — 430x932 submit inside card
+PASS — 430x932 brand visible
+PASS — 430x932 quote text visible
+PASS — 430x932 quote author visible
+PASS — 430x932 mobile width :: {'x': 12, 'y': 222.65625, 'width': 406, 'height': 540.6875}
+PASS — 390x844 no JS errors
+PASS — 390x844 compact width :: {'x': 12, 'y': 178.65625, 'width': 366, 'height': 540.6875}
+PASS — 390x844 content-fit height :: {'x': 12, 'y': 178.65625, 'width': 366, 'height': 540.6875}
+PASS — 390x844 editorial quote inside card
+PASS — 390x844 quote mark inside quote card
+PASS — 390x844 submit inside card
+PASS — 390x844 brand visible
+PASS — 390x844 quote text visible
+PASS — 390x844 quote author visible
+PASS — 390x844 mobile width :: {'x': 12, 'y': 178.65625, 'width': 366, 'height': 540.6875}
+PASS — 360x800 no JS errors
+PASS — 360x800 compact width :: {'x': 10, 'y': 148.703125, 'width': 340, 'height': 556.578125}
+PASS — 360x800 content-fit height :: {'x': 10, 'y': 148.703125, 'width': 340, 'height': 556.578125}
+PASS — 360x800 editorial quote inside card
+PASS — 360x800 quote mark inside quote card
+PASS — 360x800 submit inside card
+PASS — 360x800 brand visible
+PASS — 360x800 quote text visible
+PASS — 360x800 quote author visible
+PASS — 360x800 mobile width :: {'x': 10, 'y': 148.703125, 'width': 340, 'height': 556.578125}
+PASS — 320x720 no JS errors
+PASS — 320x720 compact width :: {'x': 10, 'y': 108.703125, 'width': 300, 'height': 556.578125}
+PASS — 320x720 content-fit height :: {'x': 10, 'y': 108.703125, 'width': 300, 'height': 556.578125}
+PASS — 320x720 editorial quote inside card
+PASS — 320x720 quote mark inside quote card
+PASS — 320x720 submit inside card
+PASS — 320x720 brand visible
+PASS — 320x720 quote text visible
+PASS — 320x720 quote author visible
+PASS — 320x720 mobile width :: {'x': 10, 'y': 108.703125, 'width': 300, 'height': 556.578125}
+
+ALL v1.1.9.8 LUXURY QUOTE AUTH CHECKS PASSED

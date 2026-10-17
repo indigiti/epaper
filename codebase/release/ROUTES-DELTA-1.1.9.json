@@ -1,0 +1,10 @@
+{
+  "release": "1.1.9",
+  "base": "1.1.8",
+  "added": [],
+  "removed": [],
+  "changed": [],
+  "notes": [
+    "Authentication route behavior is unchanged; only View layout and styling changed."
+  ]
+}

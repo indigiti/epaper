@@ -1,0 +1,41 @@
+PASS — 1920x1080 compact card :: 545.4px
+PASS — 1920x1080 intrinsic content stack :: {"display": "block", "height": "479.422px", "minHeight": "0px"}
+PASS — 1920x1080 upper marked space removed :: 45.0px
+PASS — 1920x1080 middle marked space removed :: 10.0px
+PASS — 1920x1080 lower marked space removed :: 21.0px
+PASS — 1440x900 compact card :: 545.4px
+PASS — 1440x900 intrinsic content stack :: {"display": "block", "height": "479.422px", "minHeight": "0px"}
+PASS — 1440x900 upper marked space removed :: 45.0px
+PASS — 1440x900 middle marked space removed :: 10.0px
+PASS — 1440x900 lower marked space removed :: 21.0px
+PASS — 1024x768 compact card :: 545.4px
+PASS — 1024x768 intrinsic content stack :: {"display": "block", "height": "479.422px", "minHeight": "0px"}
+PASS — 1024x768 upper marked space removed :: 45.0px
+PASS — 1024x768 middle marked space removed :: 10.0px
+PASS — 1024x768 lower marked space removed :: 21.0px
+PASS — 768x1024 compact card :: 545.4px
+PASS — 768x1024 intrinsic content stack :: {"display": "block", "height": "479.422px", "minHeight": "0px"}
+PASS — 768x1024 upper marked space removed :: 45.0px
+PASS — 768x1024 middle marked space removed :: 10.0px
+PASS — 768x1024 lower marked space removed :: 21.0px
+PASS — 430x932 compact card :: 532.4px
+PASS — 430x932 intrinsic content stack :: {"display": "block", "height": "471.422px", "minHeight": "0px"}
+PASS — 430x932 upper marked space removed :: 42.0px
+PASS — 430x932 middle marked space removed :: 9.0px
+PASS — 430x932 lower marked space removed :: 19.0px
+PASS — 390x844 compact card :: 532.4px
+PASS — 390x844 intrinsic content stack :: {"display": "block", "height": "471.422px", "minHeight": "0px"}
+PASS — 390x844 upper marked space removed :: 42.0px
+PASS — 390x844 middle marked space removed :: 9.0px
+PASS — 390x844 lower marked space removed :: 19.0px
+PASS — 360x800 compact card :: 532.4px
+PASS — 360x800 intrinsic content stack :: {"display": "block", "height": "471.422px", "minHeight": "0px"}
+PASS — 360x800 upper marked space removed :: 42.0px
+PASS — 360x800 middle marked space removed :: 9.0px
+PASS — 360x800 lower marked space removed :: 19.0px
+PASS — 320x720 compact card :: 567.3px
+PASS — 320x720 intrinsic content stack :: {"display": "block", "height": "506.281px", "minHeight": "0px"}
+PASS — 320x720 upper marked space removed :: 42.0px
+PASS — 320x720 middle marked space removed :: 9.0px
+PASS — 320x720 lower marked space removed :: 19.0px
+ALL v1.1.9.11 DIRECT-FLOW AUTH CHECKS PASSED

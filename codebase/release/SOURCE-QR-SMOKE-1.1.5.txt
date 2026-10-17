@@ -1,0 +1,3 @@
+Input: https://epaper.digiti.in/edition/pune-mirror-2026-09-02-b5ab13/page/4
+Decoded: https://epaper.digiti.in/edition/pune-mirror-2026-09-02-b5ab13/page/4
+Result: PASS

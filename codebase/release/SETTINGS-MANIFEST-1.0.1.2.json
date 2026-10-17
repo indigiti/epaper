@@ -1,0 +1,26 @@
+{
+  "version": "1.0.1.2",
+  "settings": [
+    "brand.site_name",
+    "brand.tagline",
+    "reader.theme",
+    "reader.default_fit",
+    "seo.description",
+    "processing.ocr_languages",
+    "clipping.default_visibility",
+    "queue.driver",
+    "queue.rabbitmq.host",
+    "queue.rabbitmq.port",
+    "queue.rabbitmq.username",
+    "queue.rabbitmq.vhost",
+    "queue.rabbitmq.connection_timeout",
+    "queue.rabbitmq.read_write_timeout",
+    "queue.rabbitmq.heartbeat",
+    "queue.rabbitmq.confirm_timeout",
+    "queue.expected_workers.outbox",
+    "queue.expected_workers.render",
+    "queue.expected_workers.assets",
+    "queue.expected_workers.ocr",
+    "queue.expected_workers.finalize"
+  ]
+}

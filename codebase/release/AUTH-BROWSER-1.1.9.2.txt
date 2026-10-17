@@ -1,0 +1,60 @@
+PASS — 1440x900 no runtime errors
+PASS — 1440x900 exactly two value features rendered
+PASS — 1440x900 Searchable Archive removed
+PASS — 1440x900 quote retained
+PASS — 1440x900 auth card rendered
+PASS — 1440x900 split columns aligned
+PASS — 1440x900 compact max width retained
+PASS — 1440x900 compact height retained
+PASS — 1440x900 landscape proportion retained
+PASS — 1440x900 story not vertically clipped
+PASS — 1440x900 sign-in stage not vertically clipped
+PASS — 1440x900 auth panel fully inside auth card
+PASS — 1440x900 email fully inside auth card
+PASS — 1440x900 password fully inside auth card
+PASS — 1440x900 authenticator fully inside auth card
+PASS — 1440x900 sign-in button fully inside auth card
+PASS — 1440x900 security footer fully inside auth card
+PASS — 1366x768 no runtime errors
+PASS — 1366x768 exactly two value features rendered
+PASS — 1366x768 Searchable Archive removed
+PASS — 1366x768 quote retained
+PASS — 1366x768 auth card rendered
+PASS — 1366x768 split columns aligned
+PASS — 1366x768 compact max width retained
+PASS — 1366x768 compact height retained
+PASS — 1366x768 landscape proportion retained
+PASS — 1366x768 story not vertically clipped
+PASS — 1366x768 sign-in stage not vertically clipped
+PASS — 1366x768 auth panel fully inside auth card
+PASS — 1366x768 email fully inside auth card
+PASS — 1366x768 password fully inside auth card
+PASS — 1366x768 authenticator fully inside auth card
+PASS — 1366x768 sign-in button fully inside auth card
+PASS — 1366x768 security footer fully inside auth card
+PASS — 1280x720 no runtime errors
+PASS — 1280x720 exactly two value features rendered
+PASS — 1280x720 Searchable Archive removed
+PASS — 1280x720 quote retained
+PASS — 1280x720 auth card rendered
+PASS — 1280x720 split columns aligned
+PASS — 1280x720 compact max width retained
+PASS — 1280x720 compact height retained
+PASS — 1280x720 landscape proportion retained
+PASS — 1280x720 story not vertically clipped
+PASS — 1280x720 sign-in stage not vertically clipped
+PASS — 1280x720 auth panel fully inside auth card
+PASS — 1280x720 email fully inside auth card
+PASS — 1280x720 password fully inside auth card
+PASS — 1280x720 authenticator fully inside auth card
+PASS — 1280x720 sign-in button fully inside auth card
+PASS — 1280x720 security footer fully inside auth card
+PASS — 390x844 no runtime errors
+PASS — 390x844 exactly two value features rendered
+PASS — 390x844 Searchable Archive removed
+PASS — 390x844 quote retained
+PASS — 390x844 auth card rendered
+PASS — 390x844 mobile sign-in remains first
+PASS — 390x844 mobile form within viewport
+
+ALL v1.1.9.2 AUTH LAYOUT CHECKS PASSED

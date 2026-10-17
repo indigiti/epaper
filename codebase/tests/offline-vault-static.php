@@ -1,0 +1,22 @@
+<?php
+declare(strict_types=1);
+$root=dirname(__DIR__);$fails=[];$pass=function(bool$ok,string$name)use(&$fails){echo($ok?'PASS':'FAIL')." — {$name}\n";if(!$ok)$fails[]=$name;};
+$app=(string)file_get_contents($root.'/app/App.php');$svc=(string)file_get_contents($root.'/app/Services/OfflineVault.php');$sw=(string)file_get_contents($root.'/public_html/service-worker.js');$js=(string)file_get_contents($root.'/public_html/assets/offline-vault.js');$sql=(string)file_get_contents($root.'/database/upgrade-v2.0.0-beta.2.sql');$schema=(string)file_get_contents($root.'/database/schema.sql');
+$pass(is_file($root.'/app/Services/OfflineVault.php'),'OfflineVault service packaged');
+$pass(str_contains($app,"/api/v2/offline/devices")&&str_contains($app,"/api/v2/offline/licenses"),'v2 encrypted offline API routes included');
+$pass(str_contains($svc,'ECDH-P256+HKDF-SHA256+AES-256-GCM')&&str_contains($svc,"aes-256-gcm"),'device-bound ECDH/HKDF/AES-GCM cryptography included');
+$pass(str_contains($svc,"prime256v1")&&str_contains($svc,"secp256r1"),'registered device public keys are restricted to the P-256 curve');
+$pass(str_contains($svc,'offline_window_days')&&str_contains($svc,'offline_edition_limit'),'rolling window and per-device limit included');
+$pass(str_contains($sql,'ep_offline_devices')&&str_contains($sql,'ep_offline_licenses')&&str_contains($sql,'expires_at'),'beta.2 vault migration included');
+$pass(str_contains($schema,'CREATE TABLE IF NOT EXISTS ep_offline_devices')&&str_contains($schema,'CREATE TABLE IF NOT EXISTS ep_offline_licenses'),'clean schema includes Offline Vault tables');
+$pass(!str_contains($sw,'READER_MEDIA_CACHE')&&!str_contains($sw,"cache.put(request,response.clone())".'; // Compatibility only'),'legacy plaintext reader-media cache path removed');
+$pass(str_contains($sw,"url.pathname.startsWith('/media/')")&&str_contains($sw,"cache:'no-store'"),'protected media forced to network/no-store in service worker');
+$pass(str_contains($js,"indexedDB.open(DB")&&str_contains($js,"name:'ECDH'")&&str_contains($js,"name:'AES-GCM'"),'client encrypted IndexedDB vault included');
+$pass(str_contains($js,'await removeLicense(license.license_guid).catch')&&str_contains($js,"await wipe()"),'partial downloads are cleaned and current-device revocation wipes the local key vault');
+$pass(str_contains($js,'navigator.storage?.persist')&&str_contains($js,'navigator.storage?.estimate'),'PWA persistent storage and quota reporting included');
+$pass(is_file($root.'/public_html/offline-library.html')&&is_file($root.'/public_html/offline-reader.html'),'offline library and offline reader shells packaged');
+$offlineLib=(string)file_get_contents($root.'/public_html/offline-library.html');$offlineReader=(string)file_get_contents($root.'/public_html/offline-reader.html');$ht=(string)file_get_contents($root.'/public_html/.htaccess');
+$pass(str_contains($offlineLib,'noindex,nofollow')&&str_contains($offlineReader,'noindex,nofollow'),'offline-only shells are excluded from search indexing');
+$pass(str_contains($ht,'historical deployment/back-up artifacts')&&str_contains($ht,'\\.bak'),'public historical backup artifacts are denied by web-server policy');
+$pass(str_contains($app,'accountDevices')&&str_contains($app,'accountLibrary'),'Reader OS Library and device management routes included');
+if($fails){fwrite(STDERR,"\nOFFLINE VAULT STATIC TEST FAILED\n");exit(1);}echo"\nOFFLINE VAULT STATIC TEST PASSED\n";

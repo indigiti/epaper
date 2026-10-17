@@ -1,0 +1,12 @@
+-- EP-DI v2.0.1.8 Trusted App & Desktop Login
+CREATE TABLE IF NOT EXISTS ep_reader_devices (
+ device_guid BINARY(16) NOT NULL, tenant_guid BINARY(16) NOT NULL, user_guid BINARY(16) NOT NULL, installation_hash CHAR(64) NOT NULL, credential_hash CHAR(64) NOT NULL, device_type VARCHAR(24) NOT NULL DEFAULT 'MOBILE_APP', device_label VARCHAR(120) NULL, platform VARCHAR(40) NULL, push_token_ciphertext LONGTEXT NULL, push_provider VARCHAR(24) NULL, status VARCHAR(24) NOT NULL DEFAULT 'ACTIVE', trusted_at DATETIME(6) NULL, last_seen_at DATETIME(6) NULL, created_at DATETIME(6) NOT NULL, updated_at DATETIME(6) NOT NULL, PRIMARY KEY(device_guid), UNIQUE KEY uk_reader_device_installation(tenant_guid,installation_hash), KEY ix_reader_device_user(tenant_guid,user_guid,device_type,status), KEY ix_reader_device_seen(tenant_guid,status,last_seen_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS ep_reader_sessions (
+ reader_session_guid BINARY(16) NOT NULL, tenant_guid BINARY(16) NOT NULL, user_guid BINARY(16) NOT NULL, session_kind VARCHAR(24) NOT NULL, device_guid BINARY(16) NULL, session_hash CHAR(64) NOT NULL, status VARCHAR(24) NOT NULL DEFAULT 'ACTIVE', last_seen_at DATETIME(6) NULL, expires_at DATETIME(6) NOT NULL, revoked_at DATETIME(6) NULL, created_at DATETIME(6) NOT NULL, updated_at DATETIME(6) NOT NULL, PRIMARY KEY(reader_session_guid), UNIQUE KEY uk_reader_session_hash(tenant_guid,session_hash), KEY ix_reader_session_user(tenant_guid,user_guid,session_kind,status), KEY ix_reader_session_expiry(tenant_guid,status,expires_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS ep_desktop_login_challenges (
+ challenge_guid BINARY(16) NOT NULL, tenant_guid BINARY(16) NOT NULL, user_guid BINARY(16) NOT NULL, phone_e164 VARCHAR(20) NOT NULL, trusted_device_guid BINARY(16) NOT NULL, display_code CHAR(6) NOT NULL, browser_session_hash CHAR(64) NOT NULL, requested_ip_hash CHAR(64) NOT NULL, user_agent_summary VARCHAR(190) NULL, status VARCHAR(24) NOT NULL DEFAULT 'PENDING', expires_at DATETIME(6) NOT NULL, decided_at DATETIME(6) NULL, consumed_at DATETIME(6) NULL, created_at DATETIME(6) NOT NULL, updated_at DATETIME(6) NOT NULL, PRIMARY KEY(challenge_guid), KEY ix_desktop_challenge_device(tenant_guid,trusted_device_guid,status,expires_at), KEY ix_desktop_challenge_user(tenant_guid,user_guid,status,created_at), KEY ix_desktop_challenge_expiry(tenant_guid,status,expires_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

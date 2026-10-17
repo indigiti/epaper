@@ -1,0 +1,3 @@
+No syntax errors detected in app/App.php
+No syntax errors detected in app/Core/View.php
+No syntax errors detected in tests/build-guard-v1.1.7.php

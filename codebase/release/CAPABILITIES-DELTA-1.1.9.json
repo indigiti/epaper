@@ -1,0 +1,24 @@
+{
+  "release": "1.1.9",
+  "base": "1.1.8",
+  "added": [
+    "Publisher-branded split authentication shell",
+    "Responsive form-first mobile authentication layout",
+    "Primary/Dark Logo, Square Mark and monogram auth-brand fallback",
+    "Today’s ePaper / Searchable Archive / Clipping & Sharing value story",
+    "Twelve-entry rotating authentication quote pool"
+  ],
+  "preserved": [
+    "Same-domain authentication and subscription navigation",
+    "Digiti Platform background-only control-plane boundary",
+    "Source Page QR v1.1.4.1",
+    "Settings form normalization v1.1.5.1",
+    "Smart Social Sharing v1.1.6",
+    "Header brand dedup v1.1.6.1",
+    "Account/Admin CRUD UX v1.1.6.2",
+    "Guest clipping conversion v1.1.7",
+    "Reader Redis/prefetch cache v1.1.8"
+  ],
+  "database_migration": false,
+  "worker_change": false
+}

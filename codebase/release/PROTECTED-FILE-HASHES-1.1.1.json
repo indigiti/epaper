@@ -1,0 +1,15 @@
+{
+  "version": "1.1.1",
+  "files": {
+    "app/App.php": "564a11288c689a7faf7f7ddf51fad4d25d7c85ab0b76738dfe4b4da1db7fb4e8",
+    "app/Core/View.php": "efbab2defea23a7505d6972931b5fdcd5ffe0369f421532d7233476fcc5c8bba",
+    "public_html/assets/app.css": "c330e77ad3169f41736b50d07d709fa433cd4b591e0472c7ec76b501474f9cf6",
+    "public_html/assets/app.js": "3a163b9b2f0f74d4720debd6d9ef4bd9c808345338b89ab5d9e32703632dc5fa",
+    "public_html/assets/reader.css": "9b096c1b9fa895a613dbff662f74e15b056b119be17614aa0c311ed82887fa91",
+    "public_html/assets/reader.js": "a50a9ae3ab5d9621721757d46b3565ed3736ab974197ff6a220b2dbd8edfa9de",
+    "public_html/service-worker.js": "4e4db2f8a30bbf54080189fa2412e4b552bb583d561894608f82e9fb20d63442",
+    "app/Services/QueueService.php": "7e5ecad9f43a5b2c7ed3aebc8979bcc8d7146e2aa052db5b87b72405f001d571",
+    "app/Services/RabbitMq.php": "5470715086ce25818482f1ffbb7372c0a87c44f01f10e40e6727d8ed9f429898",
+    "bin/rabbit-worker.php": "72c83c8d00e78cb0bc1d461c8679de6c26d3604932a5e20fd70e50c691a3efe0"
+  }
+}

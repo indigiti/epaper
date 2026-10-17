@@ -1,0 +1,66 @@
+
+=== tests/build-guard-v1.1.9.5.php ===
+PASS — VERSION 1.1.9.5
+PASS — no production config/secrets packaged
+PASS — v1.1.4.1 QrCode exact hash retained
+PASS — v1.1.4.1 ClipService exact hash retained
+PASS — Source Page QR behavior BRANDING_VERSION = 'source-qr-v1'
+PASS — Source Page QR behavior sourcePageUrl
+PASS — Source Page QR behavior QrCode::drawImagick
+PASS — settings normalization private function postedSetting
+PASS — settings normalization settings[brand.site_name]
+PASS — settings normalization str_replace(['.',' '],'_',$key)
+PASS — smart social sharing /social/edition/
+PASS — smart social sharing socialPageThumb
+PASS — smart social sharing asset=$assets['THUMB']??$assets['PREVIEW']
+PASS — guest clipping guestClipUsed
+PASS — guest clipping claimGuestClipAfterLogin
+PASS — guest clipping GUEST_CLIP_LIMIT
+PASS — Reader Redis cache reader:state:v1:
+PASS — Reader Redis cache X-Reader-State-Cache: HIT
+PASS — Reader Redis cache X-Reader-State-Cache: MISS
+PASS — Reader predictive prefetch stateCache
+PASS — Reader predictive prefetch imageCache
+PASS — Reader predictive prefetch img.decode
+PASS — Reader predictive prefetch lastDirection
+PASS — Platform UI remains background-only
+PASS — same-domain subscription retained
+PASS — bulk clear audit null resource retained
+PASS — branded auth renderer retained
+PASS — v1.1.9.5 clean auth markup present
+PASS — Searchable Archive remains removed
+PASS — dedicated auth CSS loaded after app CSS
+PASS — runtime asset version aligned
+PASS — dedicated responsive auth CSS auth-experience-v1195
+PASS — dedicated responsive auth CSS grid-template-columns:minmax(0,1.04fr) minmax(400px,.96fr)
+PASS — dedicated responsive auth CSS min-height:620px
+PASS — dedicated responsive auth CSS auth-form-card
+PASS — dedicated responsive auth CSS auth-mobile-brand
+PASS — dedicated responsive auth CSS @media (max-width:900px)
+PASS — dedicated responsive auth CSS @media (max-width:560px)
+PASS — stable standard-weight auth typography
+PASS — original-layout inner form card restored
+PASS — service worker aligned and auth CSS cache-busted
+PASS — bounded Reader media cache retained
+
+ALL v1.1.9.5 BUILD GUARDS PASSED
+
+=== tests/settings-post-v1.1.5.1.php ===
+PASS — nested settings[] preserves appearance.admin_theme
+PASS — nested settings[] preserves brand.site_name
+PASS — nested settings[] preserves brand.accent
+PASS — nested settings[] preserves seo.title_suffix
+PASS — nested settings[] preserves reader.default_fit
+PASS — nested settings[] preserves processing.pdf_dpi
+PASS — nested settings[] preserves clipping.default_visibility
+PASS — legacy PHP-normalized field remains accepted for brand.site_name
+PASS — legacy PHP-normalized field remains accepted for appearance.admin_theme
+PASS — legacy PHP-normalized field remains accepted for seo.title_suffix
+PASS — legacy PHP-normalized field remains accepted for reader.default_fit
+PASS — legacy PHP-normalized field remains accepted for processing.pdf_dpi
+PASS — legacy PHP-normalized field remains accepted for clipping.default_visibility
+PASS — intentional empty optional setting is preserved
+PASS — missing partial-update field falls back safely
+ALL SETTINGS POST NORMALIZATION CHECKS PASSED
+
+RELEASE CHECK PASSED

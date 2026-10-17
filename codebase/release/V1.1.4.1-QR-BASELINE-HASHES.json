@@ -1,0 +1,7 @@
+{
+  "baseline": "1.1.4.1",
+  "sha256": {
+    "app/Services/QrCode.php": "2ca83d8f5cd585d0a1d983a540acd1a01027349362d4c293f427f11cd7eb1716",
+    "app/Services/ClipService.php": "d57ece49dc21bc45f7cf4c261c3390d6f7538a0d79c98f4ff9a983dd209c06f6"
+  }
+}

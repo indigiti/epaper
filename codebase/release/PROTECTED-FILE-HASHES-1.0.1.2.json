@@ -1,0 +1,16 @@
+{
+  "version": "1.0.1.2",
+  "sha256": {
+    "app/App.php": "8b42848ac897157c81388d2348b6dbe9fbf85ec76d50fbe7863d3f391fdc2969",
+    "app/Core/Auth.php": "bbde87457baf1c3ff64cdfbd4a122617b9783e942282703fb0a9d0ab773ddb53",
+    "app/Core/Config.php": "2aa00d9c720384b4a33c153b9bcf7e08af6c54cce4250e070882cd99545c614e",
+    "app/Core/View.php": "8fe34da79b52ffa023d7f730499006f43f03baf0fc8ba3591cca0c1cc977098d",
+    "app/Services/Processing.php": "6c44b5f9586202dfcf1c3db4f01a17c95d2162a6ae00165520399e50113a7324",
+    "app/Services/QueueService.php": "b0cecda4a075f50b43ca69cb15126f03d14773693988d3e4a16b2060143a83ba",
+    "app/Services/RabbitMq.php": "fdacdd933598edbbb994de05aa70a75f0229dfd30182361f54e99ce7ba537e2b",
+    "app/Services/InfrastructureConfig.php": "e4e96a3c599a8f1ac0343cd161d95bfb3437767429d747dfb6aed700808e8ca3",
+    "public_html/assets/app.js": "b79277721ddb9bd901a54b3d60d0308ad2573e9cff6acdc175b80fcca6fdf648",
+    "public_html/assets/reader.js": "4041361c56dfb2544f83847a20578ba0c485b899df75c297548ab3d5f5b20f37",
+    "public_html/service-worker.js": "fec3ad369adbf0ea26b46ae267b6f375ba1a02a975a3ad80adbdf4765d24088e"
+  }
+}

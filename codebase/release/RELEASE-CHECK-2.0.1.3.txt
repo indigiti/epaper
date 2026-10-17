@@ -1,0 +1,46 @@
+EP-DI v2.0.1.3 RELEASE VALIDATION
+Baseline: supplied EP-DI-v2.0.1.2.zip, extracted audit-src.
+
+PASS: 137 application PHP files linted with PHP 8.3.6 (vendor excluded).
+PASS: 8 public JavaScript files passed node --check.
+PASS: original tests-cumulative-check.php.
+PASS: 26 behavior/integration checks using MariaDB 10.11.14 and PHP 8.3.6, real application service classes, isolated fixture database; Redis disabled, queue driver database.
+PASS: unchanged database schema, vendor dependencies, reader code/assets (except shared admin polling action URLs and service-worker version), authentication and entitlement services verified against baseline by file hashes.
+PASS: original admin dispatcher routes retained; four POST action suffixes added: trash/delete/cancel/recover. Existing admin authentication and CSRF gates precede these routes.
+PASS: SHA256SUMS regenerated and ZIP integrity verified at packaging.
+
+LIMITATIONS:
+- No live deployment or authenticated live-admin check performed.
+- No full PDF/Imagick/OCR end-to-end workload or live RabbitMQ/Supervisor transport test. MariaDB locks, outbox code review, state transitions and subprocess cancellation were tested; RabbitMQ operational acceptance remains a deployment check.
+- Dashboard and responsive styles reviewed in source, edition table rendered from PHP fixtures. Browser screenshots unavailable because browser runtime download failed. Desktop/mobile visual acceptance remains unverified.
+- PHP 8.4 and the production database/version were not executed here; test runtime was PHP 8.3.6/MariaDB 10.11.14.
+- Recovery is queue/worker driven. Permanent deletion and browser-side PDF processing are not included.
+
+BEHAVIOR TEST OUTPUT:
+PASS enqueue sets PROCESSING atomically
+PASS duplicate pipeline blocked
+PASS protect PUBLISHED
+PASS protect SCHEDULED
+PASS protect ARCHIVED
+PASS protect TRASHED
+PASS published Trash blocked
+PASS queued Trash settles
+PASS queued jobs cancelled
+PASS delayed retry cannot resurrect cancellation
+PASS restored draft can enqueue fresh root
+PASS recovery respects live worker lock
+PASS Trash waits for live worker
+PASS live job sees cancellation checkpoint
+PASS last worker cancellation settles Trash
+PASS unowned RUNNING job recovered
+PASS cross-tenant mutation blocked
+PASS root failure sets edition attention
+PASS failed job not resurrected
+PASS pagination returns distinct pages
+PASS count query works
+PASS edition controls render
+PASS subprocess cancellation propagated
+PASS subprocess terminated promptly
+PASS partial render cannot rebuild after page fan-out
+PASS scheduler publishes eligible ready and due editions
+TOTAL 26 PASSED
