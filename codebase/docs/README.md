@@ -1,6 +1,6 @@
 # EP-DI documentation map
 
-The **active** documents live here. Historical release evidence remains at its original versioned paths until a coordinated artifact rebuild, because `codebase/SHA256SUMS` enumerates the old locations.
+The **active** documents live here. Historical root-level documents are now grouped in `releases/archive/` or deduplicated against `../release/`. The [legacy filename index](releases/LEGACY-ROOT-INDEX.md) records each move. Historical Git tags and `codebase/SHA256SUMS` remain unchanged; that old checksum document is not a verification method for the slim checkout.
 
 | Area | Start here | Purpose |
 |---|---|---|
@@ -13,7 +13,8 @@ The **active** documents live here. Historical release evidence remains at its o
 | Security | [Cutover attestation template](security/SECURITY-CUTOVER-ATTESTATION.md) | Evidence required from an authorized operator |
 | Testing | [Staging acceptance](testing/STAGING-ACCEPTANCE-HARNESS-2026-10-17.md) | Authenticated test identities and outage simulations |
 | Audits | [Multi-layer security pre/post](audits/MULTILAYER-SECURITY-PREPOST-2026-10-17.md) | Platform, cache and rate-limiter changes |
-| Releases | [Historical release policy](releases/README.md) | Pinned build manifests, update notes and checksums |
+| Releases | [Historical release policy](releases/README.md) | Archived versioned documents, pinned manifests and checksums |
+| Archive | [Legacy filename index](releases/LEGACY-ROOT-INDEX.md) | Locate older documentation and backed-up source snapshots |
 
 ## Executable source ownership
 
