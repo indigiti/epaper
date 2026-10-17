@@ -25,3 +25,6 @@ PR #17 stops tracking thousands of previously tracked files under storage/media,
 ## Read-only preflight limitations
 
 The output flags deployment_driver_verified=false, credentials_rotated_verified=false and production_deployment_approved=false even if the local filesystem gate passes. A proper staging deployment rehearsal, auth tests and operator acceptance remain mandatory. No production services are changed by this command.
+## Source integrity manifest for the reduced checkout
+
+`php bin/build-source-manifest.php --summary` reads and hashes the tracked Git source, refuses tracked customer media or production configuration, and prints a deterministic source-only checksum digest. Without `--summary` it emits a complete JSON file/hash inventory to stdout (redirect to an operator-controlled release directory). It does **not** replace the historical SHA256SUMS or prove that Composer-installed artifacts and live media are deployment-safe. A final release ZIP must have a separately generated **versioned** manifest after the staged deployment mechanism and credentials are signed off.
