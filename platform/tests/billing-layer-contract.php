@@ -22,5 +22,8 @@ $check(str_contains($invoice,'Store::tx(')&&str_contains($invoice,'INSERT INTO i
 $money=file_get_contents($root.'/app/Domain/Billing/Money.php');
 $check(!str_contains($money,'round(')&&!str_contains($money,'(float)')&&!str_contains($money,'floatval('),'invoice amounts avoid float conversion');
 $check(str_contains($app,"/admin/billing/webhooks")&&str_contains($root.'/app/Presentation/Admin/WebhookReviewPage.php','WebhookReviewPage.php'),'authenticated review route retained');
+$crud=file_get_contents($root.'/app/Admin/Crud.php');
+$check(str_contains($crud,'VoidInvoice::execute('),'Admin invoice void delegates application workflow');
+$check(str_contains($invoice,'voidOpenOrDraft(')&&str_contains($invoice,'status IN ("DRAFT","OPEN")'),'invoice repository atomically guards legal void transition');
 $check(str_contains($root.'/app/Billing/StripeProvider.php','StripeProvider.php'),'Stripe adapter available');
 exit($failed?1:0);
