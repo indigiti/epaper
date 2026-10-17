@@ -15,7 +15,7 @@ final class AiCandidatePipeline
         return Config::get('ai_clipping.enabled', false) === true;
     }
 
-    public static function stage(string $editionGuid,string $pageGuid,string $hocr,string $imagePath): bool
+    public static function stage(string $editionGuid,string $pageGuid,string $languages,string $hocr,string $imagePath): bool
     {
         if(!self::enabled())return false;
         $tenant=RequestContext::tenantGuid();
@@ -35,10 +35,10 @@ final class AiCandidatePipeline
         $input=[
             'tenant_guid'=>$tenant,'page_guid'=>$pageGuid,
             'width'=>(int)$known['width'],'height'=>(int)$known['height'],
-            'languages'=>(string)Config::get('processing.ocr_languages','eng'),
+            'languages'=>$languages,
             'hocr'=>$hocr,
         ];
-        if($input['languages']==='auto')$input['languages']='mar+hin+eng';
+        if(!preg_match('/^[A-Za-z0-9_+,-]{1,80}$/',$languages))throw new \\RuntimeException('Invalid OCR engine language');
         $data=json_encode($input,JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES|JSON_THROW_ON_ERROR);
         if(strlen($data)>18*1024*1024)throw new \RuntimeException('Candidate input JSON too large');
         $tmp=$root.'/storage/tmp/ai-candidates';
