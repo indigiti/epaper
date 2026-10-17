@@ -25,6 +25,10 @@ try {
     $assert($result['application_files'] > 100, 'has application source');
     $assert($result['production_deployment_approved'] === false, 'never authorizes promotion');
     $assert($result['cloudways_deployment_rehearsed'] === false, 'no simulated Cloudways attestation');
+    $assert(($result['digiops_direct_deployment_compatible'] ?? null) === false,
+        'staging ZIP must never claim direct DigiOps compatibility');
+    $assert(($result['artifact_layout'] ?? '') === 'cloudways-php-application-root',
+        'package layout identified explicitly');
     $assert(hash_file('sha256', $zipPath) === $result['archive_sha256'], 'archive SHA-256 matches');
     $again = SlimReleaseZip::verify($zipPath);
     $assert($again === $result, 'independent verification matches');
@@ -34,6 +38,10 @@ try {
     for ($i = 0; $i < $z->numFiles; $i++) $names[] = $z->getNameIndex($i);
     $assert(in_array('app/bootstrap.php', $names, true), 'runtime bootstrap included');
     $assert(in_array('public_html/index.php', $names, true), 'web entry included');
+    $assert(!in_array('index.php', $names, true)
+        && !in_array('public/index.php', $names, true)
+        && !in_array('dist/index.html', $names, true),
+        'reject treating Cloudways app-root ZIP as a DigiOps public release');
     $assert(!in_array('storage/media/.keep', $names, true), 'no runtime skeleton');
     $assert(count(array_filter($names, static fn($n) => str_starts_with($n, 'storage/'))) === 0,
         'no storage files in deployable package');
