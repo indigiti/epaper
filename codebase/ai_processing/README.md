@@ -53,3 +53,14 @@ python3 -m unittest discover -s tests -p 'test_ai_*.py' -v
 ### Acceptance evidence still outstanding
 
 These small synthetic tests establish contract behavior only. They are **not** OCR precision/recall tests and do not certify Marathi, Hindi, English, newspaper-image angle robustness, article boundaries, mobile overlay geometry, cross-tenant authorization, production stability, model/GPU readiness, nor Cloudways deployment. Those remain the acceptance gates on issues #6 through #12.
+
+## Stacked phase 2: headline/image candidates, editor, RabbitMQ
+
+Draft [PR #29](https://github.com/indigiti/epaper/pull/29) adds `epdi.segmentation.v1` (headline/body/caption suggestions, OpenCV image textures, column-first story links), optional post-`PAGE_OCR` PHP Python staging bridge and an editor-only /admin/ai-review workspace. The feature is **off by default** and never publishes articles/clips automatically.
+
+- Optional image detector dependencies: `python3 -m pip install -r ai_processing/requirements-image.txt` (install in a private isolated staging worker venv only).
+- Staging-only migration: `database/upgrade-ai-page-candidates-20261018.sql`; never apply to a live DB without documented backup and restore acceptance.
+- Set `ai_clipping.enabled=true` in a **private staging config** only after migration, Python package audit and tenant isolation acceptance; `ai_clipping.python_binary` is the absolute interpreter executable used by the RabbitMQ worker.
+- Editorial labels, bbox, text, manual story group and order are revisions stored separately as `editor_json`; candidate auto-reprocessing never overwrites a previous review. `REVIEWED` is not `PUBLISHED`.
+- Staging rollout, browser/privacy acceptance and rollback instructions: [AI-EDITORIAL-STAGING-20261018.md](../docs/AI-EDITORIAL-STAGING-20261018.md). Existing Reader/manual ClipService remain untouched.
+- Source and disposable MariaDB CI are **not real newspaper accuracy or live Cloudways acceptance**. Hindi/Marathi/English OCR can be preserved through the text contract but quality has not been benchmarked.
