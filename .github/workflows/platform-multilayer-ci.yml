@@ -36,6 +36,8 @@ jobs:
           php platform/tests/billing-money.php
           php platform/tests/subscription-policy.php
           php platform/tests/subscription-layer-contract.php
+          php platform/tests/tenant-lifecycle-policy.php
+          php platform/tests/tenant-layer-contract.php
           php platform/tests/layer-contract.php
           php platform/tests/build-guard.php
           php platform/tests/admin-crud-guard.php
