@@ -2,7 +2,7 @@ name: EP-DI Archive Integrity and PHP Regression
 
 on:
   push:
-    branches: [main, refactor/main-docs-cleanup-20261017]
+    branches: [main, refactor/main-docs-cleanup-20261017, audit/platform-multilayer-20261017]
   pull_request:
     paths:
       - 'codebase/docs/**'
@@ -46,5 +46,6 @@ jobs:
         run: |
           php tests/platform-access-policy.php
           php tests/platform-cache-boundary.php
+          php tests/platform-disk-cache-ttl.php
           php tests/platform-invalidation-protocol.php
           php tests/platform-tenant-failclosed.php
