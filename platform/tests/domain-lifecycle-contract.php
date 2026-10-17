@@ -14,5 +14,9 @@ $check(str_contains($repository,'Store::tx(')&&str_contains($repository,'FOR UPD
 $check(str_contains($usecase,"'REMOVED','SUSPENDED'"),'removed/suspended domain cannot be verified');
 $check(str_contains($usecase,'AND status=?'),'verification update cannot race with status changes');
 $check(str_contains($usecase,'AND status IN ("ROUTING_VALID","SSL_PROVISIONING")'),'activation compares fresh lifecycle status');
-$check(substr_count($usecase,'CacheInvalidationOutbox::stageForTenant(')===3,'edit/verify/activate stage signed invalidations');
+$check(substr_count($usecase,'CacheInvalidationOutbox::stageForTenant(')===4,'edit/resume/verify/activate stage signed invalidations');
+$check(str_contains($usecase,'public static function resume(')&&str_contains($app,"'/resume'")===false && str_contains($app,"/resume"),'Suspended domain has an explicit resume action');
+$check(str_contains($usecase,'DomainLifecyclePolicy::canActivate('),'TLS edge readiness required before activation');
+$check(str_contains($app,'DomainLifecyclePolicy::canActivate('),'Activate button hidden until edge readiness');
+$check(str_contains($usecase,'FOR UPDATE')&&str_contains($usecase,'is_primary=0'),'Primary-domain edits are serial and clear preceding primary');
 exit($bad?1:0);
