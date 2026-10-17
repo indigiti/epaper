@@ -40,6 +40,18 @@ final class PlatformInvalidation
                 if(!hash_equals((string)$prior['state_value'],$digest))throw new \DomainException('REPLAY_CONFLICT');
                 return false;
             }
+            // If Redis is configured, failure must cause a retry rather than an ACK
+            // that would leave stale authorization keys behind.
+            if(RedisStore::enabled()){
+                $redis=RedisStore::client();
+                if(!$redis)throw new \RuntimeException('Redis unavailable for revocation');
+                $keys=[];
+                foreach($payload['hostnames'] as $host)$keys[]=RedisStore::key('domain:v2:'.$host);
+                $tenant=$payload['tenant_guid'];
+                foreach(['tenant-meta:v2:'.$tenant,'access:v2:'.$tenant,'tenant:'.$tenant.':entitlements','tenant-synced:'.$tenant] as $suffix)
+                    $keys[]=RedisStore::key($suffix);
+                if($keys)$redis->del($keys);
+            }
             // A domain mapping can also be on filesystem cache if Redis was unavailable.
             foreach($payload['hostnames'] as $host){
                 RedisStore::del('domain:v2:'.$host);
