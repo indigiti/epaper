@@ -65,6 +65,14 @@ final class DomainResolver
         else Store::exec('INSERT INTO ep_tenants(tenant_guid,organisation_guid,display_name,primary_hostname,status,created_at,updated_at) VALUES(?,?,?,?,"ACTIVE",NOW(6),NOW(6))',[$bin,$orgBin,$name,$incomingHost!==''?$incomingHost:null]);
         RedisStore::set('tenant-synced:'.$tenant,'1',max(60,(int)Config::get('platform.local_tenant_sync_ttl',600)));
     }
+    /** Targeted disk invalidation; failures must trigger control-plane retry. */
+    public static function invalidateFileCache(string $key): void
+    {
+        $path=self::fileCachePath($key);
+        if(is_file($path)&&!@unlink($path))
+            throw new \RuntimeException('Unable to invalidate local control-plane cache');
+    }
+
     private static function fileCacheGet(string $key): array
     {
         try{$path=self::fileCachePath($key);if(!is_file($path))return[];$raw=@file_get_contents($path);$env=$raw?json_decode($raw,true):null;if(!is_array($env)||(int)($env['expires_at']??0)<time()||!is_array($env['value']??null))return[];return$env['value'];}catch(\Throwable){return[];}
