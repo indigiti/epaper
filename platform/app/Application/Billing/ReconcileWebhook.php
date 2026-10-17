@@ -59,6 +59,12 @@ final class ReconcileWebhook
                     return 'REVIEW_REQUIRED';
                 }
             }
+            if($invoice&&$invoice['status']==='PAID'&&$payment['status']!=='SUCCEEDED'){
+                // A different payment may have paid this invoice already; never apply a second settlement silently.
+                $repo->markEvent($eventGuid,'REVIEW_REQUIRED','INVOICE_ALREADY_PAID_BY_ANOTHER_PAYMENT');
+                $repo->finishOutbox($outboxGuid);
+                return 'REVIEW_REQUIRED';
+            }
             if($payment['status']!=='SUCCEEDED')$repo->markPaymentSuccess($payment['payment_guid']);
             if($invoice&&$invoice['status']!=='PAID')$repo->markInvoicePaid($invoice['invoice_guid']);
             $repo->markEvent($eventGuid,'PROCESSED');
