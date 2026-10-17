@@ -115,6 +115,7 @@ final class RegistryMutations
                 if($password!=='')Store::exec('UPDATE platform_users SET password_hash=?,updated_at=NOW(6) WHERE user_guid=?',[password_hash($password,PASSWORD_DEFAULT),self::id($guid)]);
             }else Store::exec('UPDATE platform_users SET status=?,updated_at=NOW(6) WHERE user_guid=?',[$status,self::id($guid)]);
             if($action==='remove')Store::exec('UPDATE memberships SET status="REMOVED",updated_at=NOW(6) WHERE user_guid=?',[self::id($guid)]);
+            CacheInvalidationOutbox::stageForUser($guid);
         });
         Audit::log('user.'.$action,'platform_user',$guid);
     }
@@ -136,6 +137,8 @@ final class RegistryMutations
                 $status=$action==='remove'?'REMOVED':self::choice((string)($input['status']??''),['ACTIVE','REVOKED']);
                 Store::exec('UPDATE service_accounts SET status=? WHERE service_account_guid=?',[$status,self::id($guid)]);
             }
+            if(!empty($row['product_guid']))
+                CacheInvalidationOutbox::stageForParent('product_guid',$row['product_guid']);
         });
         Audit::log('service_account.'.$action,'service_account',$guid);
         return $token;
@@ -156,6 +159,7 @@ final class RegistryMutations
                     self::id($entity),$product!==''?self::id($product):null,$key,self::name($input['name']??''),
                     self::choice((string)($input['feature_type']??'BOOLEAN'),['BOOLEAN','LIMIT','CONFIG']),trim((string)($input['unit']??''))?:null]);
                 if($product!=='')self::invalidateCommercial($product);
+                else CacheInvalidationOutbox::stageForPlatformWideFeature();
                 return;
             }
             $row=self::target('features','feature_guid',(string)$guid);
@@ -167,6 +171,7 @@ final class RegistryMutations
                 Store::exec('DELETE FROM features WHERE feature_guid=?',[self::id($entity)]);
             }else throw new \InvalidArgumentException('Unsupported feature operation');
             if(!empty($row['product_guid']))self::invalidateCommercial($row['product_guid']);
+            else CacheInvalidationOutbox::stageForPlatformWideFeature();
         });
         Audit::log('feature.'.$action,'feature',$entity);
     }
