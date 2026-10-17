@@ -3,7 +3,7 @@ namespace Digiti;
 
 use Digiti\Core\{Auth,Audit,Config,Crypto,Database,DomainTools,Entitlements,Http,Mfa,OAuth,RateLimiter,RedisStore,ServiceAuth,Store,Uuid,View};
 use Digiti\Billing\ProviderFactory;
-use Digiti\Admin\Crud;
+use Digiti\Admin\{Crud,QuickOperations};
 use Digiti\Domain\EdgeProviderFactory;
 
 final class App
@@ -34,7 +34,11 @@ final class App
         Auth::requireAdmin();
         if($method==='POST')Http::verifyCsrf();
         if(Crud::dispatch($path,$method))exit;
-        if($path==='/admin')$this->dashboard();
+        if($path==='/admin')QuickOperations::dashboard();
+        if($path==='/admin/quick-start')QuickOperations::onboard($method);
+        if($path==='/admin/quick-domain')QuickOperations::addDomain($method);
+        if(preg_match('#^/admin/quick-domains/([0-9a-f-]{36})/disable$#',$path,$m)&&$method==='POST')QuickOperations::disableDomain($m[1],$method);
+        if(preg_match('#^/admin/quick-renew/([0-9a-f-]{36})$#',$path,$m)&&$method==='POST')QuickOperations::renew($m[1],$method);
         if($path==='/admin/organisations')$this->organisations($method);
         if($path==='/admin/users')$this->users($method);
         if($path==='/admin/products')$this->products($method);
