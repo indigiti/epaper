@@ -34,6 +34,8 @@ jobs:
         run: php tests/repository-layout-static.php
       - name: Reject tracked runtime-generated customer files
         run: php tests/runtime-storage-git-hygiene.php
+      - name: Assert old release notes retain original Git blobs
+        run: php tests/legacy-archive-layout.php
       - name: Generate deterministic source-only manifest summary
         run: php bin/build-source-manifest.php --summary
       - name: Composer dependency validation
