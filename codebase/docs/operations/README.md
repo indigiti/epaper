@@ -8,7 +8,9 @@
 - [Authenticated staging acceptance](../testing/STAGING-ACCEPTANCE-HARNESS-2026-10-17.md)
 - [Multilayer security audit](../audits/MULTILAYER-SECURITY-PREPOST-2026-10-17.md)
 
-- [Git runtime-storage migration safety and release gate](STORAGE-GIT-CLEANUP-2026-10-17.md)\n\n## Legacy operator instructions (pinned, original paths)
+- [Git runtime-storage migration safety and release gate](STORAGE-GIT-CLEANUP-2026-10-17.md)\n\n- [Safe persistent storage deployment gate](PERSISTENT-STORAGE-DEPLOYMENT-GATE.md)
+
+## Legacy operator instructions (pinned, original paths)
 
 - [Cloudways deployment](../../DEPLOY-CLOUDWAYS.md)
 - [Deployment runbook](../../DEPLOYMENT-RUNBOOK-2.0.0.md)
