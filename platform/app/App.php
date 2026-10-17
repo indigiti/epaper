@@ -44,6 +44,7 @@ final class App
         if($path==='/admin/domains')$this->domains($method);
         if(preg_match('#^/admin/domains/([0-9a-f-]{36})/verify$#',$path,$m)&&$method==='POST')$this->verifyDomain($m[1]);
         if(preg_match('#^/admin/domains/([0-9a-f-]{36})/activate$#',$path,$m)&&$method==='POST')$this->activateDomain($m[1]);
+        if(preg_match('#^/admin/domains/([0-9a-f-]{36})/resume$#',$path,$m)&&$method==='POST')$this->resumeDomain($m[1]);
         if($path==='/admin/service-accounts')$this->serviceAccounts($method);
         if($path==='/admin/commercial')$this->commercial($method);
         if($path==='/admin/subscriptions')$this->subscriptions($method);
@@ -122,10 +123,39 @@ final class App
 
     private function domains(string $method): never
     {
-        $tenants=Store::all('SELECT pt.product_tenant_guid,CONCAT(o.display_name," — ",p.name) label,pt.organisation_guid,pt.product_guid FROM product_tenants pt JOIN organisations o ON o.organisation_guid=pt.organisation_guid JOIN products p ON p.product_guid=pt.product_guid WHERE pt.status="ACTIVE" ORDER BY o.display_name');$apps=Store::all('SELECT application_guid,product_guid,name FROM applications WHERE status="ACTIVE" ORDER BY name');
-        if($method==='POST'){$receipt=\Digiti\Application\Admin\RegistryCreates::domain($_POST);$host=$receipt['host'];$token=$receipt['token'];View::flash('Domain added. Configure CNAME to '.Config::get('app.domains_target').' or TXT _digiti-verification.'.$host.' = '.$token);Http::redirect('/admin/domains');}
-        $items=Store::all('SELECT d.domain_guid,d.hostname,d.status,d.is_primary,d.verification_token,d.last_checked_at,o.display_name organisation,p.name product,a.name application FROM domains d JOIN organisations o ON o.organisation_guid=d.organisation_guid JOIN products p ON p.product_guid=d.product_guid JOIN applications a ON a.application_guid=d.application_guid ORDER BY d.created_at DESC');$rows=[];foreach($items as$r){$action='<div class="actions compact"><a class="button small" href="/admin/domains/'.$this->e($r['domain_guid']).'/edit">Edit</a><form class="inline-form" method="post" action="/admin/domains/'.$this->e($r['domain_guid']).'/verify">'.$this->csrf().'<button class="small">Verify</button></form>'.(in_array($r['status'],['ROUTING_VALID','SSL_PROVISIONING'],true)?'<form class="inline-form" method="post" action="/admin/domains/'.$this->e($r['domain_guid']).'/activate">'.$this->csrf().'<button class="small">Activate</button></form>':'').'<form class="inline-form" method="post" action="/admin/domains/'.$this->e($r['domain_guid']).'/remove">'.$this->csrf().'<button class="small danger">Remove</button></form></div>';$rows[]=[$this->e($r['hostname']),$this->e($r['organisation']),$this->e($r['product']),$this->status($r['status']),$r['is_primary']?'Yes':'No','<code>'.$this->e($r['verification_token']).'</code>',$action];}
-        $form='<section class="card"><h2>Add customer domain</h2><form method="post" class="form-grid">'.$this->csrf().'<label>Product tenant'.$this->select('product_tenant_guid',$tenants,'product_tenant_guid','label').'</label><label>Application'.$this->select('application_guid',$apps,'application_guid','name').'</label><label>Hostname<input name="hostname" placeholder="epaper.punemirror.com" required></label><label class="check"><input type="checkbox" name="is_primary" value="1"> Primary domain</label><div class="form-action"><button class="primary">Add domain</button></div></form><p class="muted">CNAME target: <code>'.$this->e(Config::get('app.domains_target')).'</code></p></section>';View::layout('Domains',$form.'<section class="card"><h2>Domain registry</h2>'.$this->table(['Hostname','Organisation','Product','Status','Primary','Verification Token','Action'],$rows).'</section>',['subtitle'=>'Global hostname → product → tenant routing']);
+        $tenants=Store::all('SELECT pt.product_tenant_guid,CONCAT(o.display_name," — ",p.name) label,pt.organisation_guid,pt.product_guid FROM product_tenants pt JOIN organisations o ON o.organisation_guid=pt.organisation_guid JOIN products p ON p.product_guid=pt.product_guid WHERE pt.status="ACTIVE" AND o.status="ACTIVE" AND p.status="ACTIVE" ORDER BY o.display_name');
+        $apps=Store::all('SELECT application_guid,product_guid,name FROM applications WHERE status="ACTIVE" ORDER BY name');
+        if($method==='POST'){
+            $receipt=\Digiti\Application\Admin\RegistryCreates::domain($_POST);
+            View::flash('Domain added. Configure CNAME to '.Config::get('app.domains_target').' or TXT _digiti-verification.'.$receipt['host'].' = '.$receipt['token'].'. After verification, activate the domain to enable routing.');
+            Http::redirect('/admin/domains');
+        }
+        $items=Store::all('SELECT d.domain_guid,d.hostname,d.status,d.is_primary,d.verification_token,d.last_checked_at,o.display_name organisation,p.name product,a.name application FROM domains d JOIN organisations o ON o.organisation_guid=d.organisation_guid JOIN products p ON p.product_guid=d.product_guid JOIN applications a ON a.application_guid=d.application_guid ORDER BY d.created_at DESC');
+        $rows=[];
+        foreach($items as $r){
+            $guid=$this->e($r['domain_guid']);$status=$r['status'];$base='/admin/domains/'.$guid;
+            $actions='<div class="actions compact">';
+            if($status!=='REMOVED'){
+                $actions.='<a class="button small" href="'.$base.'/edit">Edit</a>';
+                if($status==='SUSPENDED')
+                    $actions.='<form class="inline-form" method="post" action="'.$base.'/resume">'.$this->csrf().'<button class="small">Resume verification</button></form>';
+                else {
+                    $actions.='<form class="inline-form" method="post" action="'.$base.'/verify">'.$this->csrf().'<button class="small">Verify DNS</button></form>';
+                    if(in_array($status,['ROUTING_VALID','SSL_PROVISIONING'],true))
+                        $actions.='<form class="inline-form" method="post" action="'.$base.'/activate">'.$this->csrf().'<button class="small">Activate</button></form>';
+                }
+                $actions.='<form class="inline-form" method="post" action="'.$base.'/remove">'.$this->csrf().'<button class="small danger">Remove</button></form>';
+            }else $actions.='<span class="muted">Removed</span>';
+            $actions.='</div>';
+            $rows[]=[$this->e($r['hostname']),$this->e($r['organisation']),$this->e($r['product']),$this->status($status),$r['is_primary']?'Yes':'No','<code>'.$this->e($r['verification_token']).'</code>',$actions];
+        }
+        $form='<section class="card"><h2>Add customer domain</h2><form method="post" class="form-grid">'.$this->csrf()
+            .'<label>Product tenant'.$this->select('product_tenant_guid',$tenants,'product_tenant_guid','label').'</label>'
+            .'<label>Application'.$this->select('application_guid',$apps,'application_guid','name').'</label>'
+            .'<label>Hostname<input name="hostname" placeholder="epaper.punemirror.com" required></label>'
+            .'<div class="form-action"><button class="primary">Add domain</button></div></form>'
+            .'<p class="muted">CNAME target: <code>'.$this->e(Config::get('app.domains_target')).'</code>. New domains remain inactive until DNS verification and administrator activation. Set primary after activation using Edit. A suspended domain can resume verification; domain-name registration renewal must be handled at the registrar.</p></section>';
+        View::layout('Domains',$form.'<section class="card"><h2>Domain registry</h2>'.$this->table(['Hostname','Organisation','Product','Status','Primary','Verification Token','Action'],$rows).'</section>',['subtitle'=>'Approve, verify, activate, suspend and resume tenant hostnames']);
     }
 
     private function verifyDomain(string $guid): never
@@ -134,6 +164,13 @@ final class App
         View::flash($result['verified']?'DNS verified. Edge/TLS status: '.$result['status']:'DNS not verified yet.');
         Http::redirect('/admin/domains');
     }
+    private function resumeDomain(string $guid): never
+    {
+        \Digiti\Application\Routing\ManageDomain::resume($guid);
+        View::flash('Verification restarted. Verify DNS and reactivate before traffic can be routed.');
+        Http::redirect('/admin/domains');
+    }
+
     private function activateDomain(string $guid): never
     {
         \Digiti\Application\Routing\ManageDomain::activate($guid);
