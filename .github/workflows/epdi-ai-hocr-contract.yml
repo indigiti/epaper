@@ -1,10 +1,12 @@
-name: EP-DI AI hOCR Contract
+name: EP-DI AI OCR and Layout Contract
 on:
   pull_request:
     paths:
       - 'codebase/ai_processing/**'
       - 'codebase/bin/ai-ocr-normalize.py'
+      - 'codebase/bin/ai-layout-preview.py'
       - 'codebase/tests/test_ai_hocr.py'
+      - 'codebase/tests/test_ai_layout.py'
       - '.github/workflows/epdi-ai-hocr-contract.yml'
   push:
     branches:
@@ -12,7 +14,9 @@ on:
     paths:
       - 'codebase/ai_processing/**'
       - 'codebase/bin/ai-ocr-normalize.py'
+      - 'codebase/bin/ai-layout-preview.py'
       - 'codebase/tests/test_ai_hocr.py'
+      - 'codebase/tests/test_ai_layout.py'
       - '.github/workflows/epdi-ai-hocr-contract.yml'
 permissions:
   contents: read
@@ -24,7 +28,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - run: python -m unittest discover -s tests -p 'test_ai_hocr.py' -v
+      - run: python -m unittest discover -s tests -p 'test_ai_*.py' -v
         working-directory: codebase
-      - run: python -m compileall -q ai_processing bin/ai-ocr-normalize.py
+      - run: python -m compileall -q ai_processing bin/ai-ocr-normalize.py bin/ai-layout-preview.py
         working-directory: codebase
