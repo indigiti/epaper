@@ -97,4 +97,6 @@ jobs:
       - name: Settlement and idempotency integration
         env:
           EPDI_BILLING_INTEGRATION: disposable-ci
-        run: php platform/tests/billing-mariadb-integration.php
+        run: |
+          php platform/tests/billing-mariadb-integration.php
+          php platform/tests/domain-mariadb-integration.php
