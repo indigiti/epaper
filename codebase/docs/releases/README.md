@@ -15,3 +15,7 @@ Why: `SHA256SUMS` at application root lists their exact relative file paths and 
 5. Preserve old release evidence in Git tags and release archives rather than mutating prior release history.
 
 The current reorganization moves only **active, post-release security documentation not present in the historical SHA256SUMS**. It does not move PHP runtime modules, migration scripts, published PDFs, media, stored clipping files or pinned historical documents.
+
+## Slim source branch warning
+
+The runtime-storage cleanup branch retains this historical SHA256SUMS and the old v2.0.2.1 manifest unchanged. They describe the earlier full release with its tracked media. They are **not valid integrity checks for a new slim source checkout**. A future runtime release must generate a new versioned artifact manifest after Composer installation and content-preserving migration. See [runtime-storage migration](../operations/STORAGE-GIT-CLEANUP-2026-10-17.md).
