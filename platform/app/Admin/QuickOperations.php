@@ -108,7 +108,7 @@ final class QuickOperations
                 return [$org,$tenant,$domain];
             });
             Audit::log('publisher.quick_create','product_tenant',$tenant,'SUCCESS',['domain_guid'=>$domain,'organisation_guid'=>$org,'manual_access_approved'=>$approved]);
-            self::redirect('/admin/domains','Publisher created. Next: configure CNAME/TXT, verify DNS and provision HTTPS before activation.');
+            self::redirect('/admin/quick-domains/'.$domain,'Publisher created. Follow the three steps to activate its domain.');
         }
         $select='<option value="">No access yet — configure later</option>';foreach($plans as $p)$select.='<option value="'.self::e($p['plan_guid']).'">'.self::e($p['name']).'</option>';
         $body='<section class="card quick-form-card"><p class="eyebrow">GUIDED SETUP · 1 OF 2</p><h2>Create publisher and first domain</h2><p class="muted">Only two details are required. We automatically connect the new organisation to the ePaper product and create its tenant.</p><form method="post" class="quick-form">'.self::csrf().'<label>Publisher / newspaper name<input name="name" maxlength="190" placeholder="Pune Mirror" autocomplete="organization" required></label><label>Publisher ePaper domain<input name="hostname" placeholder="epaper.punemirror.in" required><small>Enter only the hostname, without https://</small></label><fieldset class="quick-optional"><legend>Optional: grant service access now</legend><label>Plan<select name="plan_guid">'.$select.'</select></label><label class="check"><input type="checkbox" name="approve_access" value="yes"> I confirm this service access has been approved manually. No payment is collected here.</label></fieldset><div class="form-action"><button class="primary">Create publisher →</button><a href="/admin" class="button">Cancel</a></div></form></section><section class="card quick-guide"><h2>What happens next?</h2><ol><li><strong>Publisher created:</strong> organisation, tenant and requested domain are registered together.</li><li><strong>DNS verification:</strong> point the domain to the configured CNAME target or add the verification TXT record.</li><li><strong>SSL and activation:</strong> ensure Cloudways / Cloudflare routing and HTTPS are ready, then activate the domain.</li></ol><p class="muted">Publisher ownership and TLS are not approved simply by submitting this form.</p></section>';
@@ -123,12 +123,34 @@ final class QuickOperations
             if(!$picked)throw new \InvalidArgumentException('Select an active publisher.');
             $domain=Store::tx(static fn()=>self::addHostname($host,$picked['organisation_guid'],$app['product_guid'],$app['application_guid'],$tenant));
             Audit::log('domain.quick_create','domain',$domain);
-            self::redirect('/admin/domains','Domain registered. Verify DNS ownership and configure HTTPS before activation.');
+            self::redirect('/admin/quick-domains/'.$domain,'Domain registered. Follow DNS verification and HTTPS steps.');
         }
         $options='<option value="">Select publisher</option>';foreach($tenants as $t)$options.='<option value="'.self::e($t['product_tenant_guid']).'">'.self::e($t['label']).'</option>';
         $body='<section class="card quick-form-card"><p class="eyebrow">DOMAIN SETUP</p><h2>Add another publisher domain</h2><p class="muted">Choose the publisher and enter the new domain. Everything else is linked automatically.</p><form method="post" class="quick-form">'.self::csrf().'<label>Publisher<select name="tenant_guid" required>'.$options.'</select></label><label>Additional domain<input name="hostname" placeholder="epaper.civicmirror.in" required></label><div class="form-action"><button class="primary">Register domain →</button><a class="button" href="/admin">Cancel</a></div></form></section><section class="card quick-guide"><h2>After registration</h2><p>Set the publisher DNS, complete ownership verification and TLS provisioning, then activate the domain in Domains. This step never points unrelated publishers to the same tenant.</p></section>';
         View::layout('Add domain',$body,['subtitle'=>'Link a hostname to an existing ePaper publisher']);
     }
+
+    /**
+     * Plain-language setup checklist for a single domain.
+     * Ownership validation and HTTPS provisioning remain separate explicit steps.
+     */
+    public static function domainDetail(string $guid): never {
+        $d=Store::one('SELECT d.domain_guid,d.hostname,d.status,d.verification_token,d.last_checked_at,d.edge_metadata,o.display_name publisher,pt.display_name tenant FROM domains d JOIN products p ON p.product_guid=d.product_guid JOIN organisations o ON o.organisation_guid=d.organisation_guid JOIN product_tenants pt ON pt.product_tenant_guid=d.product_tenant_guid WHERE d.domain_guid=? AND p.product_key="EPAPER"',[Uuid::toBinary($guid)]);
+        if(!$d)throw new \RuntimeException('ePaper domain not found.');
+        $host=self::e($d['hostname']);$target=self::e(Config::get('app.domains_target','domains.digiti.in'));
+        $token=self::e($d['verification_token']);$status=self::status($d['status']);
+        $verified=in_array($d['status'],['ROUTING_VALID','SSL_PROVISIONING','ACTIVE'],true);
+        $active=$d['status']==='ACTIVE';
+        $step='<div class="quick-steps"><section class="card"><span class="eyebrow">STEP 1</span><h2>Connect domain to ePaper</h2><p>Add either the CNAME record or the TXT ownership record in your DNS provider.</p><div class="dns-record"><span>CNAME</span><code>'.$host.' → '.$target.'</code></div><div class="dns-record"><span>TXT</span><code>_digiti-verification.'.$host.' → '.$token.'</code></div><p class="muted">DNS changes can take time to propagate. For Cloudflare for SaaS, follow the displayed edge validation records too.</p></section>';
+        $step.='<section class="card"><span class="eyebrow">STEP 2</span><h2>Verify ownership</h2><p>Domain status: '.$status.'</p>';
+        if(!$active&&$d['status']!=='REMOVED')$step.='<form method="post" action="/admin/domains/'.self::e($guid).'/verify">'.self::csrf().'<button class="primary">Check DNS now</button></form>';
+        elseif($active)$step.='<p class="status active">Active</p>';
+        else $step.='<p class="muted">Removed domains must be reviewed before registering them again.</p>';
+        $step.='</section><section class="card"><span class="eyebrow">STEP 3</span><h2>HTTPS and go live</h2><p>'.($verified?'DNS routing has been recorded.':'First complete domain ownership validation.').' Ensure your Cloudways/Cloudflare edge points to the existing ePaper application and the HTTPS certificate is valid.</p><a class="button" href="/admin/domains">Review SSL and activate →</a><p class="muted">Activating a hostname in Platform is not a substitute for edge TLS and origin routing.</p></section></div>';
+        $body='<section class="quick-domain-head"><div><p class="eyebrow">PUBLISHER DOMAIN</p><h2>'.$host.'</h2><p>'.self::e($d['publisher']).' · '.self::e($d['tenant']).' · '.$status.'</p></div><a href="/admin/domains/'.self::e($guid).'/edit" class="button">Edit domain</a></section>'.$step.'<p><a class="button" href="/admin">← Back to Publisher Hub</a></p>';
+        View::layout('Domain setup',$body,['subtitle'=>'DNS → Verify → HTTPS → Activate']);
+    }
+
     public static function disableDomain(string $guid,string $method): never {
         if($method!=='POST')Http::redirect('/admin');
         $row=Store::one('SELECT d.hostname,d.status,p.product_key FROM domains d JOIN products p ON p.product_guid=d.product_guid WHERE d.domain_guid=?',[Uuid::toBinary($guid)]);
