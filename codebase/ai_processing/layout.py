@@ -139,6 +139,9 @@ def propose_regions(document: dict) -> dict:
         if not isinstance(value, str) or not value.strip() or len(value) > 2048:
             raise OcrContractError("Invalid OCR word content")
         rect = _rectangle(word.get("bbox_px"), width, height)
+        expected_id = str(uuid.uuid5(uuid.UUID(page_guid), f"{index}:{rect}:{value.strip()}"))
+        if guid != expected_id:
+            raise OcrContractError("OCR word identifier does not match page and content")
         confidence = word.get("confidence")
         if confidence is not None:
             if type(confidence) not in (int, float) or not math.isfinite(confidence) or not 0 <= confidence <= 1:
