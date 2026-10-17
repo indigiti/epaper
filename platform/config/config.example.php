@@ -37,6 +37,12 @@ return [
         'stripe_secret' => '',
         'stripe_webhook_secret' => '',
     ],
+    'integrations' => [
+        // Exact trusted URL: HTTPS, no query/redirect; configure actual app host privately.
+        'epaper_invalidation_url' => '',
+        // Same 32+ char secret as ePaper platform.invalidation_secret; keep out of Git.
+        'epaper_invalidation_secret' => '',
+    ],
     'edge' => [
         'provider' => 'manual',
         'cloudflare_api_token' => '',
