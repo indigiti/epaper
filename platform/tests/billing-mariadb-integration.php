@@ -240,5 +240,21 @@ try{
 }catch(\RuntimeException){}
 $check((int)Store::value('SELECT COUNT(*) FROM outbox_events WHERE event_type="cache.invalidate"')===$countBefore,'event insert rolled back with parent transaction');
 
+// Support impersonation: strict one-time token and active tenant membership.
+$adminGuid=$id();$userGuid=$id();$memberGuid=$id();$grantGuid=$id();
+$impToken='ci_one_time_impersonation_secret';
+Store::exec('INSERT INTO platform_admins(admin_guid,email,display_name,password_hash,status,created_at,updated_at) VALUES(?,"ci-platform-admin@test.invalid","CI Platform Admin",?,"ACTIVE",NOW(6),NOW(6))',[$bin($adminGuid),password_hash('fixture-password!',PASSWORD_DEFAULT)]);
+Store::exec('INSERT INTO platform_users(user_guid,email,display_name,password_hash,status,created_at,updated_at) VALUES(?,"ci-member@test.invalid","CI Member",?,"ACTIVE",NOW(6),NOW(6))',[$bin($userGuid),password_hash('fixture-password!',PASSWORD_DEFAULT)]);
+Store::exec('INSERT INTO memberships(membership_guid,organisation_guid,user_guid,role_key,status,created_at,updated_at) VALUES(?,?,?,"OWNER","ACTIVE",NOW(6),NOW(6))',[$bin($memberGuid),$bin($epOrg),$bin($userGuid)]);
+Store::exec('INSERT INTO impersonation_grants(impersonation_guid,admin_guid,organisation_guid,user_guid,token_hash,reason,created_at,expires_at) VALUES(?,?,?,?,?, "CI support access",NOW(6),DATE_ADD(NOW(6),INTERVAL 10 MINUTE))',[
+    $bin($grantGuid),$bin($adminGuid),$bin($epOrg),$bin($userGuid),hash('sha256',$impToken,true)]);
+$claimed=\Digiti\Application\Security\ConsumeImpersonation::consume($impToken,$epTenant);
+$check(($claimed['user']['user_guid']??null)===$userGuid,'one-time impersonation returns correct user');
+$check(($claimed['membership']['organisation_guid']??null)===$epOrg,'impersonation stays within tenant organisation');
+try{\Digiti\Application\Security\ConsumeImpersonation::consume($impToken,$epTenant);$replay=false;}
+catch(\DomainException $e){$replay=$e->getMessage()==='IMPERSONATION_INVALID';}
+$check($replay,'second redemption of support token denied');
+$check(Store::value('SELECT used_at FROM impersonation_grants WHERE impersonation_guid=?',[$bin($grantGuid)])!==null,'support token redeemed atomically');
+
 echo "MariaDB billing integration checks complete.\n";
 exit($fail?1:0);
