@@ -28,5 +28,5 @@ foreach(['application_product_guid','tenant_product_guid','tenant_organisation_g
 }
 $check(Policy::denyReason($record,[])==='DOMAIN_NOT_ACTIVE','unbound service denied');
 $check(Policy::denyReason($record,['product_guid'=>'product-b'])==='DOMAIN_NOT_ACTIVE','cross-product service denied');
-foreach(['ROUTING_VALID','SSL_PROVISIONING'] as $status){$case=$record;$case['status']=$status;$check(Policy::denyReason($case,$service)===null,"pre-active $status retained for compatibility");}
+foreach(['ROUTING_VALID','SSL_PROVISIONING'] as $status){$case=$record;$case['status']=$status;$check(Policy::denyReason($case,$service)==='DOMAIN_NOT_ACTIVE',"pre-active $status cannot bypass approval");}
 exit($fail?1:0);
