@@ -1,0 +1,30 @@
+name: EP-DI AI hOCR Contract
+on:
+  pull_request:
+    paths:
+      - 'codebase/ai_processing/**'
+      - 'codebase/bin/ai-ocr-normalize.py'
+      - 'codebase/tests/test_ai_hocr.py'
+      - '.github/workflows/epdi-ai-hocr-contract.yml'
+  push:
+    branches:
+      - 'feature/ai-clipping-hocr-contract-20261018'
+    paths:
+      - 'codebase/ai_processing/**'
+      - 'codebase/bin/ai-ocr-normalize.py'
+      - 'codebase/tests/test_ai_hocr.py'
+      - '.github/workflows/epdi-ai-hocr-contract.yml'
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m unittest discover -s tests -p 'test_ai_hocr.py' -v
+        working-directory: codebase
+      - run: python -m compileall -q ai_processing bin/ai-ocr-normalize.py
+        working-directory: codebase
