@@ -1,7 +1,7 @@
 <?php
 namespace EpaperSaas;
 use EpaperSaas\Core\{Auth,Build,Config,Http,RateLimiter,RedisStore,RequestContext,Store,Uuid,View};
-use EpaperSaas\Services\{AnalyticsCatalog,Audit,CacheInspector,ClipService,DomainResolver,DirectRecovery,EditionOperations,EditionManifest,Entitlements,InfrastructureConfig,Media,DesktopAuth,DeviceAuth,MobileAuth,MobileAuthPendingException,MultiLayerCache,OfflineVault,PlatformClient,Processing,ProcessingRecovery,ProductionReadiness,PublicReadCache,PublishingRuntime,PublishingScheduler,QueueService,RecoveryCenter,RabbitMq,ReaderNavigation,ReaderSession,RuntimeCache,SchemaDoctor,SemanticNews,SeoDiscovery,SettingsCatalog,SupervisorRuntime,TenantData,TrustedAppAuth,PerformanceTelemetry};
+use EpaperSaas\Services\{AnalyticsCatalog,Audit,CacheInspector,ClipService,DomainResolver,DirectRecovery,EditionOperations,EditionManifest,Entitlements,InfrastructureConfig,Media,DesktopAuth,DeviceAuth,MobileAuth,MobileAuthPendingException,MultiLayerCache,OfflineVault,PlatformClient,Processing,ProcessingRecovery,ProductionReadiness,PublicReadCache,PublishingRuntime,PublishingScheduler,QueueService,RecoveryCenter,RabbitMq,ReaderNavigation,ReaderSession,RuntimeCache,SchemaDoctor,SemanticNews,SeoDiscovery,SettingsCatalog,SupervisorRuntime,TenantData,TrustedAppAuth,PerformanceTelemetry,PublisherAccess};
 final class App
 {
     public function run(): never
@@ -710,7 +710,12 @@ final class App
 
     private function runAdmin(string $path,string $method): never
     {
-        Auth::requireAdmin();if($method==='POST')Http::verifyCsrf();
+        $membership=Auth::requireAdmin();
+        if (!PublisherAccess::allows((string)($membership['role_key']??''),$path,$method)) {
+            http_response_code(403);
+            View::layout('Access denied','<section class="empty-state"><h1>Action not permitted</h1><p>Your publisher role does not have permission to access this administration function.</p></section>',['brand'=>$this->brandName(),'admin'=>true]);
+        }
+        if($method==='POST')Http::verifyCsrf();
         if(preg_match('#^/admin/editions/([0-9a-f-]{36})/(trash|delete|cancel|recover|process-immediately)$#i',$path,$m)&&$method==='POST')$this->adminEditionRecovery($m[1],$m[2]);
         if($path==='/admin/preferences/theme'&&$method==='POST')$this->adminThemePreference();
         if($path==='/admin')$this->adminDashboard();if($path==='/admin/navigation')$this->adminNavigation();if($path==='/admin/navigation/scope/create'&&$method==='POST')$this->adminNavigationCreateScope();if(preg_match('#^/admin/navigation/([0-9a-f-]{36})/header$#i',$path,$m)&&$method==='POST')$this->adminNavigationHeader($m[1]);if(preg_match('#^/admin/navigation/([0-9a-f-]{36})/item/add$#i',$path,$m)&&$method==='POST')$this->adminNavigationAddItem($m[1]);if(preg_match('#^/admin/navigation/([0-9a-f-]{36})/item/([0-9a-f-]{36})/(delete|toggle|up|down)$#i',$path,$m)&&$method==='POST')$this->adminNavigationItemAction($m[1],$m[2],$m[3]);if(preg_match('#^/admin/navigation/([0-9a-f-]{36})/publish$#i',$path,$m)&&$method==='POST')$this->adminNavigationPublish($m[1]);if(preg_match('#^/admin/navigation/([0-9a-f-]{36})/restore/(\d+)$#i',$path,$m)&&$method==='POST')$this->adminNavigationRestore($m[1],(int)$m[2]);if($path==='/admin/publications')$this->adminPublications($method);if(preg_match('#^/admin/publications/([0-9a-f-]{36})/(update|status|delete)$#i',$path,$m)&&$method==='POST')$this->adminPublicationAction($m[1],$m[2]);if($path==='/admin/highlights')$this->adminHighlights($method);if(preg_match('#^/admin/highlights/([0-9a-f-]{36})/(update|status|delete)$#i',$path,$m)&&$method==='POST')$this->adminHighlightAction($m[1],$m[2]);if($path==='/admin/articles')$this->adminArticles($method);if(preg_match('#^/admin/articles/([0-9a-f-]{36})/(update|publish|unpublish|delete)$#i',$path,$m)&&$method==='POST')$this->adminArticleAction($m[1],$m[2]);if($path==='/admin/authors')$this->adminAuthors($method);if(preg_match('#^/admin/authors/([0-9a-f-]{36})/(update|status|delete)$#i',$path,$m)&&$method==='POST')$this->adminAuthorAction($m[1],$m[2]);if($path==='/admin/topics')$this->adminTopics($method);if(preg_match('#^/admin/topics/([0-9a-f-]{36})/(update|status|delete)$#i',$path,$m)&&$method==='POST')$this->adminTopicAction($m[1],$m[2]);if($path==='/admin/entities')$this->adminEntities($method);if(preg_match('#^/admin/entities/([0-9a-f-]{36})/(update|status|delete)$#i',$path,$m)&&$method==='POST')$this->adminEntityAction($m[1],$m[2]);if($path==='/admin/master-data')$this->adminMasterData($method);if(preg_match('#^/admin/master-data/(city|language|section)/([0-9a-f-]{36})/(update|status|delete)$#i',$path,$m)&&$method==='POST')$this->adminMasterAction($m[1],$m[2],$m[3]);if($path==='/admin/editions')$this->adminEditions($method);if(preg_match('#^/admin/editions/([0-9a-f-]{36})/(update|archive|restore)$#i',$path,$m)&&$method==='POST')$this->adminEditionAction($m[1],$m[2]);
@@ -1480,7 +1485,7 @@ $h.='<section class="panel processing-settings-card processing-recovery-card"><d
 
     private function adminAccount(): never
     {
-        Http::redirect('/admin/plans');
+        Http::redirect('/account');
     }
 
     private function adminAudit(): never

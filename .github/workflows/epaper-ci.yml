@@ -1,0 +1,47 @@
+name: EP-DI PHP Security and Regression
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: codebase
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: mbstring, pdo_mysql, json, sockets, openssl, fileinfo
+          coverage: none
+      - name: Reject production runtime data tracked by Git
+        working-directory: .
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git ls-files -- codebase/config/config.php codebase/config/runtime.php codebase/config/install.token codebase/storage/installed.lock codebase/public_html/apply-login-580px-hotfix.php | grep .; then
+            echo "::error::Production secrets, installer lock or privileged hotfix script are tracked"
+            exit 1
+          fi
+      - name: Composer dependency validation
+        run: |
+          composer validate --no-check-publish
+          composer install --no-dev --no-interaction --prefer-dist --optimize-autoloader
+      - name: PHP syntax validation
+        run: |
+          set -euo pipefail
+          find app bin tests public_html -type f -name '*.php' -not -path '*/uploads/*' -print0 | xargs -0 -n1 php -l > /tmp/epdi-php-lint.txt
+          php -l tests-cumulative-check.php
+          php -l config/config.example.php
+      - name: JavaScript syntax validation
+        run: |
+          set -euo pipefail
+          find public_html/assets public_html -maxdepth 2 -type f -name '*.js' -print0 | sort -zu | xargs -0 -n1 node --check
+      - name: Run current release regression suite
+        run: php bin/release-check.php

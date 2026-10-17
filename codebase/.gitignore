@@ -1,0 +1,15 @@
+# Generated runtime state and confidential environment settings.
+/config/config.php
+/config/runtime.php
+/config/install.token
+/.env
+/.env.*
+/storage/
+/public_html/uploads/
+/public_html/apply-*-hotfix.php
+*.bak
+*.bak-*
+*.old
+*.orig
+*.log
+.DS_Store
