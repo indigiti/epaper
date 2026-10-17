@@ -81,3 +81,8 @@ From installed application root, with private config and correct environment: ph
 5. Only after section 4 succeeds: rotate production credentials and encryption keys according to the agreed data migration (section 3), clean historical Git objects (section 5), and promote/verify production (section 6).
 
 Never defer verified recovery beyond the first destructive or irreversible cutover step. See \`APP-KEY-ROTATION-INVENTORY.md\` for affected encrypted data.
+
+
+## Authenticated staging verification
+
+See STAGING-ACCEPTANCE-HARNESS-2026-10-17.md for isolated simulation commands and private, operator-only authenticated GET and Chromium tests. GitHub CI never receives staging credentials. Final Cloudways backup/restoration MUST precede live credential rotation, history rewrite or production deployment.
