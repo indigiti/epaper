@@ -8,7 +8,13 @@ $checks=[
  'private response sets no-store'=>str_contains($http,'Cache-Control: private, no-store'),
  'public responses vary by cookie'=>str_contains($http,'Vary: Cookie, Accept-Encoding'),
  'dynamic navigation is network-only'=>str_contains($sw,'event.respondWith(fetch(request).catch('),
- 'no dynamic cache.put'=>!str_contains($sw,'cache.put(request,cacheCopy)')&&!str_contains($sw,'await cache.put(request,cacheCopy)'),
+ 'no dynamic cache.put'=>static function()use($sw):bool{
+  $start=strpos($sw,"if(request.mode==='navigate'){");
+  $end=strpos($sw,"if(url.pathname.startsWith('/assets/')",$start?:0);
+  if($start===false||$end===false)return false;
+  $navigation=substr($sw,$start,$end-$start);
+  return !str_contains($navigation,'cache.put(')&&!str_contains($navigation,'cache.add(');
+}(),
  'clear previously stored dynamic HTML'=>str_contains($sw,'key===PAGE_CACHE'),
  'offline fallback remains'=>str_contains($sw,"caches.match('/offline.html')"),
  'encrypted offline API never cached'=>str_contains($sw,"url.pathname.startsWith('/api/v2/offline/')"),
