@@ -48,6 +48,7 @@ final class View
         $groups=[];
         $groups['PUBLISHING']=[['Overview','/admin','Publisher operations']];
         if($editor){$groups['PUBLISHING'][]=['Editions','/admin/editions','Process, schedule & publish'];$groups['PUBLISHING'][]=['Articles','/admin/articles','Semantic stories & bylines'];$groups['PUBLISHING'][]=['Highlights','/admin/highlights','Homepage promotion'];}
+        if($editor&&Config::get('ai_clipping.enabled',false)===true)$groups['PUBLISHING'][]=['AI Review','/admin/ai-review','Correct OCR candidates (review only)'];
         if($operator)$groups['PUBLISHING'][]=['Processing','/admin/processing','Render, OCR, recovery & finalize'];
         if($editor)$groups['CONTENT']=[['Reader Navigation','/admin/navigation','Public navigation & scopes'],['Topics','/admin/topics','Curated discovery collections'],['Entities','/admin/entities','People, places & organisations'],['Authors','/admin/authors','Bylines, bios & expertise']];
         if($full)$groups['ACCESS']=[['Subscribers','/admin/subscribers','Readers & access'],['Plans & Entitlements','/admin/plans','Effective plan capabilities']];
