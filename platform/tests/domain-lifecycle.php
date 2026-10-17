@@ -11,4 +11,16 @@ foreach([['ACTIVE','REMOVED'],['SUSPENDED','ACTIVE'],['REMOVED','ACTIVE'],['REMO
     catch(DomainException){$rejected=true;}
     $check($rejected,"domain edit rejects $from to $to");
 }
+$check(Policy::canActivate('ROUTING_VALID',['provider'=>'manual','status'=>'ROUTING_VALID']),'manual edge must be explicitly verified before activation');
+$check(Policy::canActivate('SSL_PROVISIONING',['provider'=>'cloudflare','status'=>'ACTIVE']),'Cloudflare edge and certificate ready for manual approval');
+foreach([
+    ['AWAITING_DNS',['provider'=>'manual','status'=>'ROUTING_VALID']],
+    ['REMOVED',['provider'=>'cloudflare','status'=>'ACTIVE']],
+    ['SUSPENDED',['provider'=>'manual','status'=>'ROUTING_VALID']],
+    ['ROUTING_VALID',['provider'=>'cloudflare','status'=>'ACTIVE']],
+    ['SSL_PROVISIONING',['provider'=>'cloudflare','status'=>'SSL_PROVISIONING']],
+    ['SSL_PROVISIONING',['provider'=>'cloudflare','status'=>'ROUTING_VALID']],
+    ['ROUTING_VALID',['provider_error'=>'Timeout']]
+] as [$status,$edge])
+    $check(!Policy::canActivate($status,$edge),"unready edge cannot activate $status");
 exit($fail?1:0);
