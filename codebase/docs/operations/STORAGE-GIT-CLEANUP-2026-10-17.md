@@ -70,3 +70,19 @@ An optional **read-only** integrity comparator is now available:
 6. Report the sign-off in a private operator record with the backup ID, snapshot timestamp, restore time, database and media checks, owner and rollback evidence. Do not paste sensitive locations or raw backup files into a public PR.
 
 The actual staging restore and cutover remain **NOT VERIFIED** until executed and evidenced.
+
+
+## Separate Cloudways staging environment reported ready (operator report)
+
+The operator has now reported that the backup is present in a **separate Cloudways staging environment**. This establishes a reported staging milestone, but is **not an independent confirmation** that both the MariaDB restore and all original PDFs/media/clips have been restored and tested.
+
+For a staged installation containing restored data, the new **read-only** file-reference and schema-integrity audit is:
+
+    EPDI_STAGING_RESTORE_ONLY=1 EPDI_STAGING_DB_NAME=<EXACT_STAGING_DB_NAME> \
+    php bin/staging-restore-acceptance.php
+
+Run from the staged \`codebase/\` checkout with private \`EPDI_CONFIG_PATH\` and \`EPDI_RUNTIME_PATH\` as applicable. Use a read-only MariaDB principal; the script also marks its session read-only. It reports row counts, missing file references and cross-tenant orphan reference counts, **not** actual document names, user identities or file paths. It must be executed against an isolated **staging** database, never against production.
+
+Next run the separate backup-vs-restore SHA-256 comparator (above), \`php bin/health.php\`, \`php bin/queue-diagnostic.php\`, \`php bin/readiness-check.php --json\` with the correct staging tenant, and authenticated staging browser tests. Never run \`bin/tenant-isolation-diagnostic.php\` on a live/production database: that diagnostic inserts and deletes fixture data.
+
+**Stop** if any original PDF/asset/current clip is missing, any parent is orphaned, the restored database is empty, tenant isolation fails or stage deployment wipes files. No deletion PR may be merged until the restore and deployment-preservation procedure has independent evidence and operator sign-off.
