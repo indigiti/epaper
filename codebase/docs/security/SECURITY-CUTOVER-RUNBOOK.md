@@ -85,4 +85,4 @@ Never defer verified recovery beyond the first destructive or irreversible cutov
 
 ## Authenticated staging verification
 
-See STAGING-ACCEPTANCE-HARNESS-2026-10-17.md for isolated simulation commands and private, operator-only authenticated GET and Chromium tests. GitHub CI never receives staging credentials. Final Cloudways backup/restoration MUST precede live credential rotation, history rewrite or production deployment.
+See ../testing/STAGING-ACCEPTANCE-HARNESS-2026-10-17.md for isolated simulation commands and private, operator-only authenticated GET and Chromium tests. GitHub CI never receives staging credentials. Final Cloudways backup/restoration MUST precede live credential rotation, history rewrite or production deployment.
