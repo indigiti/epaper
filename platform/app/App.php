@@ -266,11 +266,13 @@ final class App
         $tenant=(string)($body['product_tenant_guid']??'');
         ServiceAuth::requireTenantScope('usage.write',$tenant);
         try {
-            \Digiti\Application\Metering\RecordUsage::execute($tenant,$body);
-            Http::json(['ok'=>true]);
+            $recorded=\Digiti\Application\Metering\RecordUsage::execute($tenant,$body);
+            Http::json(['ok'=>true,'duplicate'=>!$recorded]);
         } catch (\InvalidArgumentException $e) {
             Http::json(['ok'=>false,'code'=>'USAGE_REQUEST_INVALID','message'=>$e->getMessage()],400);
         } catch (\DomainException $e) {
+            if($e->getMessage()==='USAGE_EVENT_CONFLICT')
+                Http::json(['ok'=>false,'code'=>'USAGE_EVENT_CONFLICT'],409);
             Http::json(['ok'=>false,'code'=>'FEATURE_NOT_FOUND'],404);
         }
     }
