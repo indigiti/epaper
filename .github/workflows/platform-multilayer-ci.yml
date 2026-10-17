@@ -30,6 +30,8 @@ jobs:
           php platform/tests/core-smoke.php
           php platform/tests/multilayer-policy.php
           php platform/tests/domain-resolution-policy.php
+          php platform/tests/domain-lifecycle.php
+          php platform/tests/domain-lifecycle-contract.php
           php platform/tests/epaper-api-contract.php
           php platform/tests/billing-webhooks.php
           php platform/tests/billing-layer-contract.php
