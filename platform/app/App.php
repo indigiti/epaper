@@ -14,7 +14,10 @@ final class App
         if($path==='/health/live')Http::json(['ok'=>true,'status'=>'LIVE','version'=>$this->version(),'request_guid'=>Http::requestGuid()]);
         if($path==='/health/ready')$this->healthReady();
         if($path==='/login')$this->login($method);
-        if($path==='/logout'){Auth::logout();Http::redirect('/login');}
+        if($path==='/logout'){
+            if($method!=='POST')Http::redirect('/login');
+            Http::verifyCsrf();Auth::logout();Http::redirect('/login');
+        }
         if($path==='/auth/authorize')$this->authorize($method);
         if($path==='/auth/security')$this->userSecurity($method);
         if($path==='/internal/v1/auth/token'&&$method==='POST')$this->authToken();
