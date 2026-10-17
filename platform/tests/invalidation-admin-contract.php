@@ -28,6 +28,10 @@ $domainManager=file_get_contents($root.'/app/Application/Routing/ManageDomain.ph
 $revalidate=file_get_contents($root.'/app/Application/Routing/RevalidateDomains.php');
 $check(str_contains($app,'ManageMfa::change(')&&str_contains($mfa,'Store::tx('),'MFA write paths layer and transact');
 $check(str_contains($app,'IssueImpersonation::issue(')&&str_contains($imp,'status="ACTIVE" FOR UPDATE'),'impersonation grants require active membership');
+$consume=file_get_contents($root.'/app/Application/Security/ConsumeImpersonation.php');
+$check(str_contains($app,'ConsumeImpersonation::consume(')&&str_contains($app,"requireTenantScope('impersonation.consume'"),'support-token redemption is product-bound and layered');
+$check(str_contains($consume,'FOR UPDATE')&&str_contains($consume,'used_at IS NULL')&&str_contains($consume,'Store::tx('),'support token consumed once under transaction');
+
 $check(str_contains($crud,'ManageDomain::edit(')&&str_contains($app,'ManageDomain::activate('),'domain Admin writes layered');
 $check(str_contains($domainManager,'CacheInvalidationOutbox::stageForTenant('),'domain mutations stage invalidation');
 $check(str_contains($revalidate,'status NOT IN ("SUSPENDED","REMOVED")'),'background domain revalidation excludes inactive records');
