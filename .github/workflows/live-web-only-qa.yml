@@ -1,0 +1,28 @@
+name: Web-only Production QA (read-only)
+on:
+  push:
+    branches: [audit/platform-multilayer-20261017]
+    paths:
+      - '.github/workflows/live-web-only-qa.yml'
+      - 'tools/live_web_only_audit.py'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  live-web-only:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate diagnostic script syntax
+        run: python3 -m py_compile tools/live_web_only_audit.py
+      - name: HTTPS, public readiness and private-path HEAD checks
+        run: python3 tools/live_web_only_audit.py
+      - name: Preserve only sanitised status and timing report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: digiti-web-only-diagnostics
+          path: web-only-qa.json
+          if-no-files-found: ignore
+          retention-days: 7
