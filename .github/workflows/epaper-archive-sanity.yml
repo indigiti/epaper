@@ -47,3 +47,4 @@ jobs:
           php tests/platform-access-policy.php
           php tests/platform-cache-boundary.php
           php tests/platform-invalidation-protocol.php
+          php tests/platform-tenant-failclosed.php
