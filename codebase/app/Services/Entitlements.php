@@ -26,6 +26,7 @@ final class Entitlements
     }
     public static function has(string $key,bool $default=false): bool
     {
+        if(PlatformAccess::currentState()!=='FULL')return false;
         $e=self::all();
         if(!$e)return $default;
         $v=$e[$key]??null;
@@ -34,6 +35,7 @@ final class Entitlements
     }
     public static function limit(string $key,?float $default=null): ?float
     {
+        if(PlatformAccess::currentState()!=='FULL')return 0.0;
         $e=self::all();
         $v=$e[$key]??null;
         if(is_array($v))$v=$v['limit']??$v['value']??null;
