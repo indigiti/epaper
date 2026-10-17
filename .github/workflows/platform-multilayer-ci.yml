@@ -41,3 +41,44 @@ jobs:
         run: |
           test ! -f platform/config/config.php
           test ! -f platform/storage/install.lock
+  billing-mariadb:
+    runs-on: ubuntu-latest
+    services:
+      mariadb:
+        image: mariadb:10.11
+        env:
+          MARIADB_ROOT_PASSWORD: ci_root_fixture_only
+          MARIADB_DATABASE: platform_ci
+          MARIADB_USER: platform_ci
+          MARIADB_PASSWORD: ci_user_fixture_only
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="healthcheck.sh --connect --innodb_initialized"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: pdo_mysql, openssl, json
+          coverage: none
+      - name: Disposable private config (CI only)
+        run: |
+          cat > platform/config/config.php <<'PHP'
+          <?php
+          return [
+              'app'=>['name'=>'CI Platform','env'=>'test','url'=>'http://127.0.0.1','timezone'=>'UTC','key'=>str_repeat('a',64)],
+              'db'=>['host'=>'127.0.0.1','port'=>3306,'name'=>'platform_ci','user'=>'platform_ci','pass'=>'ci_user_fixture_only','charset'=>'utf8mb4'],
+              'redis'=>['enabled'=>false],
+              'billing'=>['default_provider'=>'manual','stripe_webhook_secret'=>'ci_signing_fixture_only','razorpay_key_secret'=>'ci_razorpay_fixture_only']
+          ];
+          PHP
+      - name: Apply actual Platform schema to MariaDB
+        run: php platform/bin/migrate.php
+      - name: Settlement and idempotency integration
+        env:
+          EPDI_BILLING_INTEGRATION: disposable-ci
+        run: php platform/tests/billing-mariadb-integration.php
