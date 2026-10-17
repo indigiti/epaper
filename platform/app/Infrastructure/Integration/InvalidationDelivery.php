@@ -13,7 +13,7 @@ final class InvalidationDelivery
         $secret=(string)Config::get('integrations.epaper_invalidation_secret','');
         $parts=parse_url($url);
         if(!is_array($parts)||($parts['scheme']??'')!=='https'||empty($parts['host'])
-            ||($parts['path']??'')!=='/internal/v1/platform/cache-invalidate'||isset($parts['user'],$parts['pass'])
+            ||($parts['path']??'')!=='/internal/v1/platform/cache-invalidate'||(isset($parts['user'])||isset($parts['pass']))
             ||isset($parts['query'])||isset($parts['fragment']))
             throw new \RuntimeException('Fixed ePaper HTTPS invalidation destination is not configured');
         if(strlen($secret)<32)throw new \RuntimeException('ePaper invalidation signing secret is not configured');
