@@ -123,6 +123,15 @@ Store::exec('INSERT INTO plans(plan_guid,product_guid,plan_key,name,status,creat
 try{\Digiti\Application\Subscriptions\ManageSubscription::activate($tenant,$otherPlan);$crossProductDenied=false;}
 catch(\DomainException){$crossProductDenied=true;}
 $check($crossProductDenied,'wrong-product plan rejected');
+// Batched Admin read model: complete price mapping for multiple products and plans.
+$catalogPrice1=$id();$catalogPrice2=$id();
+Store::exec('INSERT INTO prices(price_guid,plan_guid,currency,amount_minor,billing_interval,interval_count,status,created_at) VALUES(?,?,"INR",1500,"MONTH",1,"ACTIVE",NOW(6))',[$bin($catalogPrice1),$bin($plan)]);
+Store::exec('INSERT INTO prices(price_guid,plan_guid,currency,amount_minor,billing_interval,interval_count,status,created_at) VALUES(?,?,"INR",2500,"YEAR",1,"ACTIVE",NOW(6))',[$bin($catalogPrice2),$bin($otherPlan)]);
+$catalog=\Digiti\Infrastructure\Commercial\CatalogReadRepository::snapshot();
+$check(count($catalog['plans'])>=2,'batched Commercial catalog returns multiple plans');
+$check(count($catalog['prices_by_plan'][$plan]??[])===1,'first plan price grouped by normalized GUID');
+$check(count($catalog['prices_by_plan'][$otherPlan]??[])===1,'second product price grouped without extra SELECT');
+
 
 $future='2030-12-31T12:00';
 $fields=[
