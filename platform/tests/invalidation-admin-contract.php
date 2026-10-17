@@ -22,6 +22,16 @@ $check(str_contains($sender,'CURLOPT_SSL_VERIFYPEER=>true'),'sender uses verifie
 $check(str_contains($worker,"case 'cache.invalidate':")&&str_contains($worker,'InvalidationDelivery::send('),'worker dispatches invalidation');
 $check(str_contains($receiver,'hash_equals(')&&str_contains($receiver,'ep_system_state'),'receiver authenticates and deduplicates');
 $check(str_contains($receiver,'FOR UPDATE')&&str_contains($receiver,'Store::tx('),'receiver serializes event replay checks');
+$mfa=file_get_contents($root.'/app/Application/Security/ManageMfa.php');
+$imp=file_get_contents($root.'/app/Application/Security/IssueImpersonation.php');
+$domainManager=file_get_contents($root.'/app/Application/Routing/ManageDomain.php');
+$revalidate=file_get_contents($root.'/app/Application/Routing/RevalidateDomains.php');
+$check(str_contains($app,'ManageMfa::change(')&&str_contains($mfa,'Store::tx('),'MFA write paths layer and transact');
+$check(str_contains($app,'IssueImpersonation::issue(')&&str_contains($imp,'status="ACTIVE" FOR UPDATE'),'impersonation grants require active membership');
+$check(str_contains($crud,'ManageDomain::edit(')&&str_contains($app,'ManageDomain::activate('),'domain Admin writes layered');
+$check(str_contains($domainManager,'CacheInvalidationOutbox::stageForTenant('),'domain mutations stage invalidation');
+$check(str_contains($revalidate,'status NOT IN ("SUSPENDED","REMOVED")'),'background domain revalidation excludes inactive records');
+
 $check(str_contains($epaperApp,"/internal/v1/platform/cache-invalidate"),'receiver routes before domain resolution');
 $check(strpos($epaperApp,"/internal/v1/platform/cache-invalidate")<strpos($epaperApp,'DomainResolver::resolve()'),'receiver bypasses revoked-domain routing safely');
 exit($failed?1:0);
