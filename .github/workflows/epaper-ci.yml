@@ -65,5 +65,7 @@ jobs:
           php bin/slim-release-zip.php --output="$artifact"
           php bin/slim-release-zip.php --verify="$artifact"
           php tests/slim-release-zip.php
+      - name: Check persistent public uploads fixture
+        run: php tests/public-uploads-safety.php
       - name: Run current release regression suite
         run: php bin/release-check.php
