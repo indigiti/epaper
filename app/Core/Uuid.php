@@ -16,6 +16,11 @@ final class Uuid
         return sprintf('%s-%s-%s-%s-%s', substr($hex,0,8), substr($hex,8,4), substr($hex,12,4), substr($hex,16,4), substr($hex,20,12));
     }
 
+    public static function isValid(string $uuid): bool
+    {
+        return (bool)preg_match('/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i',trim($uuid));
+    }
+
     public static function toBinary(string $uuid): string
     {
         $hex = str_replace('-', '', strtolower(trim($uuid)));
