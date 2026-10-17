@@ -87,7 +87,7 @@ final class DomainResolver
     }
     private static function fileCacheSet(string $key,array $value,int $ttl): void
     {
-        try{$path=self::fileCachePath($key);$dir=dirname($path);if(!is_dir($dir))@mkdir($dir,0775,true);$tmp=$path.'.tmp.'.bin2hex(random_bytes(3));$json=json_encode(['expires_at'=>time()+max(30,$ttl),'value'=>$value],JSON_UNESCAPED_SLASHES|JSON_UNESCAPED_UNICODE);if($json!==false&&@file_put_contents($tmp,$json,LOCK_EX)!==false)@rename($tmp,$path);else @unlink($tmp);}catch(\Throwable){}
+        try{$path=self::fileCachePath($key);$dir=dirname($path);if(!is_dir($dir))@mkdir($dir,0775,true);$tmp=$path.'.tmp.'.bin2hex(random_bytes(3));$json=json_encode(['expires_at'=>time()+max(5,min(30,$ttl)),'value'=>$value],JSON_UNESCAPED_SLASHES|JSON_UNESCAPED_UNICODE);if($json!==false&&@file_put_contents($tmp,$json,LOCK_EX)!==false)@rename($tmp,$path);else @unlink($tmp);}catch(\Throwable){}
     }
     private static function fileCachePath(string $key): string
     {
