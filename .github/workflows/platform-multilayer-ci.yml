@@ -40,6 +40,7 @@ jobs:
           php platform/tests/tenant-layer-contract.php
           php platform/tests/usage-policy.php
           php platform/tests/usage-layer-contract.php
+          php platform/tests/commercial-catalog-contract.php
           php platform/tests/layer-contract.php
           php platform/tests/build-guard.php
           php platform/tests/admin-crud-guard.php
@@ -82,8 +83,12 @@ jobs:
               'billing'=>['default_provider'=>'manual','stripe_webhook_secret'=>'ci_signing_fixture_only','razorpay_key_secret'=>'ci_razorpay_fixture_only']
           ];
           PHP
-      - name: Apply actual Platform schema to MariaDB
-        run: php platform/bin/migrate.php
+      - name: Apply and recheck Platform schema migrations
+        run: |
+          set -euo pipefail
+          php platform/bin/migrate.php
+          php platform/bin/migrate.php
+          mysql --host=127.0.0.1 --port=3306 --user=platform_ci --password=ci_user_fixture_only --database=platform_ci -N -e "SELECT COUNT(*) FROM schema_migrations WHERE migration_key='20261017_01_usage_events'" | grep -qx '1'
       - name: Settlement and idempotency integration
         env:
           EPDI_BILLING_INTEGRATION: disposable-ci
