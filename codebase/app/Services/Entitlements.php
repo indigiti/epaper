@@ -6,6 +6,8 @@ final class Entitlements
 {
     public static function all(): array
     {
+        // Entitlements are never an independent authorization grant.
+        if(PlatformAccess::currentState()!=='FULL')return [];
         $tenant=RequestContext::tenantGuid();
         $key='tenant:'.$tenant.':entitlements';
         $cached=RedisStore::getJson($key);
