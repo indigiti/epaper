@@ -1,0 +1,52 @@
+name: EP-DI AI Candidate Integration (Staging)
+on:
+  push:
+    branches:
+      - feature/ai-article-review-worker-20261018
+  pull_request:
+    paths:
+      - 'codebase/ai_processing/**'
+      - 'codebase/bin/ai-*'
+      - 'codebase/tests/test_ai_*.py'
+      - 'codebase/tests/ai-review-static.php'
+      - 'codebase/app/Services/AiCandidatePipeline.php'
+      - 'codebase/app/Services/AiEditorialReview.php'
+      - 'codebase/app/Services/ProcessingPipeline.php'
+      - 'codebase/app/App.php'
+      - 'codebase/app/Core/View.php'
+      - 'codebase/config/config.example.php'
+      - 'codebase/database/upgrade-ai-page-candidates-20261018.sql'
+      - '.github/workflows/epdi-ai-candidate-integration.yml'
+permissions:
+  contents: read
+jobs:
+  source-and-fixtures:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          coverage: none
+      - name: Install pinned optional OpenCV for synthetic image test
+        working-directory: codebase
+        run: python -m pip install -r ai_processing/requirements-image.txt
+      - name: Python review-only contracts and CLI integration
+        working-directory: codebase
+        run: python -m unittest discover -s tests -p 'test_ai_*.py' -v
+      - name: Python bytecode
+        working-directory: codebase
+        run: python -m compileall -q ai_processing bin/ai-ocr-normalize.py bin/ai-layout-preview.py bin/ai-candidate-generate.py
+      - name: PHP syntax and security source contract
+        working-directory: codebase
+        run: |
+          set -euo pipefail
+          php -l app/Services/AiCandidatePipeline.php
+          php -l app/Services/AiEditorialReview.php
+          php -l app/Services/ProcessingPipeline.php
+          php -l app/App.php
+          php -l app/Core/View.php
+          php tests/ai-review-static.php
