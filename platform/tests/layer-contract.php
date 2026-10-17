@@ -21,6 +21,11 @@ $check(!str_contains($app,"RedisStore::getJson('domain:"),'domain response reval
 $limiter=file_get_contents($root.'/app/Core/RateLimiter.php');
 $check(str_contains($limiter,'ON DUPLICATE KEY UPDATE')&&str_contains($limiter,'hit_count=IF('),'database rate-limit fallback uses atomic upsert');
 $check(!str_contains($limiter,'Store::one('),'rate limiter has no pre-write DB read race');
+$serviceAuth=file_get_contents($root.'/app/Core/ServiceAuth.php');
+$check(str_contains($serviceAuth,'function requireTenantScope('),'tenant-bound machine auth gateway exists');
+$check(str_contains($serviceAuth,'product_tenants WHERE product_tenant_guid=? AND status="ACTIVE"'),'machine gateway checks active tenant product');
+foreach(["tenant.read","access.read","entitlements.read","usage.write"] as $scope)
+    $check(str_contains($app,"requireTenantScope('$scope'"),"HTTP route $scope enforces product scope");
 $check(!is_file($root.'/config/config.php'),'repository has no runtime secrets');
 $check(!is_file($root.'/storage/install.lock'),'repository has no installation lock');
 $manifest=json_decode(file_get_contents($root.'/manifest.json'),true);
