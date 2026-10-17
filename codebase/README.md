@@ -1,4 +1,4 @@
-> Current release: **EP-DI v2.0.2.0 — Realistic Newspaper Reader**. Read [UPDATE-2.0.2.0.md](UPDATE-2.0.2.0.md). No database migration is required.
+> Current source release: **EP-DI v2.0.2.1 — Reader Back-Edition Navigator**. Read [UPDATE-2.0.2.1.md](UPDATE-2.0.2.1.md). No database migration is required.
 
 # ePaper SaaS v1.1.4 — Premium Clipping Experience
 

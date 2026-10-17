@@ -192,7 +192,7 @@ final class ProductionReadiness
         $action=$status===self::READY?'':((!$cli&&$https!==true)?'Serve the canonical console only over HTTPS.':(!$keyStrong?'Set a strong application key outside source control.':'Set app.environment=production.'));
         $add('SECURITY','Security baseline',$status,$detail,$action,['https'=>$https,'https_probe'=>$cli?'DEFERRED_TO_WEB':'CHECKED','environment'=>$env,'application_key_configured'=>$keyStrong]);
         $rate=RedisStore::enabled()&&($redis=RedisStore::serverMetrics())&&($redis['connected']??false);
-        $add('SECURITY','Distributed rate limiting',$rate?self::READY:self::DEGRADED,$rate?'Redis-backed rate limiting is available.':'Rate limiter will fall back to per-session counters while Redis is unavailable.',$rate?'':'Restore Redis before launch so throttling is shared across PHP workers.');
+        $add('SECURITY','Distributed rate limiting',$rate?self::READY:self::DEGRADED,$rate?'Redis-backed rate limiting is available.':'Redis unavailable: local file-locked throttling active as fallback; restore Redis for shared multi-node limits.',$rate?'':'Restore Redis before launch so throttling is shared across PHP workers.');
     }
 
     private static function releaseChecks(callable $add): void

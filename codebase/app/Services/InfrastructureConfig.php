@@ -7,7 +7,7 @@ final class InfrastructureConfig
 {
     public static function runtimeFile(): string
     {
-        return dirname(__DIR__, 2) . '/config/runtime.php';
+        return trim((string)(getenv('EPDI_RUNTIME_PATH') ?: '')) ?: dirname(__DIR__, 2) . '/config/runtime.php';
     }
 
     public static function runtimeWritable(): bool
