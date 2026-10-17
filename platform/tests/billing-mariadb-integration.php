@@ -215,5 +215,30 @@ try{\Digiti\Application\Tenants\ManageTenant::status($tenant,'ACTIVE');$revived=
 catch(\DomainException){$revived=true;}
 $check($revived,'removed tenant cannot be reactivated by stale POST');
 
+// Platform → ePaper durable invalidation integration with an actual EPAPER product.
+$epOrg=$id();$epProduct=$id();$epTenant=$id();$epApp=$id();$epDomain=$id();
+Store::exec('INSERT INTO organisations(organisation_guid,organisation_code,legal_name,display_name,status,created_at,updated_at) VALUES(?,"CI_EPAPER_ORG","CI Publishing","CI Publishing","ACTIVE",NOW(6),NOW(6))',[$bin($epOrg)]);
+Store::exec('INSERT INTO products(product_guid,product_key,name,status,created_at,updated_at) VALUES(?,"EPAPER","ePaper SaaS","ACTIVE",NOW(6),NOW(6))',[$bin($epProduct)]);
+Store::exec('INSERT INTO applications(application_guid,product_guid,application_key,name,base_url,status,created_at,updated_at) VALUES(?,?,"ci_epaper_product","CI EPAPER","https://epaper.invalid","ACTIVE",NOW(6),NOW(6))',[$bin($epApp),$bin($epProduct)]);
+Store::exec('INSERT INTO product_tenants(product_tenant_guid,organisation_guid,product_guid,display_name,status,created_at,updated_at) VALUES(?,?,?,"CI ePaper tenant","ACTIVE",NOW(6),NOW(6))',[$bin($epTenant),$bin($epOrg),$bin($epProduct)]);
+Store::exec('INSERT INTO domains(domain_guid,organisation_guid,product_guid,application_guid,product_tenant_guid,hostname,normalized_hostname,status,is_primary,verification_token,created_at,updated_at) VALUES(?,?,?,?,?,"paper.ci.invalid","paper.ci.invalid","ACTIVE",1,"ci-validation",NOW(6),NOW(6))',[$bin($epDomain),$bin($epOrg),$bin($epProduct),$bin($epApp),$bin($epTenant)]);
+\Digiti\Core\Store::tx(static function()use($epTenant):void{
+    \Digiti\Application\Integration\CacheInvalidationOutbox::stageForTenant($epTenant);
+});
+$delivery=Store::one('SELECT outbox_event_guid,tenant_guid,payload,status FROM outbox_events WHERE event_type="cache.invalidate" ORDER BY created_at DESC LIMIT 1');
+$envelope=is_array($delivery)?json_decode((string)$delivery['payload'],true):null;
+$check(is_array($envelope)&&$envelope['tenant_guid']===$epTenant,'invalidation event bound to ePaper tenant');
+$check(($envelope['hostnames']??[])===['paper.ci.invalid'],'invalidation payload contains only linked domain');
+$check(($envelope['event_id']??'')===$delivery['outbox_event_guid'],'signed event ID matches durable outbox GUID');
+$check($delivery['status']==='PENDING','delivery is pending until authenticated receiver ACK');
+$countBefore=(int)Store::value('SELECT COUNT(*) FROM outbox_events WHERE event_type="cache.invalidate"');
+try{
+    Store::tx(static function()use($epTenant):void{
+        \Digiti\Application\Integration\CacheInvalidationOutbox::stageForTenant($epTenant);
+        throw new \RuntimeException('rollback probe');
+    });
+}catch(\RuntimeException){}
+$check((int)Store::value('SELECT COUNT(*) FROM outbox_events WHERE event_type="cache.invalidate"')===$countBefore,'event insert rolled back with parent transaction');
+
 echo "MariaDB billing integration checks complete.\n";
 exit($fail?1:0);
