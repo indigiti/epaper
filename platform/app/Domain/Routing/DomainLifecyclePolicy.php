@@ -10,7 +10,8 @@ final class DomainLifecyclePolicy
         if($current==='REMOVED'&&$requested!=='REMOVED')
             throw new \DomainException('Removed domains cannot be reactivated.');
         if($requested===$current)return $current;
-        if($requested==='SUSPENDED'||$requested==='REMOVED')return $requested;
+        // Removal is an explicit action, guaranteeing is_primary is cleared.
+        if($requested==='SUSPENDED'&&$current!=='REMOVED')return $requested;
         throw new \DomainException('Reactivate domains through DNS Verify and Activate, not Edit.');
     }
 }
