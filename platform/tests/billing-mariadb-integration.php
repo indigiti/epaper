@@ -144,6 +144,21 @@ Store::exec('UPDATE organisations SET status="ACTIVE" WHERE organisation_guid=?'
 Store::exec('UPDATE subscriptions SET current_period_end=DATE_SUB(NOW(6), INTERVAL 1 MINUTE) WHERE subscription_guid=?',[$bin($subscription)]);
 $check(\Digiti\Application\Subscriptions\SubscriptionAccess::payload($tenant)['service_access_state']==='BLOCKED','period expiry blocks access despite stored FULL');
 
+// Usage metering is one atomic upsert per tenant/product/feature/month.
+$featureId=$id();$wrongFeature=$id();
+Store::exec('INSERT INTO features(feature_guid,product_guid,feature_key,name,created_at) VALUES(?,?,"ci_pdf_pages","CI PDF Pages",NOW(6))',[$bin($featureId),$bin($product)]);
+Store::exec('INSERT INTO features(feature_guid,product_guid,feature_key,name,created_at) VALUES(?,?,"ci_other_pages","CI Other Product Pages",NOW(6))',[$bin($wrongFeature),$bin($otherProduct)]);
+\Digiti\Application\Metering\RecordUsage::execute($tenant,['feature_key'=>'ci_pdf_pages','delta'=>'2.5','period_key'=>'2026-10']);
+\Digiti\Application\Metering\RecordUsage::execute($tenant,['feature_key'=>'ci_pdf_pages','delta'=>'0.25','period_key'=>'2026-10']);
+$used=(float)Store::value('SELECT used_value FROM usage_meters WHERE product_tenant_guid=? AND feature_guid=? AND period_key="2026-10"',[$bin($tenant),$bin($featureId)]);
+$check(abs($used-2.75)<0.00001,'repeated usage increments share one atomic monthly meter');
+$check((int)Store::value('SELECT COUNT(*) FROM usage_meters WHERE product_tenant_guid=? AND feature_guid=?',[$bin($tenant),$bin($featureId)])===1,'no duplicate counter rows for same meter');
+\Digiti\Application\Metering\RecordUsage::execute($tenant,['feature_key'=>'ci_pdf_pages','delta'=>'-5','period_key'=>'2026-10']);
+$check((float)Store::value('SELECT used_value FROM usage_meters WHERE product_tenant_guid=? AND feature_guid=?',[$bin($tenant),$bin($featureId)])===0.0,'negative correction cannot create negative usage');
+try{\Digiti\Application\Metering\RecordUsage::execute($tenant,['feature_key'=>'ci_other_pages','delta'=>'1','period_key'=>'2026-10']);$meterCrossProductDenied=false;}
+catch(\DomainException){$meterCrossProductDenied=true;}
+$check($meterCrossProductDenied,'cross-product feature usage denied');
+
 // Tenant lifecycle with live foreign-key related domain, in isolated CI database.
 Store::exec('UPDATE subscriptions SET current_period_end=DATE_ADD(NOW(6), INTERVAL 1 MONTH) WHERE subscription_guid=?',[$bin($subscription)]);
 $applicationGuid=$id();$domainGuid=$id();
