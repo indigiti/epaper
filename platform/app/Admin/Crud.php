@@ -127,11 +127,24 @@ final class Crud
     private static function tenantEdit(string $guid,string $method): never
     {
         $r=Store::one('SELECT pt.product_tenant_guid,pt.display_name,pt.external_tenant_reference,pt.status,o.display_name organisation,p.name product FROM product_tenants pt JOIN organisations o ON o.organisation_guid=pt.organisation_guid JOIN products p ON p.product_guid=pt.product_guid WHERE pt.product_tenant_guid=?',[self::guidBin($guid)]);if(!$r)throw new \RuntimeException('Product tenant not found.');
-        if($method==='POST'){$status=self::allowed($_POST['status']??'ACTIVE',['ACTIVE','SUSPENDED','REMOVED'],'ACTIVE');Store::exec('UPDATE product_tenants SET display_name=?,external_tenant_reference=?,status=?,updated_at=NOW(6) WHERE product_tenant_guid=?',[trim($_POST['display_name']??''),trim($_POST['external_ref']??'')?:null,$status,self::guidBin($guid)]);RedisStore::del('entitlements:'.$guid);self::invalidateDomainsBy('product_tenant_guid',$guid);Audit::log('product_tenant.update','product_tenant',$guid);self::redirect('/admin/product-tenants','Product tenant updated.');}
+        if($method==='POST'){
+            \Digiti\Application\Tenants\ManageTenant::edit($guid,$_POST);
+            self::redirect('/admin/product-tenants','Product tenant updated.');
+        }
         $body='<section class="card"><h2>Edit product tenant</h2><form method="post" class="form-grid">'.self::csrf().'<label>Organisation<input value="'.self::e($r['organisation']).'" readonly></label><label>Product<input value="'.self::e($r['product']).'" readonly></label><label>Display name<input name="display_name" value="'.self::e($r['display_name']).'" required></label><label>External reference<input name="external_ref" value="'.self::e($r['external_tenant_reference']).'"></label><label>Status<select name="status">'.self::option('ACTIVE','ACTIVE',$r['status']).self::option('SUSPENDED','SUSPENDED',$r['status']).self::option('REMOVED','REMOVED',$r['status']).'</select></label><div class="form-action"><button class="primary">Update tenant</button><a class="button" href="/admin/product-tenants">Cancel</a></div></form></section>';View::layout('Edit Product Tenant',$body);
     }
-    private static function tenantStatus(string $guid,string $method): never { if($method!=='POST')Http::redirect('/admin/product-tenants');$status=self::allowed($_POST['status']??'SUSPENDED',['ACTIVE','SUSPENDED'],'SUSPENDED');Store::exec('UPDATE product_tenants SET status=?,updated_at=NOW(6) WHERE product_tenant_guid=?',[$status,self::guidBin($guid)]);RedisStore::del('entitlements:'.$guid);self::invalidateDomainsBy('product_tenant_guid',$guid);Audit::log('product_tenant.status','product_tenant',$guid);self::redirect('/admin/product-tenants','Product tenant status updated.'); }
-    private static function tenantRemove(string $guid,string $method): never { if($method!=='POST')Http::redirect('/admin/product-tenants');$domains=Store::all('SELECT hostname FROM domains WHERE product_tenant_guid=?',[self::guidBin($guid)]);Store::exec('UPDATE product_tenants SET status="REMOVED",updated_at=NOW(6) WHERE product_tenant_guid=?',[self::guidBin($guid)]);Store::exec('UPDATE domains SET status="REMOVED",updated_at=NOW(6) WHERE product_tenant_guid=?',[self::guidBin($guid)]);foreach($domains as$d)RedisStore::del('domain:'.$d['hostname']);RedisStore::del('entitlements:'.$guid);Audit::log('product_tenant.remove','product_tenant',$guid);self::redirect('/admin/product-tenants','Product tenant removed; domains were deactivated and history preserved.'); }
+    private static function tenantStatus(string $guid,string $method): never
+    {
+        if($method!=='POST')Http::redirect('/admin/product-tenants');
+        \Digiti\Application\Tenants\ManageTenant::status($guid,(string)($_POST['status']??'SUSPENDED'));
+        self::redirect('/admin/product-tenants','Product tenant status updated.');
+    }
+    private static function tenantRemove(string $guid,string $method): never
+    {
+        if($method!=='POST')Http::redirect('/admin/product-tenants');
+        \Digiti\Application\Tenants\ManageTenant::remove($guid);
+        self::redirect('/admin/product-tenants','Product tenant removed; domains deactivated and history preserved.');
+    }
 
     private static function domainEdit(string $guid,string $method): never
     {
