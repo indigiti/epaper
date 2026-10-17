@@ -9,7 +9,7 @@ function processOne(string $worker): bool {
     $event=Store::one('SELECT outbox_event_guid,event_type,payload FROM outbox_events WHERE status="PENDING" AND available_at<=NOW() ORDER BY available_at,created_at LIMIT 1');
     if($event){
         $id=Uuid::toBinary($event['outbox_event_guid']);
-        $claimed=Store::exec('UPDATE outbox_events SET status="PROCESSING",attempts=attempts+1 WHERE outbox_event_guid=? AND status="PENDING"',[$id]);
+        $claimed=Store::exec('UPDATE outbox_events SET status="PROCESSING",attempts=attempts+1,available_at=DATE_ADD(NOW(6),INTERVAL 15 MINUTE) WHERE outbox_event_guid=? AND status="PENDING"',[$id]);
         if(!$claimed)return true;
         try{
             $payload=json_decode((string)$event['payload'],true,512,JSON_THROW_ON_ERROR);
