@@ -45,8 +45,7 @@ final class RegistryCreates
             Store::exec('INSERT INTO platform_users(user_guid,email,display_name,password_hash,status,created_at,updated_at) VALUES(?,?,?,?,"ACTIVE",NOW(6),NOW(6))',[
                 self::bin($guid),$email,self::label($input['name']??''),password_hash($password,PASSWORD_DEFAULT)]);
             if($org!==''){
-                if(Store::value('SELECT 1 FROM organisations WHERE organisation_guid=? AND status="ACTIVE"',[self::bin($org)])!==1
-                    &&!Store::value('SELECT 1 FROM organisations WHERE organisation_guid=? AND status="ACTIVE"',[self::bin($org)]))
+                if(!Store::value('SELECT 1 FROM organisations WHERE organisation_guid=? AND status="ACTIVE"',[self::bin($org)]))
                     throw new \DomainException('Active organisation required');
                 Store::exec('INSERT INTO memberships(membership_guid,organisation_guid,user_guid,role_key,status,created_at,updated_at) VALUES(?,?,?,?, "ACTIVE",NOW(6),NOW(6))',[
                     self::bin(Uuid::v7()),self::bin($org),self::bin($guid),$role]);
