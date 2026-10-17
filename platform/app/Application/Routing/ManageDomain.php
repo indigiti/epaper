@@ -13,19 +13,44 @@ final class ManageDomain
     public static function edit(string $guid,array $input):void
     {
         if(!Uuid::isValid($guid))throw new \InvalidArgumentException('Invalid domain GUID');
-        Store::tx(static function()use($guid,$input):void{
-            $row=Store::one('SELECT hostname,status,product_tenant_guid FROM domains WHERE domain_guid=? FOR UPDATE',[Uuid::toBinary($guid)]);
-            if(!$row)throw new \DomainException('Domain not found');
+        $bin=Uuid::toBinary($guid);
+        Store::tx(static function()use($guid,$bin,$input):void {
+            // Serialize primary-domain edits through the parent tenant lock.
+            $tenant=Store::value('SELECT product_tenant_guid FROM domains WHERE domain_guid=?',[$bin]);
+            if(!is_string($tenant))throw new \DomainException('Domain not found');
+            if(!Store::one('SELECT product_tenant_guid FROM product_tenants WHERE product_tenant_guid=? FOR UPDATE',[$tenant]))
+                throw new \DomainException('Product tenant not found');
+            $row=Store::one('SELECT status,domain_type,product_tenant_guid FROM domains WHERE domain_guid=? FOR UPDATE',[$bin]);
+            if(!$row||$row['product_tenant_guid']!==$tenant)throw new \DomainException('Domain changed during edit');
+            if($row['status']==='REMOVED')throw new \DomainException('Removed domain cannot be edited');
             $status=DomainLifecyclePolicy::editableStatus($row['status'],(string)($input['status']??$row['status']));
-            $domainType=(string)($input['domain_type']??'CUSTOMER_CUSTOM');
-            if(!in_array($domainType,['PLATFORM','PLATFORM_AUTH','SAAS_DEFAULT','CUSTOMER_CUSTOM','CUSTOMER_SUBDOMAIN'],true))
-                throw new \InvalidArgumentException('Invalid domain type');
+            $type=(string)($input['domain_type']??$row['domain_type']);
+            $customerTypes=['CUSTOMER_CUSTOM','CUSTOMER_SUBDOMAIN'];
+            if($type!==$row['domain_type'] && (!in_array($type,$customerTypes,true)||!in_array($row['domain_type'],$customerTypes,true)))
+                throw new \InvalidArgumentException('Reserved platform domain types cannot be assigned in the customer editor');
             $primary=$status==='ACTIVE'&&!empty($input['is_primary'])?1:0;
+            if($primary)Store::exec('UPDATE domains SET is_primary=0,updated_at=NOW(6) WHERE product_tenant_guid=? AND is_primary=1 AND domain_guid<>?',[$tenant,$bin]);
             Store::exec('UPDATE domains SET is_primary=?,domain_type=?,status=?,default_resource_type=?,updated_at=NOW(6) WHERE domain_guid=?',[
-                $primary,$domainType,$status,trim((string)($input['default_resource_type']??''))?:null,Uuid::toBinary($guid)]);
-            CacheInvalidationOutbox::stageForTenant($row['product_tenant_guid']);
+                $primary,$type,$status,trim((string)($input['default_resource_type']??''))?:null,$bin]);
+            // product_tenant_guid columns are BINARY(16); outbox expects textual UUID.
+            CacheInvalidationOutbox::stageForTenant(Uuid::fromBinary($tenant));
         });
         Audit::log('domain.update','domain',$guid);
+    }
+
+    /** Explicit, auditable route back to DNS+TLS verification after suspension. */
+    public static function resume(string $guid):void
+    {
+        if(!Uuid::isValid($guid))throw new \InvalidArgumentException('Invalid domain GUID');
+        Store::tx(static function()use($guid):void {
+            $bin=Uuid::toBinary($guid);
+            $row=Store::one('SELECT status,product_tenant_guid FROM domains WHERE domain_guid=? FOR UPDATE',[$bin]);
+            if(!$row||$row['status']!=='SUSPENDED')throw new \DomainException('Only suspended domains can resume');
+            $changed=Store::exec('UPDATE domains SET status="AWAITING_DNS",is_primary=0,verified_at=NULL,ssl_ready_at=NULL,last_checked_at=NULL,updated_at=NOW(6) WHERE domain_guid=? AND status="SUSPENDED"',[$bin]);
+            if($changed!==1)throw new \DomainException('Domain status changed; refresh and retry');
+            CacheInvalidationOutbox::stageForTenant(Uuid::fromBinary($row['product_tenant_guid']));
+        });
+        Audit::log('domain.resume_verification','domain',$guid);
     }
 
     public static function verify(string $guid):array
@@ -38,7 +63,9 @@ final class ManageDomain
         if($dns['verified']){
             try{
                 $edge=EdgeProviderFactory::make()->provision($d['hostname'],json_decode($d['edge_metadata']?:'{}',true)?:[]);
-                $status=(string)($edge['status']??'ROUTING_VALID');
+                // TLS provider readiness does not replace explicit administrator activation.
+                $candidate=(string)($edge['status']??'SSL_PROVISIONING');
+                $status=in_array($candidate,['ROUTING_VALID','SSL_PROVISIONING'],true)?$candidate:'SSL_PROVISIONING';
             }catch(\Throwable $e){
                 $status='ROUTING_VALID';$edge=['provider_error'=>$e->getMessage()];
             }
