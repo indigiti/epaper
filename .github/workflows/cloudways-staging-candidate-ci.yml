@@ -39,11 +39,12 @@ jobs:
         run: |
           set -euo pipefail
           find app bin tests public_html -type f -name '*.php' -print0 | xargs -0 -n1 php -l > /tmp/cloudways-platform-php-lint.txt
+      # The cross-repository epaper-api-contract runs on audit PR #23, where both source trees coexist.
       - name: Source contracts and regression suite
         shell: bash
         run: |
           set -euo pipefail
-          for t in core-smoke multilayer-policy domain-resolution-policy domain-lifecycle domain-lifecycle-contract epaper-api-contract billing-webhooks billing-layer-contract billing-money subscription-policy subscription-layer-contract tenant-lifecycle-policy tenant-layer-contract usage-policy usage-layer-contract commercial-catalog-contract performance-contract invalidation-admin-contract layer-contract build-guard admin-crud-guard; do
+          for t in core-smoke multilayer-policy domain-resolution-policy domain-lifecycle domain-lifecycle-contract billing-webhooks billing-layer-contract billing-money subscription-policy subscription-layer-contract tenant-lifecycle-policy tenant-layer-contract usage-policy usage-layer-contract commercial-catalog-contract performance-contract invalidation-admin-contract layer-contract build-guard admin-crud-guard; do
             php "tests/$t.php"
           done
   epaper-source:
