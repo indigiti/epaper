@@ -155,7 +155,14 @@ final class App
     private function subscriptions(string $method): never
     {
         $tenants=Store::all('SELECT pt.product_tenant_guid,CONCAT(o.display_name," — ",p.name) label,pt.product_guid FROM product_tenants pt JOIN organisations o ON o.organisation_guid=pt.organisation_guid JOIN products p ON p.product_guid=pt.product_guid WHERE pt.status="ACTIVE" ORDER BY o.display_name');$plans=Store::all('SELECT pl.plan_guid,pl.product_guid,CONCAT(p.name," — ",pl.name) label FROM plans pl JOIN products p ON p.product_guid=pl.product_guid WHERE pl.status="ACTIVE" ORDER BY p.name,pl.name');
-        if($method==='POST'){$tenant=null;foreach($tenants as$t)if($t['product_tenant_guid']===$_POST['product_tenant_guid'])$tenant=$t;$plan=null;foreach($plans as$p)if($p['plan_guid']===$_POST['plan_guid'])$plan=$p;if(!$tenant||!$plan||$tenant['product_guid']!==$plan['product_guid'])throw new \RuntimeException('Plan does not belong to tenant product');$guid=Uuid::v7();Store::exec('INSERT INTO subscriptions(subscription_guid,product_tenant_guid,plan_guid,status,billing_state,service_access_state,current_period_start,current_period_end,created_at,updated_at) VALUES(?,?,?,"ACTIVE","ACTIVE","FULL",NOW(6),DATE_ADD(NOW(6),INTERVAL 1 MONTH),NOW(6),NOW(6))',[Uuid::toBinary($guid),Uuid::toBinary($tenant['product_tenant_guid']),Uuid::toBinary($plan['plan_guid'])]);RedisStore::del('entitlements:'.$tenant['product_tenant_guid']);Audit::log('subscription.create','subscription',$guid);View::flash('Subscription activated.');Http::redirect('/admin/subscriptions');}
+        if($method==='POST'){
+            \Digiti\Application\Subscriptions\ManageSubscription::activate(
+                (string)($_POST['product_tenant_guid']??''),
+                (string)($_POST['plan_guid']??'')
+            );
+            View::flash('Subscription activated.');
+            Http::redirect('/admin/subscriptions');
+        }
         $items=Store::all('SELECT s.subscription_guid,s.status,s.billing_state,s.service_access_state,s.current_period_end,pt.display_name tenant,pl.name plan,p.name product FROM subscriptions s JOIN product_tenants pt ON pt.product_tenant_guid=s.product_tenant_guid JOIN plans pl ON pl.plan_guid=s.plan_guid JOIN products p ON p.product_guid=pt.product_guid ORDER BY s.created_at DESC');$rows=[];foreach($items as$r)$rows[]=[$this->e($r['tenant']),$this->e($r['product']),$this->e($r['plan']),$this->status($r['status']),$this->e($r['service_access_state']),$this->e($r['current_period_end']),'<code>'.$this->e($r['subscription_guid']).'</code>','<a class="button small" href="/admin/subscriptions/'.$this->e($r['subscription_guid']).'/edit">Edit</a>'];$form='<section class="card"><h2>Activate subscription</h2><form method="post" class="form-grid">'.$this->csrf().'<label>Product tenant'.$this->select('product_tenant_guid',$tenants,'product_tenant_guid','label').'</label><label>Plan'.$this->select('plan_guid',$plans,'plan_guid','label').'</label><div class="form-action"><button class="primary">Activate</button></div></form></section>';View::layout('Subscriptions',$form.'<section class="card"><h2>Subscriptions</h2>'.$this->table(['Tenant','Product','Plan','Status','Access','Period End','GUID','Actions'],$rows).'</section>');
     }
 
@@ -236,9 +243,19 @@ final class App
     }
     private function tenantAccess(string $guid): never
     {
-        ServiceAuth::requireTenantScope('access.read',$guid);$row=Store::one('SELECT subscription_guid,status,billing_state,service_access_state,current_period_start,current_period_end FROM subscriptions WHERE product_tenant_guid=? ORDER BY created_at DESC LIMIT 1',[Uuid::toBinary($guid)]);if(!$row)Http::json(['ok'=>true,'product_tenant_guid'=>$guid,'subscription'=>null,'service_access_state'=>'BLOCKED']);Http::json(['ok'=>true,'product_tenant_guid'=>$guid,'subscription'=>$row,'service_access_state'=>$row['service_access_state']]);
+        ServiceAuth::requireTenantScope('access.read',$guid);
+        Http::json(\Digiti\Application\Subscriptions\SubscriptionAccess::payload($guid));
     }
-    private function tenantEntitlements(string $guid): never{ServiceAuth::requireTenantScope('entitlements.read',$guid);$tenant=Store::one('SELECT product_tenant_guid,status FROM product_tenants WHERE product_tenant_guid=?',[Uuid::toBinary($guid)]);if(!$tenant)Http::json(['ok'=>false,'code'=>'TENANT_NOT_FOUND'],404);Http::json(['ok'=>true,'product_tenant_guid'=>$guid,'entitlements'=>Entitlements::effective($guid)]);}
+
+    private function tenantEntitlements(string $guid): never
+    {
+        ServiceAuth::requireTenantScope('entitlements.read',$guid);
+        $access=\Digiti\Application\Subscriptions\SubscriptionAccess::payload($guid);
+        // Never expose usable plan grants when subscription or parent entity is not fully active.
+        $entitlements=$access['service_access_state']==='FULL'?Entitlements::effective($guid):[];
+        Http::json(['ok'=>true,'product_tenant_guid'=>$guid,'entitlements'=>$entitlements]);
+    }
+
     private function verifyMembership(): never
     {
         ServiceAuth::requireScope('identity.verify');$d=Http::bodyJson();$user=$d['user_guid']??'';$org=$d['organisation_guid']??'';try{$row=Store::one('SELECT membership_guid,organisation_guid,user_guid,role_key,status FROM memberships WHERE user_guid=? AND organisation_guid=? AND status="ACTIVE" LIMIT 1',[Uuid::toBinary($user),Uuid::toBinary($org)]);}catch(\Throwable){$row=null;}if(!$row)Http::json(['ok'=>false,'code'=>'MEMBERSHIP_NOT_ACTIVE'],404);Http::json(['ok'=>true,'membership'=>$row]);
