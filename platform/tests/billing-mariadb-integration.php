@@ -193,6 +193,15 @@ Store::exec('INSERT INTO applications(application_guid,product_guid,application_
 Store::exec('INSERT INTO domains(domain_guid,organisation_guid,product_guid,application_guid,product_tenant_guid,hostname,normalized_hostname,status,is_primary,verification_token,created_at,updated_at) VALUES(?,?,?,?,?,"ci.epaper.invalid","ci.epaper.invalid","ACTIVE",1,"test-token",NOW(6),NOW(6))',[
     $bin($domainGuid),$bin($organisation),$bin($product),$bin($applicationGuid),$bin($tenant)
 ]);
+// Domain removed through Admin application service cannot remain routable.
+$removedDomain=$id();
+Store::exec('INSERT INTO domains(domain_guid,organisation_guid,product_guid,application_guid,product_tenant_guid,hostname,normalized_hostname,status,is_primary,verification_token,created_at,updated_at) VALUES(?,?,?,?,?,"ci.removed.invalid","ci.removed.invalid","SUSPENDED",1,"test-token-2",NOW(6),NOW(6))',[
+    $bin($removedDomain),$bin($organisation),$bin($product),$bin($applicationGuid),$bin($tenant)
+]);
+\Digiti\Application\Routing\RemoveDomain::execute($removedDomain);
+$check(Store::value('SELECT status FROM domains WHERE domain_guid=?',[$bin($removedDomain)])==='REMOVED','domain lifecycle removal persists');
+$check((int)Store::value('SELECT is_primary FROM domains WHERE domain_guid=?',[$bin($removedDomain)])===0,'removed domain primary routing disabled');
+
 \Digiti\Application\Tenants\ManageTenant::status($tenant,'SUSPENDED');
 $check(\Digiti\Application\Subscriptions\SubscriptionAccess::payload($tenant)['service_access_state']==='BLOCKED','Admin tenant suspension revokes fresh subscription access');
 \Digiti\Application\Tenants\ManageTenant::status($tenant,'ACTIVE');
