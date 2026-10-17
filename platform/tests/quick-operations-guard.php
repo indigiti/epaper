@@ -17,7 +17,7 @@ foreach(['/admin/quick-start','/admin/quick-domain','/admin/quick-domains/','/ad
 }
 $authPos=strpos($app,'Auth::requireAdmin()');
 $csrfPos=strpos($app,'Http::verifyCsrf()');
-$startPos=strpos($app,"if($path==='/admin/quick-start')");
+$startPos=strpos($app,'/admin/quick-start');
 $check($authPos!==false&&$csrfPos!==false&&$startPos!==false&&$authPos<$startPos&&$csrfPos<$startPos,'quick operations behind admin auth and csrf');
 $check(str_contains($quick,'Store::tx('),'onboarding and renewal use transactions');
 $check(str_contains($quick,'normalized_hostname=?'),'domain uniqueness check');
