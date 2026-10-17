@@ -192,7 +192,7 @@ final class ProcessingPipeline
         if(AiCandidatePipeline::enabled()){
             try{
                 AiCandidatePipeline::stage($editionGuid,$pageGuid,$langs,$hocr,$src);
-            }catch(\\Throwable $aiError){
+            }catch(\Throwable $aiError){
                 // Avoid leaking document text and private media paths to logs.
                 error_log('AI_CANDIDATE_STAGE_FAILED page='.substr(hash('sha256',$pageGuid),0,12).' type='.get_class($aiError));
             }
