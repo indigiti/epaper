@@ -1,0 +1,28 @@
+name: Platform Login GET-only CSRF Diagnostic
+on:
+  push:
+    branches: [audit/platform-multilayer-20261017]
+    paths:
+      - '.github/workflows/platform-login-session-diagnostic.yml'
+      - 'tools/platform_login_session_diagnostic.py'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  login-session:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate diagnostic script syntax
+        run: python3 -m py_compile tools/platform_login_session_diagnostic.py
+      - name: Fresh and repeat GET session/token/cache checks (no credentials, no POST)
+        run: python3 tools/platform_login_session_diagnostic.py
+      - name: Save sanitized diagnostic report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: platform-login-session-diagnostic
+          path: platform-login-session-diagnostic.json
+          if-no-files-found: ignore
+          retention-days: 7
