@@ -5,6 +5,13 @@ final class Http
 {
     public static function securityHeaders(): void
     {
+        // Authenticated pages and session-bound form tokens must never enter shared caches.
+        $path=parse_url($_SERVER['REQUEST_URI']??'/',PHP_URL_PATH)?:'/';
+        if(preg_match('#^/(?:login|logout|admin(?:/|$)|auth(?:/|$)|internal(?:/|$))#',$path)){
+            header('Cache-Control: private, no-store, max-age=0, must-revalidate');
+            header('Pragma: no-cache');
+            header('Vary: Cookie');
+        }
         header('X-Content-Type-Options: nosniff');
         header('X-Frame-Options: DENY');
         header('Referrer-Policy: strict-origin-when-cross-origin');
