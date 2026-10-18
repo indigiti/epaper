@@ -41,8 +41,13 @@ jobs:
           php -l app/Services/EditionRemoval.php
           php -l app/Services/AiEditorialReview.php
           php -l app/Services/AiCandidatePipeline.php
+          php -l app/Controllers/StagingAcceptanceController.php
+          php -l app/Services/StagingAcceptance.php
+          php -l app/Repositories/SqlAcceptanceMetricsRepository.php
+          php -l app/Contracts/AcceptanceMetricsRepository.php
           php -l app/Services/ProcessingPipeline.php
           php tests/ai-review-static.php
+          php tests/admin-acceptance-static.php
       - env:
           EPDI_AI_TEST_DB_HOST: 127.0.0.1
           EPDI_AI_TEST_DB_USER: root
