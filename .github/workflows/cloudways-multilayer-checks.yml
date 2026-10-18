@@ -20,5 +20,7 @@ jobs:
         run: find app bin tests -name '*.php' -print0 | xargs -0 -n1 php -l > /tmp/platform-lint.log
       - name: Ephemeral PHP HTTP smoke (not Cloudways)
         run: bash tests/http-route-smoke.sh
+      - name: Validate staging acceptance CLI
+        run: python3 -m py_compile tests/staging_acceptance.py && python3 tests/staging_acceptance.py --help >/dev/null
       - name: Verify entry points and controller / repository contracts
-        run: php tests/layered-controller-contracts.php && php tests/concrete-controllers.php && php tests/security-boundaries.php
+        run: php tests/layered-controller-contracts.php && php tests/concrete-controllers.php && php tests/security-boundaries.php && php tests/admin-dashboard-layers.php

@@ -16,7 +16,7 @@ trait AdminActions
 
     private function dashboard(): never
     {
-        $counts=['Organisations'=>(int)Store::value('SELECT COUNT(*) FROM organisations WHERE status<>"PURGED"'),'Product Tenants'=>(int)Store::value('SELECT COUNT(*) FROM product_tenants WHERE status="ACTIVE"'),'Active Domains'=>(int)Store::value('SELECT COUNT(*) FROM domains WHERE status="ACTIVE"'),'Subscriptions'=>(int)Store::value('SELECT COUNT(*) FROM subscriptions WHERE status IN ("ACTIVE","PAST_DUE","GRACE_PERIOD")')];
+        $counts=(new AdminDashboardController(new \Digiti\Repositories\SqlAdminDashboardReader()))->counts();
         $cards='<div class="kpis">';foreach($counts as$k=>$v)$cards.='<div class="kpi"><span>'.$this->e($k).'</span><strong>'.$v.'</strong></div>';$cards.='</div>';
         $attention=[];$badDomains=(int)Store::value('SELECT COUNT(*) FROM domains WHERE status IN ("REVALIDATION_FAILED","SUSPENDED")');if($badDomains)$attention[]="$badDomains domain(s) require attention";$failedJobs=(int)Store::value('SELECT COUNT(*) FROM jobs WHERE status="FAILED"');if($failedJobs)$attention[]="$failedJobs failed job(s)";$pastDue=(int)Store::value('SELECT COUNT(*) FROM subscriptions WHERE status="PAST_DUE"');if($pastDue)$attention[]="$pastDue past-due subscription(s)";
         $recent=Store::all('SELECT occurred_at,actor_type,action,resource_type,result FROM audit_events ORDER BY occurred_at DESC LIMIT 12');$rows=[];foreach($recent as$r)$rows[]=[ $this->e($r['occurred_at']),$this->e($r['actor_type']),$this->e($r['action']),$this->e($r['resource_type']),$this->status($r['result'])];
