@@ -1,8 +1,9 @@
 <?php
 declare(strict_types=1);
+require_once __DIR__.'/support/app-source.php';
 $root=dirname(__DIR__);$fails=[];$pass=function(bool$c,string$m)use(&$fails){echo($c?'PASS':'FAIL')." — {$m}\n";if(!$c)$fails[]=$m;};
 $read=fn(string$f):string=>is_file($root.'/'.$f)?(string)file_get_contents($root.'/'.$f):'';
-$catalog=$read('app/Services/SettingsCatalog.php');$app=$read('app/App.php');$recovery=$read('app/Services/ProcessingRecovery.php');$pipeline=$read('app/Services/ProcessingPipeline.php');$legacy=$read('app/Services/Processing.php');$queue=$read('app/Services/QueueService.php');$css=$read('public_html/assets/admin-beta.css');$js=$read('public_html/assets/admin-beta.js');
+$catalog=$read('app/Services/SettingsCatalog.php');$app=epdiAppSource($root);$recovery=$read('app/Services/ProcessingRecovery.php');$pipeline=$read('app/Services/ProcessingPipeline.php');$legacy=$read('app/Services/Processing.php');$queue=$read('app/Services/QueueService.php');$css=$read('public_html/assets/admin-beta.css');$js=$read('public_html/assets/admin-beta.js');
 foreach(['processing.highres_quality','processing.preview_quality','processing.thumbnail_quality','processing.tile_quality','processing.recovery_manual_smart','processing.recovery_auto_rescue','processing.recovery_max_rescues','processing.recovery_dpi_ceiling','processing.recovery_tile_size','processing.recovery_ocr_timeout_seconds'] as$key)$pass(str_contains($catalog,$key),'processing setting registered '.$key);
 $pass(str_contains($app,'private function adminProcessingSettings')&&str_contains($app,'SAFE PRESETS')&&str_contains($app,'RECOVERY & REPROCESSING'),'dedicated Processing Control UI included');
 $pass(str_contains($app,'PROCESSING FALLBACK')&&str_contains($app,'Open Infrastructure'),'existing fallback/infrastructure workflow retained');

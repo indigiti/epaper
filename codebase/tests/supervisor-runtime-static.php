@@ -1,7 +1,8 @@
 <?php
 declare(strict_types=1);
+require_once __DIR__.'/support/app-source.php';
 $root=dirname(__DIR__);$fails=[];$pass=function(bool$ok,string$name)use(&$fails){echo($ok?'PASS':'FAIL')." — $name\n";if(!$ok)$fails[]=$name;};
-$sup=(string)file_get_contents($root.'/app/Services/SupervisorRuntime.php');$app=(string)file_get_contents($root.'/app/App.php');$infra=(string)file_get_contents($root.'/app/Services/InfrastructureConfig.php');
+$sup=(string)file_get_contents($root.'/app/Services/SupervisorRuntime.php');$app=epdiAppSource($root);$infra=(string)file_get_contents($root.'/app/Services/InfrastructureConfig.php');
 $configPos=strpos($sup,'public static function config(): string');$configBody=$configPos===false?'':substr($sup,$configPos);
 $pass(str_contains($sup,'public static function preflight()'),'Supervisor preflight API present');
 $pass(str_contains($sup,'public static function diagnosis()'),'Supervisor diagnosis API present');

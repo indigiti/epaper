@@ -1,6 +1,7 @@
 <?php
 declare(strict_types=1);
-$root=dirname(__DIR__);$fails=[];$ok=function(bool$c,string$m)use(&$fails){echo($c?'PASS':'FAIL')." — {$m}\n";if(!$c)$fails[]=$m;};$app=(string)file_get_contents($root.'/app/App.php');$cache=(string)file_get_contents($root.'/app/Services/PublicReadCache.php');$css=(string)file_get_contents($root.'/public_html/assets/app.css');
+require_once __DIR__.'/support/app-source.php';
+$root=dirname(__DIR__);$fails=[];$ok=function(bool$c,string$m)use(&$fails){echo($c?'PASS':'FAIL')." — {$m}\n";if(!$c)$fails[]=$m;};$app=epdiAppSource($root);$cache=(string)file_get_contents($root.'/app/Services/PublicReadCache.php');$css=(string)file_get_contents($root.'/public_html/assets/app.css');
 $ok(substr_count($app,'editionCoverUrl($r,\'THUMB\')')>=3,'home/archive/publication cover lists request THUMB');
 $ok(str_contains($app,'archiveCalendar($monthStart,$monthEnd,$publication,$city,$language)'),'Archive calendar respects active public filters');
 $ok(str_contains($app,'$range===\'7\'')&&str_contains($app,'Last 7 days'),'Archive retains 7-day quick view');

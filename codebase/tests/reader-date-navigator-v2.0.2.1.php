@@ -1,8 +1,9 @@
 <?php
 declare(strict_types=1);
+require_once __DIR__.'/support/app-source.php';
 $root=dirname(__DIR__);$fails=[];$ok=function(bool $v,string $m)use(&$fails){echo($v?'PASS':'FAIL')." — $m\n";if(!$v)$fails[]=$m;};
 $version=trim((string)file_get_contents($root.'/VERSION'));
-$app=(string)file_get_contents($root.'/app/App.php');$cache=(string)file_get_contents($root.'/app/Services/PublicReadCache.php');$settings=(string)file_get_contents($root.'/app/Services/SettingsCatalog.php');$view=(string)file_get_contents($root.'/app/Core/View.php');$reader=(string)file_get_contents($root.'/public_html/assets/reader.js');$css=(string)file_get_contents($root.'/public_html/assets/reader.css');$sw=(string)file_get_contents($root.'/public_html/service-worker.js');$manifest=json_decode((string)file_get_contents($root.'/manifest.json'),true);
+$app=epdiAppSource($root);$cache=(string)file_get_contents($root.'/app/Services/PublicReadCache.php');$settings=(string)file_get_contents($root.'/app/Services/SettingsCatalog.php');$view=(string)file_get_contents($root.'/app/Core/View.php');$reader=(string)file_get_contents($root.'/public_html/assets/reader.js');$css=(string)file_get_contents($root.'/public_html/assets/reader.css');$sw=(string)file_get_contents($root.'/public_html/service-worker.js');$manifest=json_decode((string)file_get_contents($root.'/manifest.json'),true);
 $ok($version==='2.0.2.1','VERSION 2.0.2.1');
 $ok(str_contains($sw,"const VERSION='epdi-v2.0.2.1';")&&!str_contains($sw,'?v=2.0.2.0'),'Service Worker aligned to v2.0.2.1');
 $ok(is_array($manifest)&&($manifest['version']??'')==='2.0.2.1'&&($manifest['database_migration']??true)===false,'release manifest aligned and schema-free');

@@ -1,26 +1,19 @@
 <?php
 namespace EpaperSaas\Services;
 
-use EpaperSaas\Core\{Config,RedisStore,RequestContext,Store};
+use EpaperSaas\Core\{Config,RedisStore,RequestContext};
+use EpaperSaas\Contracts\PublishingMetricsRepository;
+use EpaperSaas\Repositories\SqlPublishingMetricsRepository;
 
 /** Short-lived operational snapshot for dashboards and health surfaces. */
 final class PublishingRuntime
 {
-    public static function snapshot(bool $refresh=false): array
+    public static function snapshot(bool $refresh=false, ?PublishingMetricsRepository $repository=null): array
     {
         $tenant=RequestContext::tenantGuid();$key='runtime:v2.0.1.4:'.$tenant;
         if(!$refresh){$cached=RedisStore::getJson($key);if(is_array($cached))return$cached;}
         $tb=TenantData::tenantBin();
-        $row=Store::one('SELECT
-            (SELECT COUNT(*) FROM ep_editions WHERE tenant_guid=? AND status="PUBLISHED") published_editions,
-            (SELECT COUNT(*) FROM ep_pages WHERE tenant_guid=?) pages,
-            (SELECT COUNT(*) FROM ep_processing_jobs WHERE tenant_guid=? AND status IN ("QUEUED","RUNNING","RETRY_WAIT")) processing,
-            (SELECT COUNT(*) FROM ep_editions WHERE tenant_guid=? AND status="NEEDS_ATTENTION") failed_jobs,
-            (SELECT COUNT(*) FROM ep_processing_jobs WHERE tenant_guid=? AND status IN ("QUEUED","RUNNING","RETRY_WAIT") AND updated_at<DATE_SUB(NOW(6),INTERVAL 20 MINUTE)) stuck_jobs,
-            (SELECT COUNT(*) FROM ep_outbox_events WHERE tenant_guid=? AND status="PENDING") outbox_pending,
-            (SELECT COUNT(*) FROM ep_outbox_events WHERE tenant_guid=? AND status="FAILED") outbox_failed,
-            (SELECT COUNT(*) FROM ep_error_events WHERE tenant_guid=? AND occurred_at>=DATE_SUB(NOW(6),INTERVAL 7 DAY)) recent_errors,
-            (SELECT TIMESTAMPDIFF(SECOND,updated_at,NOW(6)) FROM ep_system_state WHERE state_key="scheduler.last_cron") scheduler_age_seconds',[$tb,$tb,$tb,$tb,$tb,$tb,$tb,$tb])?:[];
+        $row=($repository ?? new SqlPublishingMetricsRepository())->summary($tb);
         $outbox=QueueService::failedOutboxAnalysis();$row['outbox_failed']=(int)($outbox['counts']['actionable']??0);
         $workers=InfrastructureConfig::workerStatus();
         $queues=[];try{$queues=QueueService::rabbitEnabled()?RabbitMq::instance()->queueStats():[];}catch(\Throwable){}

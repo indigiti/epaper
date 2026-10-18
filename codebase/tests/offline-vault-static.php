@@ -1,7 +1,8 @@
 <?php
 declare(strict_types=1);
+require_once __DIR__.'/support/app-source.php';
 $root=dirname(__DIR__);$fails=[];$pass=function(bool$ok,string$name)use(&$fails){echo($ok?'PASS':'FAIL')." — {$name}\n";if(!$ok)$fails[]=$name;};
-$app=(string)file_get_contents($root.'/app/App.php');$svc=(string)file_get_contents($root.'/app/Services/OfflineVault.php');$sw=(string)file_get_contents($root.'/public_html/service-worker.js');$js=(string)file_get_contents($root.'/public_html/assets/offline-vault.js');$sql=(string)file_get_contents($root.'/database/upgrade-v2.0.0-beta.2.sql');$schema=(string)file_get_contents($root.'/database/schema.sql');
+$app=epdiAppSource($root);$svc=(string)file_get_contents($root.'/app/Services/OfflineVault.php');$sw=(string)file_get_contents($root.'/public_html/service-worker.js');$js=(string)file_get_contents($root.'/public_html/assets/offline-vault.js');$sql=(string)file_get_contents($root.'/database/upgrade-v2.0.0-beta.2.sql');$schema=(string)file_get_contents($root.'/database/schema.sql');
 $pass(is_file($root.'/app/Services/OfflineVault.php'),'OfflineVault service packaged');
 $pass(str_contains($app,"/api/v2/offline/devices")&&str_contains($app,"/api/v2/offline/licenses"),'v2 encrypted offline API routes included');
 $pass(str_contains($svc,'ECDH-P256+HKDF-SHA256+AES-256-GCM')&&str_contains($svc,"aes-256-gcm"),'device-bound ECDH/HKDF/AES-GCM cryptography included');

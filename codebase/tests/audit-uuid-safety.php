@@ -1,10 +1,11 @@
 <?php
 declare(strict_types=1);
+require_once __DIR__.'/support/app-source.php';
 $root=dirname(__DIR__);$fails=[];
 $pass=function(bool $ok,string $name)use(&$fails){echo($ok?'PASS':'FAIL')." — {$name}\n";if(!$ok)$fails[]=$name;};
 $a=(string)file_get_contents($root.'/app/Services/Audit.php');
 $http=(string)file_get_contents($root.'/app/Core/Http.php');
-$app=(string)file_get_contents($root.'/app/App.php');
+$app=epdiAppSource($root);
 $pass(str_contains($a,'Uuid::isValid'),'audit validates UUIDs before binary conversion');
 $pass(str_contains($a,"resource_ref"),'audit preserves non-UUID resource identifiers as metadata');
 $pass(str_contains($a,"'resource_guid'=>\$resource"),'platform audit receives normalized UUID/null resource_guid');

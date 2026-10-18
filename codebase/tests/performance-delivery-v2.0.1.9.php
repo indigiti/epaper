@@ -1,7 +1,8 @@
 <?php
 declare(strict_types=1);
+require_once __DIR__.'/support/app-source.php';
 $root=dirname(__DIR__);$fails=[];$ok=function(bool$c,string$m)use(&$fails){echo($c?'PASS':'FAIL')." — {$m}\n";if(!$c)$fails[]=$m;};$read=fn(string$f)=>(string)@file_get_contents($root.'/'.$f);
-$version=trim($read('VERSION'));$bootstrap=$read('app/bootstrap.php');$app=$read('app/App.php');$auth=$read('app/Core/Auth.php');$http=$read('app/Core/Http.php');$view=$read('app/Core/View.php');$resolver=$read('app/Services/DomainResolver.php');$media=$read('app/Services/Media.php');$tenant=$read('app/Services/TenantData.php');$perf=$read('app/Services/PerformanceTelemetry.php');$js=$read('public_html/assets/app.js');$sw=$read('public_html/service-worker.js');
+$version=trim($read('VERSION'));$bootstrap=$read('app/bootstrap.php');$app=epdiAppSource($root);$auth=$read('app/Core/Auth.php');$http=$read('app/Core/Http.php');$view=$read('app/Core/View.php');$resolver=$read('app/Services/DomainResolver.php');$media=$read('app/Services/Media.php');$tenant=$read('app/Services/TenantData.php');$perf=$read('app/Services/PerformanceTelemetry.php');$js=$read('public_html/assets/app.js');$sw=$read('public_html/service-worker.js');
 $ok(version_compare($version,'2.0.1.9','>='),'VERSION remains at or above v2.0.1.9');
 $ok(!str_contains($bootstrap,'Auth::start();')&&str_contains($bootstrap,'PerformanceTelemetry::begin()'),'bootstrap no longer opens every request session');
 $ok(str_contains($auth,'startIfPresent')&&str_contains($auth,'hasSessionCookie')&&str_contains($auth,'session_write_close'),'lazy session + explicit lock release packaged');
