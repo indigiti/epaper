@@ -16,6 +16,9 @@ final class AiClippingReadinessView
         $canStage=(bool)($setup['allowed']??false);
         $canManage=(bool)($snapshot['setup_can_manage']??false);
         $result=(string)($_GET['setup_result']??'');
+        $queue=is_array($snapshot['queue']??null)?$snapshot['queue']:[];
+        $queueDriver=(string)($queue['driver']??'unknown');
+        $rabbitActive=$queueDriver==='rabbitmq';
         $labels=[
             'EXISTING_STAGING_CONFIRMED'=>'This existing installation is confirmed for AI staging setup. No new environment was created and AI remains disabled.',
             'STAGING_CONFIRMATION_REQUIRED'=>'Verify the current hostname and database name, then confirm staging and backup.',
@@ -107,6 +110,28 @@ final class AiClippingReadinessView
                 .$e(str_replace('_',' ',(string)($check['status']??'UNKNOWN'))).'</span></div>';
         }
         $html.='</div></section>';
+        $html.='<section class="ai-panel"><div class="ai-head"><h2>Processing queue readiness</h2>'
+            .'<a class="btn ghost" href="/admin/system/infrastructure">Open RabbitMQ settings</a></div>'
+            .'<div class="ai-checks">'
+            .'<div class="ai-check"><div><strong>Active queue driver</strong><p>'
+            .$e($rabbitActive?'RabbitMQ is selected. Verify actual consumers before processing OCR.':
+                'The application is using '.strtoupper($queueDriver).'. This is not a Python error. Do not change drivers while jobs are running.')
+            .'</p></div><span class="ai-tag">'.$e(strtoupper($queueDriver)).'</span></div>'
+            .'<div class="ai-check"><div><strong>PHP AMQP client</strong><p>'
+            .$e(($queue['amqp_client']??false)?'RabbitMQ client library is installed.':'RabbitMQ PHP client is not installed.')
+            .'</p></div><span class="ai-tag">'.(!empty($queue['amqp_client'])?'PRESENT':'UNVERIFIED').'</span></div>'
+            .'<div class="ai-check"><div><strong>Broker credentials</strong><p>'
+            .$e(!empty($queue['credentials_present'])?'Credentials are configured; connectivity has not been tested by this display.':
+                'RabbitMQ host, user or password is missing. Configure them in Infrastructure.')
+            .'</p></div><span class="ai-tag">'.(!empty($queue['credentials_present'])?'SET':'MISSING').'</span></div>'
+            .'<div class="ai-check"><div><strong>OCR heartbeat</strong><p>Recent OCR worker heartbeat signals, not a verified RabbitMQ consumer count.</p></div><span class="ai-tag">'
+            .max(0,(int)($queue['ocr_heartbeat']??0)).' SEEN</span></div></div>'
+            .'<p class="ai-muted">First use <strong>Test connection</strong> in Infrastructure without saving a driver change. '
+            .'Only after a successful broker test, worker provisioning and safe queue cutover should you select RabbitMQ and save. '
+            .'Then use Worker Doctor and the end-to-end worker pipeline test before enabling AI.</p>'
+            .'<div class="ai-actions"><a class="btn ghost" href="/admin/system/infrastructure">Test RabbitMQ connection</a>'
+            .'<a class="btn ghost" href="/admin/system/infrastructure/supervisor">Worker Doctor</a></div>'
+            .'</section>';
         $html.='<section class="ai-panel"><h2>AI Clipping setup</h2>';
         if(!$canStage){
             $html.='<p><strong>Existing Cloudways installation — staging confirmation required.</strong></p>'
@@ -180,8 +205,11 @@ final class AiClippingReadinessView
                     .'<input type="hidden" name="_csrf" value="'.$csrf.'">'
                     .'<input type="hidden" name="action" value="disable_ai">'
                     .'<button class="btn ghost" type="submit">Disable AI detection</button></form>';
+            }elseif($schema==='AVAILABLE'&&!$rabbitActive){
+                $html.='<p class="ai-muted"><strong>RabbitMQ is not active yet.</strong> Use the Infrastructure dashboard to test its connection and verify workers first. The AI switch stays locked until RabbitMQ is selected.</p>'
+                    .'<a class="btn ghost" href="/admin/system/infrastructure">Open RabbitMQ setup</a>';
             }elseif($schema==='AVAILABLE'){
-                $html.='<p class="ai-muted">Enable editorial-only region proposals. This action automatically validates installed Python/OpenCV and checks RabbitMQ and the OCR worker. If a check fails, AI stays disabled.</p>'
+                $html.='<p class="ai-muted">Enable editorial-only region proposals. This action validates Python/OpenCV, RabbitMQ and the OCR worker; it does not publish articles. If a check fails, AI stays disabled.</p>'
                     .'<form class="ai-form" method="post" action="/admin/ai-clipping/action">'
                     .'<input type="hidden" name="_csrf" value="'.$csrf.'">'
                     .'<input type="hidden" name="action" value="enable_ai">'

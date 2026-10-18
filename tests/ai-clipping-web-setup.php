@@ -79,11 +79,40 @@ $ready=\EpaperSaas\Views\AiClippingReadinessView::render([
         ['name'=>'Feature flag','status'=>'DISABLED'],
         ['name'=>'Candidate database','status'=>'AVAILABLE']],
     'counts'=>[],'review_url'=>null,'setup_can_manage'=>true,
-    'setup'=>['allowed'=>true,'database_match'=>true]
+    'setup'=>['allowed'=>true,'database_match'=>true],
+    'queue'=>['driver'=>'rabbitmq','amqp_client'=>true,'credentials_present'=>true,'ocr_heartbeat'=>1]
 ]);
 if(!str_contains($ready,'name="action" value="enable_ai"')||
    !str_contains($ready,'name="activation_confirmed"')){
     throw new RuntimeException('Owner cannot enable from existing staging UI');
+}
+$readinessSource=(string)file_get_contents($root.'/app/Services/AiClippingReadiness.php');
+foreach(["'queue'=>[","'driver'=>","'ocr_heartbeat'=>","'amqp_client'=>"] as $token){
+    if(!str_contains($readinessSource,$token))throw new RuntimeException('Queue diagnostics missing '.$token);
+}
+$databaseQueue=\\EpaperSaas\\Views\\AiClippingReadinessView::render([
+    'enabled'=>false,'status'=>'DISABLED','checks'=>[
+        ['name'=>'Feature flag','status'=>'DISABLED'],
+        ['name'=>'Candidate database','status'=>'AVAILABLE']],
+    'counts'=>[],'review_url'=>null,'setup_can_manage'=>true,
+    'setup'=>['allowed'=>true,'database_match'=>true],
+    'queue'=>['driver'=>'database','amqp_client'=>false,'credentials_present'=>false,'ocr_heartbeat'=>0],
+]);
+if(str_contains($databaseQueue,'name="action" value="enable_ai"')||
+    !str_contains($databaseQueue,'Open RabbitMQ setup')||
+    !str_contains($databaseQueue,'Test RabbitMQ connection')){
+    throw new RuntimeException('Inactive RabbitMQ must block unsafe activation and show web guidance');
+}
+$rabbitQueue=\\EpaperSaas\\Views\\AiClippingReadinessView::render([
+    'enabled'=>false,'status'=>'DISABLED','checks'=>[
+        ['name'=>'Feature flag','status'=>'DISABLED'],
+        ['name'=>'Candidate database','status'=>'AVAILABLE']],
+    'counts'=>[],'review_url'=>null,'setup_can_manage'=>true,
+    'setup'=>['allowed'=>true,'database_match'=>true],
+    'queue'=>['driver'=>'rabbitmq','amqp_client'=>true,'credentials_present'=>true,'ocr_heartbeat'=>1],
+]);
+if(!str_contains($rabbitQueue,'name="action" value="enable_ai"')){
+    throw new RuntimeException('Active RabbitMQ should offer guarded AI activation');
 }
 $probeSource=(string)file_get_contents($root.'/bin/ai-clipping-probe.py');
 foreach(['NUMPY_MISSING','OPENCV_MISSING','NUMPY_IMPORT_FAILED','OPENCV_IMPORT_FAILED',
