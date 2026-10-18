@@ -714,6 +714,7 @@ final class App
         Auth::requireAdmin();if($method==='POST')Http::verifyCsrf();
         if($path==='/admin/system/testing'||$path==='/admin/system/testing.json'||$path==='/admin/system/testing/run')StagingAcceptanceController::dispatch($path,$method);
         if($path==='/admin/ai-clipping'&&$method==='GET')AdminAiClippingController::index();
+        if($path==='/admin/ai-clipping/action'&&$method==='POST')AdminAiClippingController::action();
         if(preg_match('#^/admin/editions/([0-9a-f-]{36})/(trash|delete|cancel|recover|process-immediately)$#i',$path,$m)&&$method==='POST')$this->adminEditionRecovery($m[1],$m[2]);
         if(preg_match('#^/admin/editions/([0-9a-f-]{36})/pages$#i',$path,$m))EditionPageSequence::route($m[1],$method);
         if(preg_match('#^/admin/editions/([0-9a-f-]{36})/owner-remove$#i',$path,$m)&&$method==='POST')EditionRemoval::remove($m[1]);
