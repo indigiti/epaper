@@ -24,8 +24,17 @@ final class AiClippingReadiness
             &&is_file($root.'/ai_processing/hocr.py')
             &&is_file($root.'/ai_processing/segmentation.py');
         $spawn=function_exists('proc_open');
-        $rabbit=false;
-        try{$rabbit=QueueService::rabbitEnabled();}catch(\Throwable){}
+        $driver='unknown';$rabbit=false;
+        try{$driver=QueueService::driver();$rabbit=QueueService::rabbitEnabled();}catch(\Throwable){}
+        $amqpClient=class_exists('PhpAmqpLib\\Connection\\AMQPStreamConnection');
+        $brokerSettings=trim((string)Config::get('queue.rabbitmq.host',''))!==''&&
+            trim((string)Config::get('queue.rabbitmq.username',''))!==''&&
+            (string)Config::get('queue.rabbitmq.password','')!=='';
+        $ocrHeartbeat=0;
+        try{
+            $workers=InfrastructureConfig::workerStatus();
+            $ocrHeartbeat=max(0,(int)($workers['live']['ocr']??0));
+        }catch(\Throwable){}
 
         $checks=[
             ['name'=>'Feature flag','status'=>$enabled?'ENABLED':'DISABLED',
@@ -46,8 +55,8 @@ final class AiClippingReadiness
              'detail'=>$spawn?'proc_open exists in web PHP; Supervisor worker PHP may differ.':
                  'proc_open is missing from web PHP; validate the worker PHP runtime separately.'],
             ['name'=>'RabbitMQ driver','status'=>$rabbit?'CONFIGURED':'UNVERIFIED',
-             'detail'=>$rabbit?'RabbitMQ is configured; connected, live OCR workers are not proven here.':
-                 'RabbitMQ OCR worker operation is not confirmed. Inspect Processing Center.'],
+             'detail'=>$rabbit?'RabbitMQ is selected; connection and live OCR workers still require verification.':
+                 'Current queue driver is '.strtoupper($driver).'. Verify RabbitMQ in the Infrastructure web dashboard before changing drivers.'],
         ];
         $issues=$schema['state']!=='AVAILABLE'||!$source;
         $status=!$enabled?'DISABLED':($issues?'ACTION_REQUIRED':'VALIDATION_REQUIRED');
@@ -56,6 +65,12 @@ final class AiClippingReadiness
             'counts'=>$schema['counts'],
             'review_url'=>$enabled&&$schema['state']==='AVAILABLE'?'/admin/ai-review':null,
             'setup'=>AiClippingWebSetup::gate(),
+            'queue'=>[
+                'driver'=>in_array($driver,['rabbitmq','database'],true)?$driver:'unknown',
+                'amqp_client'=>$amqpClient,
+                'credentials_present'=>$brokerSettings,
+                'ocr_heartbeat'=>$ocrHeartbeat,
+            ],
         ];
     }
 }
