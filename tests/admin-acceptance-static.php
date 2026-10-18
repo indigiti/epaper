@@ -45,4 +45,26 @@ if(!str_contains($controller,'Http::privateNoStore()')||!str_contains($controlle
  throw new RuntimeException('Private QA page or CSRF token missing');
 if(!str_contains($controller,"hash('sha256',RequestContext::tenantGuid())"))
  throw new RuntimeException('Reports are not tenant-isolated');
+$plan=\EpaperSaas\Services\StagingActionPlan::fromChecks([
+ ['name'=>'Redis','status'=>'ACTION_REQUIRED'],
+ ['name'=>'RabbitMQ','status'=>'DEGRADED'],
+ ['name'=>'Supervisor workers','status'=>'DEGRADED'],
+ ['name'=>'Release artifact integrity','status'=>'ACTION_REQUIRED'],
+],false);
+if(count($plan)!==5 || $plan[0]['priority']!==1 ||
+  $plan[2]['status']!=='WAITING_ON_RABBITMQ' ||
+  $plan[3]['url']!=='/admin/system/release-audit')
+ throw new RuntimeException('Next-action priorities or broker dependency changed');
+$healthy=\EpaperSaas\Services\StagingActionPlan::fromChecks([
+ ['name'=>'Redis','status'=>'READY'],
+ ['name'=>'RabbitMQ','status'=>'READY'],
+ ['name'=>'Supervisor workers','status'=>'READY'],
+ ['name'=>'Release artifact integrity','status'=>'READY'],
+],true);
+if(count($healthy)!==1 || $healthy[0]['status']!=='NOT_TESTED')
+ throw new RuntimeException('Healthy infrastructure falsely passed functional acceptance');
+$production=(string)file_get_contents($root.'/app/Services/ProductionReadiness.php');
+if(!str_contains($production,'server-wide maxmemory') ||
+   !str_contains($production,'verification_deferred'))
+ throw new RuntimeException('Readiness no longer describes shared Redis and deferred broker consumers');
 echo "Admin dashboard first-party acceptance/reporting assertions: OK\n";

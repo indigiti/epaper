@@ -54,7 +54,9 @@ final class StagingAcceptance
             ['name'=>'Backup and restore','status'=>'NOT_TESTED','detail'=>'Cloudways backup/restore evidence cannot be inferred from application health.','url'=>'/admin/storage'],
             ['name'=>'Login, CSRF and role matrix','status'=>'NOT_TESTED','detail'=>'Authentication and cross-role denial require a controlled browser or authenticated acceptance run.','url'=>'/admin/access'],
         ];
+        $actions=StagingActionPlan::fromChecks($checks,$aiEnabled);
         return [
+            'priority_actions'=>$actions,
             'schema_version'=>1,
             'app_version'=>\EpaperSaas\Core\Build::version(),
             'captured_at'=>gmdate('c'),

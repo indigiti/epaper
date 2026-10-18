@@ -43,6 +43,8 @@ jobs:
           php -l app/Services/AiCandidatePipeline.php
           php -l app/Controllers/StagingAcceptanceController.php
           php -l app/Services/StagingAcceptance.php
+          php -l app/Services/StagingActionPlan.php
+          php -l app/Services/ProductionReadiness.php
           php -l app/Repositories/SqlAcceptanceMetricsRepository.php
           php -l app/Contracts/AcceptanceMetricsRepository.php
           php -l app/Services/ProcessingPipeline.php

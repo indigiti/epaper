@@ -76,6 +76,16 @@ final class StagingAcceptanceController
                 .'<p>Checked at <strong>'.$e($time).'</strong> (UTC).</p>'
                 .'<p class="muted">Readiness is not full application acceptance. OBSERVED means source data exists, not that a user workflow passed.</p>'
                 .'</section>';
+            $h.='<section class="readiness-group"><div class="section-head"><div><span class="eyebrow">FIX IN ORDER</span><h2>Next actions</h2><p class="muted">Follow the linked admin screens. No automatic cache flushing, queue switching or worker restarts.</p></div></div><div class="readiness-list">';
+            foreach(($snapshot['priority_actions']??[]) as $item){
+                $url=(string)($item['url']??'/admin/system/health');
+                if(!str_starts_with($url,'/admin/'))$url='/admin/system/health';
+                $h.='<article class="readiness-row"><div class="readiness-copy"><strong>'
+                    .(int)($item['priority']??0).'. '.$e($item['title']??'')
+                    .'</strong><p>'.$e($item['detail']??'').'</p><a href="'.$e($url).'">Open admin diagnostics →</a></div>'
+                    .'<span class="readiness-badge">'.$e(str_replace('_',' ',(string)($item['status']??'REVIEW'))).'</span></article>';
+            }
+            $h.='</div></section>';
             $h.='<section class="readiness-group"><h2>Functional acceptance</h2><div class="readiness-list">';
             foreach(($snapshot['functional']??[]) as $item){
                 $state=(string)($item['status']??'NOT_TESTED');
