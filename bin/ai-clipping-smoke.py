@@ -24,10 +24,12 @@ HOCR = """<div class="ocr_page">
 
 
 def run() -> int:
+    stage = "DEPENDENCY_IMPORT_FAILED"
     try:
         import cv2
         import numpy as np
 
+        stage = "TEMP_WORKSPACE_FAILED"
         with tempfile.TemporaryDirectory(prefix="epdi-ai-smoke-") as tmp:
             path = Path(tmp)
             source = path / "input.json"
@@ -39,9 +41,11 @@ def run() -> int:
             pixels[240:630, 105:470] = rng.integers(
                 10, 230, size=(390, 365), dtype=np.uint8
             )
+            stage = "IMAGE_GENERATION_FAILED"
             if not cv2.imwrite(str(image), pixels):
                 raise RuntimeError("Synthetic page image could not be created")
 
+            stage = "SOURCE_JSON_FAILED"
             source.write_text(json.dumps({
                 "hocr": HOCR,
                 "tenant_guid": TENANT,
@@ -57,9 +61,11 @@ def run() -> int:
                 "--output-json", str(target),
                 "--image", str(image),
             ]
-            worker = subprocess.run(command, capture_output=True, timeout=45, check=False)
+            stage = "CANDIDATE_CLI_FAILED"
+            worker = subprocess.run(command, capture_output=True, timeout=12, check=False)
             if worker.returncode:
                 raise RuntimeError("AI candidate CLI failed")
+            stage = "OUTPUT_CONTRACT_FAILED"
             doc = json.loads(target.read_text(encoding="utf-8"))
             if (doc.get("schema_version") != "epdi.segmentation.v1"
                     or doc.get("status") != "REVIEW_REQUIRED"
@@ -77,7 +83,7 @@ def run() -> int:
         return 0
     except (ImportError, OSError, ValueError, KeyError, RuntimeError,
             subprocess.TimeoutExpired) as exc:
-        print("FAIL: AI candidate staging smoke (" + type(exc).__name__ + ")", file=sys.stderr)
+        print("EPDI_AI_SMOKE_CODE:" + stage, file=sys.stderr)
         return 1
 
 
