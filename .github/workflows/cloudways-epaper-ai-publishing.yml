@@ -1,0 +1,46 @@
+name: Cloudways ePaper AI and Publishing Staging
+on:
+  push:
+    branches: [cw-epaper]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  source-contract:
+    runs-on: ubuntu-latest
+    services:
+      mariadb:
+        image: mariadb:10.11
+        env:
+          MARIADB_ROOT_PASSWORD: epdi_ci_only_password
+        ports: ['3306:3306']
+        options: >-
+          --health-cmd="healthcheck.sh --connect --innodb_initialized"
+          --health-interval=5s --health-timeout=5s --health-retries=20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: pdo_mysql, mbstring
+      - run: python -m pip install -r ai_processing/requirements-image.txt
+      - run: python -m unittest discover -s tests -p 'test_ai_*.py' -v
+      - run: python -m compileall -q ai_processing bin/ai-ocr-normalize.py bin/ai-layout-preview.py bin/ai-candidate-generate.py
+      - run: |
+          set -e
+          php -l app/App.php
+          php -l app/Core/View.php
+          php -l app/Services/EditionPageSequence.php
+          php -l app/Services/EditionRemoval.php
+          php -l app/Services/AiEditorialReview.php
+          php -l app/Services/AiCandidatePipeline.php
+          php -l app/Services/ProcessingPipeline.php
+          php tests/ai-review-static.php
+      - env:
+          EPDI_AI_TEST_DB_HOST: 127.0.0.1
+          EPDI_AI_TEST_DB_USER: root
+          EPDI_AI_TEST_DB_PASSWORD: epdi_ci_only_password
+        run: php tests/ai-review-mariadb.php
