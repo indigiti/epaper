@@ -65,12 +65,13 @@ final class AiCandidatePipeline
         try{
             @chmod($in,0600);@chmod($out,0600);
             if(file_put_contents($in,$data,LOCK_EX)!==strlen($data))throw new \RuntimeException('AI input write failed');
-            $python=trim((string)Config::get('ai_clipping.python_binary','python3'));
+            $python=AiClippingActivation::currentPythonBinary();
             if(!preg_match('/^(?:[A-Za-z0-9_.-]+|\/[A-Za-z0-9_.\/-]+)$/',$python)||str_contains($python,'..')){
                 throw new \RuntimeException('Invalid Python runtime configuration');
             }
             $command=[$python,$root.'/bin/ai-candidate-generate.py','--input-json',$in,'--output-json',$out,'--image',$real];
-            $proc=@proc_open($command,[0=>['file','/dev/null','r'],1=>['pipe','w'],2=>['pipe','w']],$pipes,$root);
+            $proc=@proc_open($command,[0=>['file','/dev/null','r'],1=>['pipe','w'],2=>['pipe','w']],
+                $pipes,$root,AiClippingDependencies::environment());
             if(!is_resource($proc))throw new \RuntimeException('AI candidate process unavailable');
             $exit=null;$error='';$started=microtime(true);$timeout=max(5,min(90,(int)Config::get('ai_clipping.timeout_seconds',30)));
             try{

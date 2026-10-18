@@ -25,12 +25,14 @@ final class AiClippingActivation
             &&hash_equals((string)($test['smoke_sha256']??''),hash_file('sha256',$script))
             &&is_file(dirname(__DIR__,2).'/bin/ai-clipping-probe.py')
             &&hash_equals((string)($test['probe_sha256']??''),
-                hash_file('sha256',dirname(__DIR__,2).'/bin/ai-clipping-probe.py'));
+                hash_file('sha256',dirname(__DIR__,2).'/bin/ai-clipping-probe.py'))
+            &&hash_equals((string)($test['library_sha256']??''),
+                hash('sha256',(string)Config::get('ai_clipping.python_lib_dir','')));
         return ['verified'=>$valid,'configured'=>str_starts_with($path,'/')&&is_executable($path)];
     }
 
     /** @return string[] fixed interpreter candidates, never accepted from browser input. */
-    private static function interpreters(): array
+    public static function availableInterpreters(): array
     {
         $root=dirname(__DIR__,2);
         $configured=trim((string)Config::get('ai_clipping.python_binary',''));
@@ -63,7 +65,7 @@ final class AiClippingActivation
         $smoke=$root.'/bin/ai-clipping-smoke.py';
         if(!is_file($script)||!is_file($smoke))throw new \RuntimeException('SMOKE_TEST_UNAVAILABLE');
         if(!function_exists('proc_open'))throw new \RuntimeException('WORKER_PROCESS_UNAVAILABLE');
-        $executables=self::interpreters();
+        $executables=self::availableInterpreters();
         if(!$executables)throw new \RuntimeException('PYTHON_NOT_CONFIGURED');
         $diagnostic='PYTHON_SMOKE_FAILED';
         $start=microtime(true);
@@ -80,6 +82,7 @@ final class AiClippingActivation
                         'binary_sha256'=>hash('sha256',$path),
                         'smoke_sha256'=>hash_file('sha256',$smoke),
                         'probe_sha256'=>hash_file('sha256',$script),
+                        'library_sha256'=>hash('sha256',(string)Config::get('ai_clipping.python_lib_dir','')),
                     ],
                 ]);
                 return 'PYTHON_SMOKE_PASSED';
@@ -97,12 +100,13 @@ final class AiClippingActivation
      * Only a single allowlisted status token may leave the worker process.
      * No Python traceback, file contents, paths or environment are shown.
      */
-    private static function probeInterpreter(string $binary,string $script,string $root,float $timeout): string
+    private static function probeInterpreter(string $binary,string $script,string $root,float $timeout,?string $libraryOverride=null): string
     {
         $pipes=[];
         try {
             $proc=@proc_open([$binary,$script],
-                [0=>['file','/dev/null','r'],1=>['pipe','w'],2=>['pipe','w']],$pipes,$root);
+                [0=>['file','/dev/null','r'],1=>['pipe','w'],2=>['pipe','w']],
+                $pipes,$root,AiClippingDependencies::environment($libraryOverride));
         }catch(\Throwable){
             return 'CANDIDATE_PROCESS_UNAVAILABLE';
         }
@@ -140,6 +144,44 @@ final class AiClippingActivation
             return $exit===0&&$m[1]==='PASS'?'PASS':($m[1]==='PASS'?'PYTHON_SMOKE_FAILED':$m[1]);
         }
         return 'PYTHON_SMOKE_FAILED';
+    }
+
+    /** Run a private synthetic probe before any runtime change. */
+    public static function probeStaged(string $binary,string $directory): string
+    {
+        if(!AiClippingWebSetup::gate()['allowed'])throw new \RuntimeException('STAGING_ONLY');
+        return self::probeInterpreter($binary,
+            dirname(__DIR__,2).'/bin/ai-clipping-probe.py',
+            dirname(__DIR__,2),12.0,$directory);
+    }
+
+    /** Installed Python and libs are only adopted after a passing staged probe. */
+    public static function saveDependencyConfig(string $binary,string $directory): void
+    {
+        if(!AiClippingWebSetup::gate()['allowed'])throw new \RuntimeException('STAGING_ONLY');
+        $real=realpath($directory);
+        $root=realpath(dirname(__DIR__,2).'/storage/private');
+        if(!$real||!$root||!str_starts_with($real,$root.DIRECTORY_SEPARATOR)){
+            throw new \RuntimeException('PYTHON_LIB_STORAGE_UNAVAILABLE');
+        }
+        self::writeAi(['python_binary'=>$binary,'python_lib_dir'=>$real,
+            'python_validation'=>[]]);
+    }
+
+    /** Used by pre-existing long-lived workers, which may have a cached Config. */
+    public static function currentPythonBinary(): string
+    {
+        $runtime=dirname(__DIR__,2).'/config/runtime.php';
+        if(is_file($runtime)){
+            try {
+                if(function_exists('opcache_invalidate'))@opcache_invalidate($runtime,true);
+                $data=require $runtime;
+                $bin=is_array($data)?($data['ai_clipping']['python_binary']??''):null;
+                if(is_string($bin)&&str_starts_with($bin,'/')&&is_file($bin)&&is_executable($bin))
+                    return $bin;
+            }catch(\Throwable){}
+        }
+        return trim((string)Config::get('ai_clipping.python_binary','python3'));
     }
 
     public static function workerState(bool $activeProbe=false): array

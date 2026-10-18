@@ -38,6 +38,15 @@ final class AiClippingReadinessView
             'WORKER_PROCESS_UNAVAILABLE'=>'The staging application cannot start the Python test.',
             'WORKER_TEST_TIMED_OUT'=>'Python validation timed out. No user data was touched.',
             'PYTHON_SMOKE_FAILED'=>'Python failed before the test could classify its result. Check Cloudways application process restrictions.',
+            'PYTHON_DEPENDENCIES_INSTALLED'=>'NumPy and OpenCV are installed and passed the candidate test in private ePaper storage. You can now enable AI after RabbitMQ checks.',
+            'INSTALL_CONFIRMATION_REQUIRED'=>'Confirm the staging-only dependency installation first.',
+            'DISABLE_AI_BEFORE_INSTALL'=>'Disable AI detection before replacing Python dependencies.',
+            'PYTHON_LIB_STORAGE_UNAVAILABLE'=>'Private storage cannot be prepared. Check Cloudways application storage permissions or space.',
+            'PYTHON_INSTALL_ALREADY_RUNNING'=>'Another dependency installation is in progress. Do not submit again.',
+            'PYTHON_INSTALL_TIMEOUT'=>'Installing the pinned wheels took longer than the allowed web request. NumPy and OpenCV remain unverified.',
+            'PYTHON_PIP_MISSING'=>'Python pip is not installed or not available to the application. Cloudways must provision pip through hosting support.',
+            'PYTHON_WHEEL_INSTALL_FAILED'=>'Python pip was found, but pinned wheel installation failed. Check Cloudways outbound HTTPS, free disk space and binary compatibility.',
+            'PYTHON_WHEEL_VALIDATION_FAILED'=>'Wheel installation finished but the synthetic image detection failed. AI remains disabled.',
             'PYTHON_VERSION_UNSUPPORTED'=>'Available Python version is incompatible with the pinned image libraries. Python 3.9–3.12 is required.',
             'NUMPY_MISSING'=>'NumPy is not installed in the detected Python environment. The AI image-processing dependencies need provisioning.',
             'NUMPY_IMPORT_FAILED'=>'NumPy is installed but cannot load correctly. Its Python compatibility or native libraries need repair.',
@@ -152,7 +161,19 @@ final class AiClippingReadinessView
             }else{
                 $html.='<p class="ai-muted">Database status is unavailable. Check System Health before changing it.</p>';
             }
-            $html.='<div class="ai-panel" style="margin-top:16px"><h3>AI detection activation</h3>';
+            $html.='<div class="ai-panel" style="margin-top:16px"><h3>Python image dependencies</h3>'
+                .'<p class="ai-muted">Install fixed NumPy 1.26.4 and OpenCV headless 4.10.0 into private ePaper storage. No global system packages are changed. This needs Python pip, HTTPS access to PyPI and writable private storage; it may take longer than a normal health check.</p>';
+            if(!$enabled){
+                $html.='<form class="ai-form" method="post" action="/admin/ai-clipping/action">'
+                    .'<input type="hidden" name="_csrf" value="'.$csrf.'">'
+                    .'<input type="hidden" name="action" value="install_python_deps">'
+                    .'<label class="ai-confirm"><input type="checkbox" name="install_confirmed" value="yes" required>'
+                    .'<span>Install the two pinned image-processing dependencies into this existing staging application only.</span></label>'
+                    .'<button class="btn ghost" type="submit">Install image dependencies</button></form>';
+            }else{
+                $html.='<p class="ai-muted">Disable AI detection before changing Python dependencies.</p>';
+            }
+            $html.='</div><div class="ai-panel" style="margin-top:16px"><h3>AI detection activation</h3>';
             if($enabled){
                 $html.='<p class="ai-muted">AI detection is enabled for OCR jobs after workers load the updated runtime. No automatic publishing is performed.</p>'
                     .'<form class="ai-form" method="post" action="/admin/ai-clipping/action">'
