@@ -14,22 +14,22 @@ trait InternalApiActions
 
 private function resolveDomain(): never
     {
-        ServiceAuth::requireScope('domains.resolve');
+        $service=ServiceAuth::requireScope('domains.resolve');
         $host=DomainTools::normalize($_GET['hostname']??'');
-        (new DomainResolutionController(new \Digiti\Repositories\SqlActiveDomainRepository()))->resolve($host);
+        (new DomainResolutionController(new \Digiti\Repositories\SqlActiveDomainRepository()))->resolve($host,$service['product_guid']??null);
     }
 
     private function tenantInfo(string $guid): never
     {
-        ServiceAuth::requireScope('tenant.read');$row=Store::one('SELECT pt.product_tenant_guid,pt.organisation_guid,pt.product_guid,pt.display_name,pt.status,o.organisation_code,o.display_name organisation_name,p.product_key,p.name product_name FROM product_tenants pt JOIN organisations o ON o.organisation_guid=pt.organisation_guid JOIN products p ON p.product_guid=pt.product_guid WHERE pt.product_tenant_guid=? LIMIT 1',[Uuid::toBinary($guid)]);if(!$row)Http::json(['ok'=>false,'code'=>'TENANT_NOT_FOUND'],404);Http::json(['ok'=>true,'tenant'=>$row]);
+        ServiceAuth::requireTenantScope('tenant.read',$guid);$row=Store::one('SELECT pt.product_tenant_guid,pt.organisation_guid,pt.product_guid,pt.display_name,pt.status,o.organisation_code,o.display_name organisation_name,p.product_key,p.name product_name FROM product_tenants pt JOIN organisations o ON o.organisation_guid=pt.organisation_guid JOIN products p ON p.product_guid=pt.product_guid WHERE pt.product_tenant_guid=? LIMIT 1',[Uuid::toBinary($guid)]);if(!$row)Http::json(['ok'=>false,'code'=>'TENANT_NOT_FOUND'],404);Http::json(['ok'=>true,'tenant'=>$row]);
     }
 
     private function tenantAccess(string $guid): never
     {
-        ServiceAuth::requireScope('access.read');$row=Store::one('SELECT subscription_guid,status,billing_state,service_access_state,current_period_start,current_period_end FROM subscriptions WHERE product_tenant_guid=? ORDER BY created_at DESC LIMIT 1',[Uuid::toBinary($guid)]);if(!$row)Http::json(['ok'=>true,'product_tenant_guid'=>$guid,'subscription'=>null,'service_access_state'=>'BLOCKED']);Http::json(['ok'=>true,'product_tenant_guid'=>$guid,'subscription'=>$row,'service_access_state'=>$row['service_access_state']]);
+        ServiceAuth::requireTenantScope('access.read',$guid);$row=Store::one('SELECT subscription_guid,status,billing_state,service_access_state,current_period_start,current_period_end FROM subscriptions WHERE product_tenant_guid=? ORDER BY created_at DESC LIMIT 1',[Uuid::toBinary($guid)]);if(!$row)Http::json(['ok'=>true,'product_tenant_guid'=>$guid,'subscription'=>null,'service_access_state'=>'BLOCKED']);Http::json(['ok'=>true,'product_tenant_guid'=>$guid,'subscription'=>$row,'service_access_state'=>$row['service_access_state']]);
     }
 
-    private function tenantEntitlements(string $guid): never{ServiceAuth::requireScope('entitlements.read');$tenant=Store::one('SELECT product_tenant_guid,status FROM product_tenants WHERE product_tenant_guid=?',[Uuid::toBinary($guid)]);if(!$tenant)Http::json(['ok'=>false,'code'=>'TENANT_NOT_FOUND'],404);Http::json(['ok'=>true,'product_tenant_guid'=>$guid,'entitlements'=>Entitlements::effective($guid)]);}
+    private function tenantEntitlements(string $guid): never{ServiceAuth::requireTenantScope('entitlements.read',$guid);$tenant=Store::one('SELECT product_tenant_guid,status FROM product_tenants WHERE product_tenant_guid=?',[Uuid::toBinary($guid)]);if(!$tenant)Http::json(['ok'=>false,'code'=>'TENANT_NOT_FOUND'],404);Http::json(['ok'=>true,'product_tenant_guid'=>$guid,'entitlements'=>Entitlements::effective($guid)]);}
 
     private function verifyMembership(): never
     {

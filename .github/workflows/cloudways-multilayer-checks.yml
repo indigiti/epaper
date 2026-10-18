@@ -23,4 +23,4 @@ jobs:
       - name: Validate staging acceptance CLI
         run: python3 -m py_compile tests/staging_acceptance.py && python3 tests/staging_acceptance.py --help >/dev/null
       - name: Verify entry points and controller / repository contracts
-        run: php tests/layered-controller-contracts.php && php tests/concrete-controllers.php && php tests/security-boundaries.php && php tests/admin-dashboard-layers.php
+        run: php tests/layered-controller-contracts.php && php tests/concrete-controllers.php && php tests/security-boundaries.php && php tests/admin-dashboard-layers.php && php tests/service-product-scope.php

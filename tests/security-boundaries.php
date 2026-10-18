@@ -30,4 +30,10 @@ foreach(["['ROUTING_VALID','SSL_PROVISIONING','ACTIVE']","'code'=>'DOMAIN_NOT_AC
     $assert(str_contains($controller,$invariant),'domain endpoint retains '.$invariant);
 }
 $assert(str_contains($crud,'new SqlOrganisationReader()'),'admin organisation reads through repository');
+$auth=file_get_contents($root.'/app/Core/ServiceAuth.php');
+$assert(str_contains($auth,'requireTenantScope('),'tenant scope helper present');
+foreach(['tenant.read','access.read','entitlements.read'] as $scope){
+    $assert(str_contains($internal,"ServiceAuth::requireTenantScope('".$scope."'"),
+        'tenant route binds product scope '.$scope);
+}
 echo "Platform security boundaries: OK\n";
