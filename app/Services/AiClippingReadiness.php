@@ -19,6 +19,7 @@ final class AiClippingReadiness
         $python=(string)Config::get('ai_clipping.python_binary','python3');
         $absolute=str_starts_with($python,'/');
         $pythonKnown=$absolute&&is_file($python)&&is_executable($python);
+        $pythonVerified=AiClippingActivation::pythonState()['verified'];
         $source=is_file($root.'/bin/ai-candidate-generate.py')
             &&is_file($root.'/ai_processing/hocr.py')
             &&is_file($root.'/ai_processing/segmentation.py');
@@ -35,9 +36,10 @@ final class AiClippingReadiness
                  'AVAILABLE'=>'Tenant-scoped candidate table is available.',
                  'MISSING'=>'Optional AI candidate migration has not been applied.',
                  default=>'Candidate database cannot be inspected; check application database health.'}],
-            ['name'=>'Python runtime','status'=>$pythonKnown?'CONFIGURED':'UNVERIFIED',
-             'detail'=>$pythonKnown?'Configured absolute Python binary is executable by this PHP process; worker validation still required.':
-                 'Worker Python executable is not verified. Set an absolute private interpreter path for staging.'],
+            ['name'=>'Python runtime','status'=>$pythonVerified?'VERIFIED':($pythonKnown?'CONFIGURED':'UNVERIFIED'),
+             'detail'=>$pythonVerified?'Python, NumPy, OpenCV and real candidate CLI passed a recent synthetic test.':
+                 ($pythonKnown?'Python is configured; run Test Python and image detection to validate packages.':
+                 'Use Test Python and image detection to check installed Python automatically without a console.')],
             ['name'=>'AI source modules','status'=>$source?'PRESENT':'MISSING',
              'detail'=>$source?'Segmentation and candidate CLI files exist.':'Candidate CLI or segmentation files are absent from this checkout.'],
             ['name'=>'PHP process support','status'=>$spawn?'AVAILABLE':'UNAVAILABLE',

@@ -3,7 +3,7 @@ declare(strict_types=1);
 namespace EpaperSaas\Controllers;
 
 use EpaperSaas\Core\{Auth,Config,Http,RateLimiter,RequestContext,View};
-use EpaperSaas\Services\{AiClippingReadiness,AiClippingWebSetup,Audit};
+use EpaperSaas\Services\{AiClippingReadiness,AiClippingWebSetup,AiClippingActivation,Audit};
 use EpaperSaas\Views\AiClippingReadinessView;
 
 final class AdminAiClippingController
@@ -72,6 +72,14 @@ final class AdminAiClippingController
                     $result=AiClippingWebSetup::testPython();
                     Audit::log('ai.setup.python_smoke','ai_candidate_worker',
                         'synthetic','SUCCESS',['result'=>$result,'no_live_data'=>true]);
+                }elseif($action==='enable_ai'){
+                    $result=AiClippingActivation::enable(($_POST['activation_confirmed']??'')==='yes');
+                    Audit::log('ai.setup.enable','ai_clipping_feature',
+                        'ai_clipping.enabled','SUCCESS',['result'=>$result,'editorial_only'=>true]);
+                }elseif($action==='disable_ai'){
+                    $result=AiClippingActivation::disable();
+                    Audit::log('ai.setup.disable','ai_clipping_feature',
+                        'ai_clipping.enabled','SUCCESS',['result'=>$result]);
                 }else{
                     Http::json(['ok'=>false,'code'=>'ACTION_NOT_ALLOWED'],422);
                 }
@@ -83,7 +91,11 @@ final class AdminAiClippingController
                 'STAGING_ONLY_OR_CONFIRMATION_REQUIRED','MIGRATION_SOURCE_INVALID',
                 'MIGRATION_VERIFICATION_FAILED','STAGING_ONLY','PYTHON_NOT_CONFIGURED',
                 'SMOKE_TEST_UNAVAILABLE','WORKER_PROCESS_UNAVAILABLE',
-                'WORKER_TEST_TIMED_OUT','PYTHON_SMOKE_FAILED'
+                'WORKER_TEST_TIMED_OUT','PYTHON_SMOKE_FAILED',
+                'ACTIVATION_CONFIRMATION_REQUIRED','CANDIDATE_SCHEMA_MISSING',
+                'AI_SOURCE_MISSING','RABBITMQ_NOT_CONFIGURED',
+                'RABBITMQ_UNAVAILABLE','OCR_WORKER_NOT_RUNNING',
+                'PRIVATE_RUNTIME_NOT_WRITABLE','PRIVATE_RUNTIME_INVALID'
             ];
             $code=in_array($e->getMessage(),$safeCodes,true)?$e->getMessage():'SETUP_CHECK_FAILED';
             Http::redirect('/admin/ai-clipping?setup_result='.rawurlencode($code));

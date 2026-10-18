@@ -23,6 +23,15 @@ final class AiClippingReadinessView
             'PRIVATE_RUNTIME_INVALID'=>'Existing private runtime configuration is invalid; no changes were made.',
             'SCHEMA_CREATED'=>'Candidate table created in the current staging database.',
             'ALREADY_PRESENT'=>'Candidate table is already available; no changes were needed.',
+            'PYTHON_SMOKE_PASSED'=>'Synthetic Python/OpenCV candidate test passed. You can now activate AI after RabbitMQ is healthy.',
+            'AI_DETECTION_ENABLED'=>'AI Clipping flag enabled. Check Worker Doctor and process a test edition. Long-running OCR workers may require reload through Cloudways web management.',
+            'AI_DETECTION_DISABLED'=>'AI Clipping disabled. Manual clipping and existing editions remain unchanged.',
+            'ACTIVATION_CONFIRMATION_REQUIRED'=>'Please confirm editorial-only staging activation.',
+            'CANDIDATE_SCHEMA_MISSING'=>'Candidate table is missing. Use the dashboard database setup first.',
+            'AI_SOURCE_MISSING'=>'AI candidate source files are missing from the current deployment.',
+            'RABBITMQ_NOT_CONFIGURED'=>'RabbitMQ is not the active queue driver. Check Worker Doctor.',
+            'RABBITMQ_UNAVAILABLE'=>'RabbitMQ could not be reached. Check Processing Center.',
+            'OCR_WORKER_NOT_RUNNING'=>'No active OCR worker heartbeat found. Check Worker Doctor.',
             'PYTHON_SMOKE_PASSED'=>'Synthetic Python and OpenCV candidate test passed.',
             'PYTHON_NOT_CONFIGURED'=>'The staging Python interpreter is not yet configured.',
             'WORKER_PROCESS_UNAVAILABLE'=>'The staging application cannot start the Python test.',
@@ -107,10 +116,10 @@ final class AiClippingReadinessView
             if($canManage){
             $csrf=$e(Http::csrf());
             $html.='<p class="ai-muted">These actions run inside the current staging application. They do not publish articles or affect the public reader.</p>'
-                .'<form class="ai-form" method="post" action="/admin/ai-clipping/action">'
+                .'<div class="ai-actions"><form class="ai-form" method="post" action="/admin/ai-clipping/action">'
                 .'<input type="hidden" name="_csrf" value="'.$csrf.'">'
                 .'<input type="hidden" name="action" value="test_python">'
-                .'<button type="submit" class="btn ghost">Test Python and image detection</button></form>';
+                .'<button type="submit" class="btn ghost">Test Python and image detection</button></form></div>';
             $schema=(string)($snapshot['checks'][1]['status']??'UNAVAILABLE');
             if($schema==='MISSING'){
                 $db=(string)Config::get('db.name','');
@@ -129,8 +138,27 @@ final class AiClippingReadinessView
             }else{
                 $html.='<p class="ai-muted">Database status is unavailable. Check System Health before changing it.</p>';
             }
+            $html.='<div class="ai-panel" style="margin-top:16px"><h3>AI detection activation</h3>';
+            if($enabled){
+                $html.='<p class="ai-muted">AI detection is enabled for OCR jobs after workers load the updated runtime. No automatic publishing is performed.</p>'
+                    .'<form class="ai-form" method="post" action="/admin/ai-clipping/action">'
+                    .'<input type="hidden" name="_csrf" value="'.$csrf.'">'
+                    .'<input type="hidden" name="action" value="disable_ai">'
+                    .'<button class="btn ghost" type="submit">Disable AI detection</button></form>';
+            }elseif($schema==='AVAILABLE'){
+                $html.='<p class="ai-muted">Enable editorial-only region proposals. This action automatically validates installed Python/OpenCV and checks RabbitMQ and the OCR worker. If a check fails, AI stays disabled.</p>'
+                    .'<form class="ai-form" method="post" action="/admin/ai-clipping/action">'
+                    .'<input type="hidden" name="_csrf" value="'.$csrf.'">'
+                    .'<input type="hidden" name="action" value="enable_ai">'
+                    .'<label class="ai-confirm"><input type="checkbox" name="activation_confirmed" value="yes" required>'
+                    .'<span>Enable AI candidates on this staging installation only. Every proposed news region must still be reviewed before publication.</span></label>'
+                    .'<button class="btn primary" type="submit">Enable AI detection</button></form>';
             }else{
-                $html.='<p class="ai-muted">Database and Python setup actions require OWNER or ADMIN permissions.</p>';
+                $html.='<p class="ai-muted">Install the candidate database table before enabling AI detection.</p>';
+            }
+            $html.='</div>';
+            }else{
+                $html.='<p class="ai-muted">Database and AI setup actions require OWNER or ADMIN permissions.</p>';
             }
         }
         $html.='</section><section class="ai-panel"><h2>Editorial review</h2>'

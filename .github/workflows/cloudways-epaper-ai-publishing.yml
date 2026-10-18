@@ -49,6 +49,7 @@ jobs:
           php tests/ai-clipping-staging-contract.php
           php -l app/Services/AiClippingReadiness.php
           php -l app/Services/AiClippingWebSetup.php
+          php -l app/Services/AiClippingActivation.php
           php tests/ai-clipping-web-setup.php
           php -l app/Repositories/SqlAiClippingReadinessRepository.php
           php -l app/Controllers/AdminAiClippingController.php

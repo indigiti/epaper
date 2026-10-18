@@ -23,6 +23,7 @@ foreach([
     if(!str_contains($code,$token))throw new RuntimeException('Missing setup gate '.$token);
 }
 foreach(["Http::verifyCsrf()","'OWNER','ADMIN'","AiClippingWebSetup::confirmExistingStaging",
+         "AiClippingActivation::enable","AiClippingActivation::disable",
          "AiClippingWebSetup::applyCandidateSchema",
          "AiClippingWebSetup::testPython"] as $token){
     if(!str_contains($controller,$token))throw new RuntimeException('Missing POST guard '.$token);
@@ -52,4 +53,21 @@ if(!str_contains($owner,'name="action" value="confirm_existing_staging"')||
     str_contains($owner,'name="action" value="apply_schema"')){
     throw new RuntimeException('Existing staging confirmation must be separate from schema action');
 }
-echo "Existing Cloudways staging web setup, identity, CSRF, role and no-console contracts: OK\n";
+$activation=(string)file_get_contents($root.'/app/Services/AiClippingActivation.php');
+foreach(['public static function enable','public static function disable','AiClippingWebSetup::gate',
+        "InfrastructureConfig::workerStatus","RabbitMq::instance()->ping",
+        "python_validation","enabled'=>true","enabled'=>false","proc_open"] as $token){
+    if(!str_contains($activation,$token))throw new RuntimeException('Activation guard missing '.$token);
+}
+$ready=\EpaperSaas\Views\AiClippingReadinessView::render([
+    'enabled'=>false,'status'=>'DISABLED','checks'=>[
+        ['name'=>'Feature flag','status'=>'DISABLED'],
+        ['name'=>'Candidate database','status'=>'AVAILABLE']],
+    'counts'=>[],'review_url'=>null,'setup_can_manage'=>true,
+    'setup'=>['allowed'=>true,'database_match'=>true]
+]);
+if(!str_contains($ready,'name="action" value="enable_ai"')||
+   !str_contains($ready,'name="activation_confirmed"')){
+    throw new RuntimeException('Owner cannot enable from existing staging UI');
+}
+echo "Existing staging browser AI setup/activation, CSRF, worker gates and no-console contracts: OK\n";
