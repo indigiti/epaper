@@ -3,7 +3,7 @@ declare(strict_types=1);
 namespace EpaperSaas\Controllers;
 
 use EpaperSaas\Core\{Auth,Config,Http,RateLimiter,RequestContext,View};
-use EpaperSaas\Services\{AiClippingReadiness,AiClippingWebSetup,AiClippingActivation,Audit};
+use EpaperSaas\Services\{AiClippingReadiness,AiClippingWebSetup,AiClippingActivation,AiClippingDependencies,Audit};
 use EpaperSaas\Views\AiClippingReadinessView;
 
 final class AdminAiClippingController
@@ -72,6 +72,12 @@ final class AdminAiClippingController
                     $result=AiClippingWebSetup::testPython();
                     Audit::log('ai.setup.python_smoke','ai_candidate_worker',
                         'synthetic','SUCCESS',['result'=>$result,'no_live_data'=>true]);
+                }elseif($action==='install_python_deps'){
+                    $result=AiClippingDependencies::install(
+                        ($_POST['install_confirmed']??'')==='yes'
+                    );
+                    Audit::log('ai.setup.private_dependencies','ai_candidate_worker',
+                        'pinned_numpy_opencv','SUCCESS',['result'=>$result,'private_only'=>true]);
                 }elseif($action==='enable_ai'){
                     $result=AiClippingActivation::enable(($_POST['activation_confirmed']??'')==='yes');
                     Audit::log('ai.setup.enable','ai_clipping_feature',
@@ -96,6 +102,11 @@ final class AdminAiClippingController
                 'OPENCV_MISSING','OPENCV_IMPORT_FAILED','TEMP_STORAGE_UNAVAILABLE',
                 'IMAGE_FIXTURE_FAILED','CANDIDATE_GENERATOR_FAILED','CANDIDATE_CONTRACT_FAILED',
                 'CANDIDATE_TEST_TIMED_OUT','CANDIDATE_PROCESS_UNAVAILABLE',
+                'PYTHON_DEPENDENCIES_INSTALLED','INSTALL_CONFIRMATION_REQUIRED',
+                'DISABLE_AI_BEFORE_INSTALL','PYTHON_LIB_STORAGE_UNAVAILABLE',
+                'PYTHON_INSTALL_ALREADY_RUNNING','PYTHON_INSTALL_TIMEOUT',
+                'PYTHON_PIP_MISSING','PYTHON_WHEEL_INSTALL_FAILED',
+                'PYTHON_WHEEL_VALIDATION_FAILED',
                 'ACTIVATION_CONFIRMATION_REQUIRED','CANDIDATE_SCHEMA_MISSING',
                 'AI_SOURCE_MISSING','RABBITMQ_NOT_CONFIGURED',
                 'RABBITMQ_UNAVAILABLE','OCR_WORKER_NOT_RUNNING',

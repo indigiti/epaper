@@ -54,6 +54,21 @@ if(!str_contains($owner,'name="action" value="confirm_existing_staging"')||
     throw new RuntimeException('Existing staging confirmation must be separate from schema action');
 }
 $activation=(string)file_get_contents($root.'/app/Services/AiClippingActivation.php');
+$installer=(string)file_get_contents($root.'/app/Services/AiClippingDependencies.php');
+foreach(['AiClippingWebSetup::gate','numpy==1.26.4','opencv-python-headless==4.10.0.84',
+    'pypi.org/simple','--only-binary=:all:','--no-deps','--no-input',
+    'PYTHONPATH','privateRoot','LOCK_EX','proc_open','PYTHON_PIP_MISSING'] as $token){
+    if(!str_contains($installer,$token))throw new RuntimeException('Private wheel installer guard missing '.$token);
+}
+if(!str_contains($controller,"AiClippingDependencies::install")||
+   !str_contains($view,'name="action" value="install_python_deps"')){
+    throw new RuntimeException('Admin dependency install form/action missing');
+}
+$bridge=(string)file_get_contents($root.'/app/Services/AiCandidatePipeline.php');
+if(!str_contains($bridge,'AiClippingDependencies::environment()')||
+   !str_contains($bridge,'AiClippingActivation::currentPythonBinary()')){
+    throw new RuntimeException('OCR worker does not use private dependencies');
+}
 foreach(['public static function enable','public static function disable','AiClippingWebSetup::gate',
         "InfrastructureConfig::workerStatus","RabbitMq::instance()->ping",
         "python_validation","enabled'=>true","enabled'=>false","proc_open","proc_terminate"] as $token){
