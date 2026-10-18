@@ -1,7 +1,8 @@
 <?php
 declare(strict_types=1);
+require_once __DIR__.'/support/app-source.php';
 $root=dirname(__DIR__);$fails=[];$ok=function(bool$c,string$m)use(&$fails){echo($c?'PASS':'FAIL')." — {$m}\n";if(!$c)$fails[]=$m;};$read=fn(string$f)=>(string)@file_get_contents($root.'/'.$f);
-$app=$read('app/App.php');$crud=$read('public_html/assets/crud.js');$css=$read('public_html/assets/admin-beta.css');$ready=$read('app/Services/ProductionReadiness.php');
+$app=epdiAppSource($root);$crud=$read('public_html/assets/crud.js');$css=$read('public_html/assets/admin-beta.css');$ready=$read('app/Services/ProductionReadiness.php');
 foreach(['Backup & restore rehearsal','Publishing workflow','Reader acceptance','Encrypted offline acceptance','Public newsstand & archive','Publisher console UX','SEO & discovery','Recovery & observability'] as$label)$ok(str_contains($app,$label),'manual acceptance item: '.$label);
 $ok(str_contains($app,'stored only in this browser'),'manual checklist is not presented as authoritative server state');
 $ok(str_contains($app,'Automated checks are ready. Complete every manual item')&&str_contains($app,'Resolve all automated ATTENTION items'),'stable promotion wording distinguishes automated/manual gates');

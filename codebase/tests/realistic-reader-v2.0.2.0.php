@@ -1,12 +1,13 @@
 <?php
 declare(strict_types=1);
+require_once __DIR__.'/support/app-source.php';
 $root=dirname(__DIR__);$fails=[];$ok=function(bool $v,string $m)use(&$fails){echo($v?'PASS':'FAIL')." — $m\n";if(!$v)$fails[]=$m;};
 $version=trim((string)file_get_contents($root.'/VERSION'));
 $sw=(string)file_get_contents($root.'/public_html/service-worker.js');
 $flip=(string)file_get_contents($root.'/public_html/assets/reader-flip.js');
 $reader=(string)file_get_contents($root.'/public_html/assets/reader.js');
 $css=(string)file_get_contents($root.'/public_html/assets/reader.css');
-$app=(string)file_get_contents($root.'/app/App.php');
+$app=epdiAppSource($root);
 $settings=(string)file_get_contents($root.'/app/Services/SettingsCatalog.php');
 $view=(string)file_get_contents($root.'/app/Core/View.php');
 $manifest=json_decode((string)file_get_contents($root.'/manifest.json'),true);

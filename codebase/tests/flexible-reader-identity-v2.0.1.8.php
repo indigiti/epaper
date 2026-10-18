@@ -1,10 +1,11 @@
 <?php
+require_once __DIR__.'/support/app-source.php';
 $root=dirname(__DIR__);$fails=0;
 $ok=function(bool $v,string $m)use(&$fails){echo ($v?'PASS':'FAIL').' — '.$m."\n";if(!$v)$fails++;};
 $device=file_get_contents($root.'/app/Services/DeviceAuth.php');
 $mobile=file_get_contents($root.'/app/Services/MobileAuth.php');
 $auth=file_get_contents($root.'/app/Core/Auth.php');
-$app=file_get_contents($root.'/app/App.php');
+$app=epdiAppSource($root);
 $settings=file_get_contents($root.'/app/Services/SettingsCatalog.php');
 $android=file_get_contents($root.'/mobile-android/app/src/main/java/in/digiti/epdi/MainActivity.java');
 $schema=file_get_contents($root.'/database/schema.sql');

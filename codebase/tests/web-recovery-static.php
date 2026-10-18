@@ -1,7 +1,8 @@
 <?php
 declare(strict_types=1);
+require_once __DIR__.'/support/app-source.php';
 $root=dirname(__DIR__);$fails=[];$ok=function(bool$c,string$m)use(&$fails){echo($c?'PASS':'FAIL')." — {$m}\n";if(!$c)$fails[]=$m;};$read=fn(string$f)=>(string)@file_get_contents($root.'/'.$f);
-$q=$read('app/Services/QueueService.php');$r=$read('app/Services/RecoveryCenter.php');$s=$read('app/Services/PublishingScheduler.php');$a=$read('app/App.php');$p=$read('app/Services/ProductionReadiness.php');$bin=$read('bin/scheduler.php');
+$q=$read('app/Services/QueueService.php');$r=$read('app/Services/RecoveryCenter.php');$s=$read('app/Services/PublishingScheduler.php');$a=epdiAppSource($root);$p=$read('app/Services/ProductionReadiness.php');$bin=$read('bin/scheduler.php');
 $ok(str_contains($q,'DISPATCH_CONFIRMED')&&str_contains($q,'MISSING_DISPATCH_RECEIPT'),'dispatch analysis distinguishes confirmed vs missing');
 $ok(str_contains($q,'close_terminal')&&str_contains($q,'close_orphan')&&str_contains($q,'close_superseded')&&str_contains($q,'recover_confirm'),'failed outbox classifications are explicit');
 $ok(str_contains($q,"else \$applied['unchanged']++"),'unknown failures remain unchanged during safe reconcile');

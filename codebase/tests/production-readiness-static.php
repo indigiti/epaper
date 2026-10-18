@@ -1,7 +1,8 @@
 <?php
 declare(strict_types=1);
+require_once __DIR__.'/support/app-source.php';
 $root=dirname(__DIR__);$fails=[];$ok=function(bool$c,string$m)use(&$fails){echo($c?'PASS':'FAIL')." — {$m}\n";if(!$c)$fails[]=$m;};
-$r=(string)file_get_contents($root.'/app/Services/ProductionReadiness.php');$app=(string)file_get_contents($root.'/app/App.php');$pub=(string)file_get_contents($root.'/app/Services/PublishingRuntime.php');$cli=(string)file_get_contents($root.'/bin/readiness-check.php');
+$r=(string)file_get_contents($root.'/app/Services/ProductionReadiness.php');$app=epdiAppSource($root);$pub=(string)file_get_contents($root.'/app/Services/PublishingRuntime.php');$cli=(string)file_get_contents($root.'/bin/readiness-check.php');
 foreach(['MariaDB','Redis','Digiti Platform','Storage','pdftoppm','tesseract','Imagick','Processing backlog','RabbitMQ','Transactional outbox','Supervisor workers','Publishing scheduler','Edition manifests','Multi-layer cache','Encrypted Offline Vault','Semantic SEO & discovery','Security baseline','Distributed rate limiting','Release artifact integrity','Backup / restore','Browser / device QA'] as$marker)$ok(str_contains($r,$marker),'readiness probe '.$marker);
 $ok(str_contains($r,"'required'=>\$required"),'readiness records required-vs-manual checks');
 $ok(str_contains($r,"PHP_SAPI==='cli'")&&str_contains($r,"'https_probe'=>\$cli?'DEFERRED_TO_WEB':'CHECKED'"),'CLI readiness does not falsely fail HTTPS-only probe');

@@ -1,7 +1,8 @@
 <?php
 declare(strict_types=1);
+require_once __DIR__.'/support/app-source.php';
 $root=dirname(__DIR__);$fails=[];$ok=function(bool$c,string$m)use(&$fails){echo($c?'PASS':'FAIL')." — {$m}\n";if(!$c)$fails[]=$m;};
-$app=(string)file_get_contents($root.'/app/App.php');$err=(string)file_get_contents($root.'/app/Services/ErrorCenter.php');$store=(string)file_get_contents($root.'/app/Core/Store.php');$sched=(string)file_get_contents($root.'/app/Services/PublishingScheduler.php');
+$app=epdiAppSource($root);$err=(string)file_get_contents($root.'/app/Services/ErrorCenter.php');$store=(string)file_get_contents($root.'/app/Core/Store.php');$sched=(string)file_get_contents($root.'/app/Services/PublishingScheduler.php');
 foreach(["analytics:","offline-device:","offline-license:","offline-page:","offline-complete:","progress:","search:"] as$key)$ok(str_contains($app,"RateLimiter::allow('{$key}"),'rate limiter '.$key);
 $ok(substr_count($app,"'code'=>'RATE_LIMITED'")>=7,'rate-limited paths return explicit 429 code');
 $ok(str_contains($err,'try{PlatformClient::instance()->error(')&&str_contains($err,'catch(\\Throwable){}'),'Error Center reporting cannot cascade on Platform outage');
