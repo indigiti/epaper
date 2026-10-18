@@ -12,6 +12,23 @@ final class AiCandidatePipeline
 {
     public static function enabled(): bool
     {
+        // Long-running RabbitMQ workers must see browser-triggered flag changes
+        // at the next OCR page, rather than keeping bootstrap state indefinitely.
+        // The private runtime file is trusted server-managed PHP, not user input.
+        $file=dirname(__DIR__,2).'/config/runtime.php';
+        if(is_file($file)){
+            try{
+                if(function_exists('opcache_invalidate'))@opcache_invalidate($file,true);
+                $runtime=require $file;
+                if(is_array($runtime)&&is_array($runtime['ai_clipping']??null)
+                    &&array_key_exists('enabled',$runtime['ai_clipping'])){
+                    return $runtime['ai_clipping']['enabled']===true;
+                }
+            }catch(\Throwable){
+                // A malformed private runtime must fail closed for AI processing.
+                return false;
+            }
+        }
         return Config::get('ai_clipping.enabled', false) === true;
     }
 
