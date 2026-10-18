@@ -1,0 +1,24 @@
+name: Cloudways ePaper multilayer candidate checks
+on:
+  push:
+    branches: [staging/epaper-multilayer-20261018]
+  pull_request:
+    branches: [cw-epaper]
+permissions:
+  contents: read
+jobs:
+  source-contracts:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: mbstring, pdo_mysql, json, sockets, openssl, fileinfo
+          coverage: none
+      - name: Compile PHP app and tests
+        run: find app tests bin -name '*.php' -print0 | xargs -0 -n1 php -l > /tmp/epdi-lint.log
+      - name: Assert route and repository contracts
+        run: php tests/layered-controller-contracts.php && php tests/concrete-controllers.php
+      - name: Assert AI editorial review guards
+        run: php tests/ai-review-static.php
