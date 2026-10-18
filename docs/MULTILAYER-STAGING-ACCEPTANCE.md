@@ -9,8 +9,8 @@ Candidate: PR #32, based on cw-platform. This is NOT production authorization.
 - Ephemeral PHP server GET /health/live, GET /login, anonymous GET /admin
   redirect and POST /login missing-CSRF 419. No production host is contacted.
 
-## Prerequisites (isolated staging only)
-- Independent Cloudways app, hostname, MariaDB, Redis namespace and session store.
+## Prerequisites (existing staging only)
+- Existing Cloudways staging app and hostname, MariaDB, Redis namespace and session store.
 - Staging super-admin + separate operator account with MFA test identity;
   disposable organisation/tenant/domain and ePaper staging client credentials.
 - Separate Cloudflare sandbox or manual DNS edge provider; never modify production DNS.
@@ -30,9 +30,12 @@ Candidate: PR #32, based on cw-platform. This is NOT production authorization.
 - Webhook idempotence with provider test fixtures, billing reconciliation and
   role-limited admin screens; no live payments.
 - Verify response/code parity, access logs, request IDs, audit logs, and DB records.
-- Rollback on isolated Cloudways staging and compare integrity with baseline.
+- Rollback on existing Cloudways staging and compare integrity with baseline.
 
 ## Promotion rule
 Do not merge PR #32 or pull cw-platform to Cloudways until authenticated
 staging evidence and security/rollback gates are signed off. Green CI is
 source parity evidence only. Keep staging/production credentials distinct.
+
+## Repeatable existing-staging workflow
+Keep using the same installed Cloudways applications. Run tests/staging_acceptance.py from a network that can reach both staging domains, and follow docs/EXISTING-CLOUDWAYS-STAGING-ACCEPTANCE.md. Never put credentials in Git or CLI arguments; mutating tests require a disposable staging tenant and explicit operator authorization.
