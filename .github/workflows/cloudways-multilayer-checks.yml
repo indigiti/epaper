@@ -22,3 +22,5 @@ jobs:
         run: php tests/layered-controller-contracts.php && php tests/concrete-controllers.php
       - name: Assert AI editorial review guards
         run: php tests/ai-review-static.php
+      - name: Tenant SQL isolation and security hardening
+        run: php tests/tenant-query-guard.php && php tests/security-hardening-static.php
