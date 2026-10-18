@@ -72,7 +72,11 @@ trait AdminActions
 
     private function activateDomain(string $guid): never
     {
-        $d=Store::one('SELECT domain_guid,hostname,status FROM domains WHERE domain_guid=?',[Uuid::toBinary($guid)]);if(!$d)throw new \RuntimeException('Domain not found');if(!in_array($d['status'],['ROUTING_VALID','SSL_PROVISIONING'],true))throw new \RuntimeException('Domain is not ready for activation');Store::exec('UPDATE domains SET status="ACTIVE",ssl_ready_at=COALESCE(ssl_ready_at,NOW(6)),activated_at=COALESCE(activated_at,NOW(6)),updated_at=NOW(6) WHERE domain_guid=?',[Uuid::toBinary($guid)]);RedisStore::del('domain:'.$d['hostname']);Audit::log('domain.activate','domain',$guid);View::flash('Domain activated.');Http::redirect('/admin/domains');
+        $hostname=(new DomainActivationController(new \Digiti\Repositories\SqlDomainActivationRepository()))->activate($guid);
+        RedisStore::del('domain:'.$hostname);
+        Audit::log('domain.activate','domain',$guid);
+        View::flash('Domain activated.');
+        Http::redirect('/admin/domains');
     }
 
     private function serviceAccounts(string $method): never
