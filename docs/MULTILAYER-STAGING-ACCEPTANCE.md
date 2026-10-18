@@ -9,8 +9,8 @@ Candidate: PR #31, based on cw-epaper. This is NOT production authorization.
 - Ephemeral PHP server /health/live JSON smoke with example-only CI config.
 - These do **not** validate Cloudways, authenticated publishing or RabbitMQ.
 
-## Prerequisites (isolated Cloudways STAGING only)
-- Isolated staging app and hostname, MariaDB clone, Redis namespace,
+## Prerequisites (existing Cloudways STAGING only)
+- existing staging app and hostname, MariaDB clone, Redis namespace,
   RabbitMQ vhost/queues, protected uploads and media storage.
 - Staging Platform mapping and a disposable publisher-admin/editor account.
 - Backup, restore evidence, secrets in Cloudways private config, AI processing opt-in.
@@ -31,10 +31,13 @@ Candidate: PR #31, based on cw-epaper. This is NOT production authorization.
 - Suspend tenant in Platform and confirm cache invalidation + reader/access denial.
 - Compare edition/page/clip row counts, storage hash/media integrity and visual
   screenshots against pre-refactor baseline.
-- Test rollback from Cloudways backup on isolated staging.
+- Test rollback from Cloudways backup on existing staging.
 
 ## Promotion rule
 Do not merge PR #31 or pull cw-epaper to Cloudways until ALL checks above
 are evidenced, operational security/credential rotation is completed, and a
 named reviewer records approval. Never run destructive test data operations on
 production. CI green is necessary but NOT sufficient.
+
+## Repeatable existing-staging workflow
+Keep using the same installed Cloudways applications. Run tests/staging_acceptance.py from a network that can reach both staging domains, and follow docs/EXISTING-CLOUDWAYS-STAGING-ACCEPTANCE.md. Never put credentials in Git or CLI arguments; mutating tests require a disposable staging tenant and explicit operator authorization.
