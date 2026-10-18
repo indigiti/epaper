@@ -14,8 +14,9 @@ trait InternalApiActions
 
     private function resolveDomain(): never
     {
-        ServiceAuth::requireScope('domains.resolve');$host=DomainTools::normalize($_GET['hostname']??'');$cache=RedisStore::getJson('domain:'.$host);if($cache)Http::json(['ok'=>true,'cached'=>true]+$cache);
-        $row=Store::one('SELECT d.domain_guid,d.organisation_guid,d.product_guid,d.application_guid,d.product_tenant_guid,d.hostname,d.status,d.is_primary,d.default_resource_type,d.default_resource_guid,p.product_key,a.application_key,a.base_url FROM domains d JOIN products p ON p.product_guid=d.product_guid AND p.status="ACTIVE" JOIN applications a ON a.application_guid=d.application_guid AND a.status="ACTIVE" JOIN product_tenants pt ON pt.product_tenant_guid=d.product_tenant_guid AND pt.status="ACTIVE" JOIN organisations o ON o.organisation_guid=d.organisation_guid AND o.status="ACTIVE" WHERE d.normalized_hostname=? LIMIT 1',[$host]);if(!$row||!in_array($row['status'],['ROUTING_VALID','SSL_PROVISIONING','ACTIVE'],true))Http::json(['ok'=>false,'code'=>'DOMAIN_NOT_ACTIVE','message'=>'Domain is not active','hostname'=>$host],404);$data=['domain_guid'=>$row['domain_guid'],'organisation_guid'=>$row['organisation_guid'],'product_guid'=>$row['product_guid'],'product_key'=>$row['product_key'],'application_guid'=>$row['application_guid'],'application_key'=>$row['application_key'],'product_tenant_guid'=>$row['product_tenant_guid'],'hostname'=>$row['hostname'],'status'=>$row['status'],'base_url'=>$row['base_url'],'default_resource_type'=>$row['default_resource_type'],'default_resource_guid'=>$row['default_resource_guid']];RedisStore::setJson('domain:'.$host,$data,600);Http::json(['ok'=>true,'cached'=>false]+$data);
+        ServiceAuth::requireScope('domains.resolve');
+        $host=DomainTools::normalize($_GET['hostname']??'');
+        (new DomainResolutionController(new \Digiti\Repositories\SqlActiveDomainRepository()))->resolve($host);
     }
 
     private function tenantInfo(string $guid): never

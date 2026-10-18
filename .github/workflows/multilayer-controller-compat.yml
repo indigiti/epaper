@@ -31,4 +31,6 @@ jobs:
         run: find app -name '*.php' -print0 | xargs -0 -n1 php -l
       - name: Controller method and repository contracts
         working-directory: ${{ matrix.app }}
-        run: php tests/layered-controller-contracts.php
+        run: |
+          php tests/layered-controller-contracts.php
+          php tests/concrete-controllers.php

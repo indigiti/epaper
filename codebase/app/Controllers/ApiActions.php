@@ -30,10 +30,7 @@ trait ApiActions
 
     private function apiPerformanceVitals(): never
     {
-        $origin=trim((string)($_SERVER['HTTP_ORIGIN']??''));
-        if($origin!==''){$host=parse_url($origin,PHP_URL_HOST);if(!is_string($host)||strcasecmp($host,Http::host())!==0)Http::json(['ok'=>false,'code'=>'ORIGIN_DENIED'],403);}
-        if((int)($_SERVER['CONTENT_LENGTH']??0)>4096)Http::json(['ok'=>false,'code'=>'PAYLOAD_TOO_LARGE'],413);
-        PerformanceTelemetry::recordVitals(Http::bodyJson());Http::json(['ok'=>true],202);
+        (new PerformanceVitalsController(new \EpaperSaas\Services\TelemetryVitalsRecorder()))->handle();
     }
 
     private function apiMobileAuthStart(): never
