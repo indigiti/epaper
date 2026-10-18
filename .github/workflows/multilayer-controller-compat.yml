@@ -34,3 +34,4 @@ jobs:
         run: |
           php tests/layered-controller-contracts.php
           php tests/concrete-controllers.php
+          php tests/security-boundaries.php
