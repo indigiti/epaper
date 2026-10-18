@@ -1,0 +1,26 @@
+name: Cloudways Platform multilayer candidate checks
+on:
+  push:
+    branches: [staging/platform-multilayer-20261018]
+  pull_request:
+    branches: [cw-platform]
+permissions:
+  contents: read
+jobs:
+  source-contracts:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: mbstring, pdo_mysql, json, openssl
+          coverage: none
+      - name: Compile Platform PHP
+        run: find app bin tests -name '*.php' -print0 | xargs -0 -n1 php -l > /tmp/platform-lint.log
+      - name: Ephemeral PHP HTTP smoke (not Cloudways)
+        run: bash tests/http-route-smoke.sh
+      - name: Validate staging acceptance CLI
+        run: python3 -m py_compile tests/staging_acceptance.py && python3 tests/staging_acceptance.py --help >/dev/null
+      - name: Verify entry points and controller / repository contracts
+        run: php tests/layered-controller-contracts.php && php tests/concrete-controllers.php && php tests/security-boundaries.php && php tests/admin-dashboard-layers.php && php tests/service-product-scope.php && php tests/domain-activation-layer.php

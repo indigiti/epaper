@@ -2,6 +2,7 @@
 namespace Digiti\Admin;
 
 use Digiti\Core\{Audit,Http,RedisStore,Store,Uuid,View};
+use Digiti\Repositories\SqlOrganisationReader;
 
 final class Crud
 {
@@ -89,7 +90,7 @@ final class Crud
 
     private static function organisationEdit(string $guid,string $method): never
     {
-        $r=Store::one('SELECT organisation_guid,organisation_code,legal_name,display_name,status FROM organisations WHERE organisation_guid=?',[self::guidBin($guid)]);if(!$r)throw new \RuntimeException('Organisation not found.');
+        $r=(new SqlOrganisationReader())->byGuid(self::guidBin($guid));if(!$r)throw new \RuntimeException('Organisation not found.');
         if($method==='POST'){$code=strtoupper(preg_replace('/[^A-Z0-9_]+/','_',strtoupper(trim($_POST['code']??''))));$name=trim($_POST['display_name']??'');if(!$code||!$name)throw new \InvalidArgumentException('Code and display name are required.');$status=self::allowed($_POST['status']??'ACTIVE',['ACTIVE','SUSPENDED','REMOVED'],'ACTIVE');Store::exec('UPDATE organisations SET organisation_code=?,legal_name=?,display_name=?,status=?,updated_at=NOW(6) WHERE organisation_guid=?',[$code,trim($_POST['legal_name']??$name),$name,$status,self::guidBin($guid)]);self::invalidateDomainsBy('organisation_guid',$guid);Audit::log('organisation.update','organisation',$guid);self::redirect('/admin/organisations','Organisation updated.');}
         $body='<section class="card"><h2>Edit organisation</h2><form method="post" class="form-grid">'.self::csrf().'<label>Code<input name="code" value="'.self::e($r['organisation_code']).'" required></label><label>Display name<input name="display_name" value="'.self::e($r['display_name']).'" required></label><label>Legal name<input name="legal_name" value="'.self::e($r['legal_name']).'"></label><label>Status<select name="status">'.self::option('ACTIVE','ACTIVE',$r['status']).self::option('SUSPENDED','SUSPENDED',$r['status']).self::option('REMOVED','REMOVED',$r['status']).'</select></label><div class="form-action"><button class="primary">Update organisation</button><a class="button" href="/admin/organisations">Cancel</a></div></form></section>';View::layout('Edit Organisation',$body,['subtitle'=>$r['organisation_code']]);
     }

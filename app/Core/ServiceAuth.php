@@ -15,4 +15,19 @@ final class ServiceAuth
         Store::exec('UPDATE service_accounts SET last_used_at=NOW(6) WHERE service_account_guid=?',[Uuid::toBinary($row['service_account_guid'])]);
         return $row;
     }
+    /**
+     * Check API scope AND constrain product-bound service accounts to their
+     * own product tenants. Unbound accounts remain explicitly global.
+     */
+    public static function requireTenantScope(string $scope,string $tenantGuid): array
+    {
+        $service=self::requireScope($scope);
+        if(!empty($service['product_guid'])){
+            $tenant=Store::one('SELECT product_guid FROM product_tenants WHERE product_tenant_guid=?',[Uuid::toBinary($tenantGuid)]);
+            if(!$tenant||!\Digiti\Domain\ServiceProductScope::allows($service['product_guid'],$tenant['product_guid']??null)){
+                Http::json(['ok'=>false,'code'=>'TENANT_SCOPE_DENIED'],403);
+            }
+        }
+        return $service;
+    }
 }
