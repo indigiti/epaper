@@ -2,6 +2,8 @@ name: Cloudways ePaper AI and Publishing Staging
 on:
   push:
     branches: [cw-epaper]
+  pull_request:
+    branches: [cw-epaper]
   workflow_dispatch:
 permissions:
   contents: read
@@ -41,6 +43,11 @@ jobs:
           php -l app/Services/EditionRemoval.php
           php -l app/Services/AiEditorialReview.php
           php -l app/Services/AiCandidatePipeline.php
+          php -l app/Services/AiClippingReadiness.php
+          php -l app/Repositories/SqlAiClippingReadinessRepository.php
+          php -l app/Controllers/AdminAiClippingController.php
+          php -l app/Views/AiClippingReadinessView.php
+          php tests/ai-clipping-readiness-contract.php
           php -l app/Controllers/StagingAcceptanceController.php
           php -l app/Core/View.php
           php -l app/Services/StagingAcceptance.php
