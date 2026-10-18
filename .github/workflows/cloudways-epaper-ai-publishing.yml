@@ -2,6 +2,8 @@ name: Cloudways ePaper AI and Publishing Staging
 on:
   push:
     branches: [cw-epaper]
+  pull_request:
+    branches: [cw-epaper]
   workflow_dispatch:
 permissions:
   contents: read
