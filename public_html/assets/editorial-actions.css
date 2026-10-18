@@ -1,0 +1,24 @@
+/* Scoped responsive Editorial Action Center */
+.admin-shell .editorial-actions{width:100%;min-width:0;margin:0 0 24px}
+.admin-shell .editorial-actions-heading{display:flex;align-items:flex-end;justify-content:space-between;gap:14px;margin-bottom:14px}
+.admin-shell .editorial-actions-heading h2{font-size:21px;line-height:1.3;margin:2px 0 0;letter-spacing:-.025em}
+.admin-shell .editorial-actions-heading p,.admin-shell .editorial-action-caption{font-size:12px;color:var(--console-muted);line-height:1.55;margin:5px 0 0}
+.admin-shell .editorial-action-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:13px}
+.admin-shell .editorial-action-card{display:flex;flex-direction:column;min-width:0;padding:18px 19px;border:1px solid var(--console-border);border-radius:13px;background:var(--console-surface)}
+.admin-shell .editorial-action-head{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+.admin-shell .editorial-action-head h3{margin:0;font-size:14px;line-height:1.4;font-weight:800}
+.admin-shell .editorial-action-badge{border:1px solid var(--console-border);background:var(--console-surface-soft);border-radius:99px;font-size:10px;font-weight:800;padding:5px 9px;color:var(--console-muted);white-space:nowrap}
+.admin-shell .editorial-action-description{font-size:12px;line-height:1.55;color:var(--console-muted);margin:9px 0 13px}
+.admin-shell .editorial-action-list{list-style:none;padding:0;margin:0}
+.admin-shell .editorial-action-list li{border-top:1px solid var(--console-border)}
+.admin-shell .editorial-action-list a{display:flex;align-items:center;justify-content:space-between;gap:10px;color:var(--console-text);text-decoration:none;padding:11px 0;min-width:0}
+.admin-shell .editorial-action-list a:hover{color:var(--console-accent)}
+.admin-shell .editorial-action-list a>span:first-child{min-width:0;display:flex;flex-direction:column;gap:4px}
+.admin-shell .editorial-action-list strong{font-size:12px;font-weight:750;line-height:1.4;overflow-wrap:anywhere}
+.admin-shell .editorial-action-list small{font-size:11px;line-height:1.5;color:var(--console-muted);overflow-wrap:anywhere}
+.admin-shell .editorial-action-list a>span:last-child{flex:none;color:var(--console-accent)}
+.admin-shell .editorial-action-empty{font-size:12px;line-height:1.5;color:var(--console-muted);border-top:1px solid var(--console-border);padding:12px 0;margin:0}
+.admin-shell .editorial-action-open{margin-top:auto;padding-top:12px;color:var(--console-accent);font-size:12px;font-weight:750;text-decoration:none}
+.admin-shell .editorial-action-footnote{font-size:11px;line-height:1.55;color:var(--console-muted);margin:11px 0 0}
+@media(max-width:1100px){.admin-shell .editorial-action-grid{grid-template-columns:minmax(0,1fr)}}
+@media(max-width:620px){.admin-shell .editorial-actions-heading{align-items:flex-start;flex-direction:column}.admin-shell .editorial-action-card{padding:15px}.admin-shell .editorial-action-head{flex-wrap:wrap}}

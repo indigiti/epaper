@@ -752,6 +752,10 @@ final class App
             .($canCreate?'<a class="btn primary" href="/admin/editions?create=1">+ Add edition</a>':'').'</div></section>';
         $scope=hash('sha256',RequestContext::tenantGuid().'|'.$role.'|'.(string)(Auth::user()['user_guid']??''));
         $html.=\EpaperSaas\Services\AdminWorkspace::render($groups,$scope);
+        $editorial=(new \EpaperSaas\Services\EditorialActionCenter(
+            new \EpaperSaas\Repositories\SqlEditorialActionRepository()
+        ))->snapshot($tb,$counts,$role,\EpaperSaas\Services\AiCandidatePipeline::enabled());
+        $html.=\EpaperSaas\Services\EditorialActionView::render($editorial);
         $html.='<nav class="desk-metrics" aria-label="Publishing overview">';
         foreach([['Needs attention','NEEDS_ATTENTION','Review and retry','danger'],['Processing','PROCESSING','View active editions','info'],['Ready to publish','READY','Review finished editions','success'],['Scheduled','SCHEDULED','Upcoming publications','info']] as[$label,$state,$detail,$tone]){
             $html.='<a class="desk-metric '.$tone.'" href="/admin/editions?status='.$state.'"><span>'.$label.'</span><strong>'.(int)($counts[$state]??0).'</strong><small>'.$detail.' →</small></a>';

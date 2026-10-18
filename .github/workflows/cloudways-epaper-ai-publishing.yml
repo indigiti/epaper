@@ -52,6 +52,11 @@ jobs:
           php tests/ai-review-static.php
           php tests/admin-acceptance-static.php
           php tests/admin-workspace-contracts.php
+          php tests/editorial-action-center.php
+          php -l app/Services/EditorialActionCenter.php
+          php -l app/Services/EditorialActionView.php
+          php -l app/Repositories/SqlEditorialActionRepository.php
+          php -l app/Contracts/EditorialActionRepository.php
           php -l app/Services/AdminFeatureCatalog.php
           php -l app/Services/AdminWorkspace.php
           node --check public_html/assets/admin-workspace.js
