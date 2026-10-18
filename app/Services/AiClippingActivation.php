@@ -22,7 +22,10 @@ final class AiClippingActivation
             &&(int)($test['at']??0)>time()-self::TEST_TTL
             &&hash_equals((string)($test['binary_sha256']??''),hash('sha256',$path))
             &&is_file($script)
-            &&hash_equals((string)($test['smoke_sha256']??''),hash_file('sha256',$script));
+            &&hash_equals((string)($test['smoke_sha256']??''),hash_file('sha256',$script))
+            &&is_file(dirname(__DIR__,2).'/bin/ai-clipping-probe.py')
+            &&hash_equals((string)($test['probe_sha256']??''),
+                hash_file('sha256',dirname(__DIR__,2).'/bin/ai-clipping-probe.py'));
         return ['verified'=>$valid,'configured'=>str_starts_with($path,'/')&&is_executable($path)];
     }
 
@@ -44,51 +47,80 @@ final class AiClippingActivation
         return array_values($list);
     }
 
+    private const PROBE_CODES=[
+        'PASS','PYTHON_VERSION_UNSUPPORTED','NUMPY_MISSING','NUMPY_IMPORT_FAILED',
+        'OPENCV_MISSING','OPENCV_IMPORT_FAILED','TEMP_STORAGE_UNAVAILABLE',
+        'IMAGE_FIXTURE_FAILED','CANDIDATE_GENERATOR_FAILED','CANDIDATE_CONTRACT_FAILED',
+        'CANDIDATE_TEST_TIMED_OUT','CANDIDATE_PROCESS_UNAVAILABLE',
+        'SMOKE_TEST_UNAVAILABLE',
+    ];
+
     public static function verifyPython(): string
     {
         if(!AiClippingWebSetup::gate()['allowed'])throw new \RuntimeException('STAGING_ONLY');
         $root=dirname(__DIR__,2);
-        $script=$root.'/bin/ai-clipping-smoke.py';
-        if(!is_file($script))throw new \RuntimeException('SMOKE_TEST_UNAVAILABLE');
+        $script=$root.'/bin/ai-clipping-probe.py';
+        $smoke=$root.'/bin/ai-clipping-smoke.py';
+        if(!is_file($script)||!is_file($smoke))throw new \RuntimeException('SMOKE_TEST_UNAVAILABLE');
         if(!function_exists('proc_open'))throw new \RuntimeException('WORKER_PROCESS_UNAVAILABLE');
         $executables=self::interpreters();
         if(!$executables)throw new \RuntimeException('PYTHON_NOT_CONFIGURED');
-        $tested=0;
-        // At most two local interpreters; never invoke shell or download packages.
-        foreach($executables as $path){
-            if(++$tested>2)break;
-            if(!self::runSmoke($path,$script,$root))continue;
-            self::writeAi([
-                'python_binary'=>$path,
-                'python_validation'=>[
-                    'at'=>time(),
-                    'binary_sha256'=>hash('sha256',$path),
-                    'smoke_sha256'=>hash_file('sha256',$script),
-                ],
-            ]);
-            return 'PYTHON_SMOKE_PASSED';
+        $diagnostic='PYTHON_SMOKE_FAILED';
+        $start=microtime(true);
+        // Try configured, private and system interpreters. Fixed paths only, no shell.
+        foreach(array_slice($executables,0,6) as $path){
+            $remaining=24.0-(microtime(true)-$start);
+            if($remaining<2.0)break;
+            $result=self::probeInterpreter($path,$script,$root,min(12.0,$remaining));
+            if($result==='PASS'){
+                self::writeAi([
+                    'python_binary'=>$path,
+                    'python_validation'=>[
+                        'at'=>time(),
+                        'binary_sha256'=>hash('sha256',$path),
+                        'smoke_sha256'=>hash_file('sha256',$smoke),
+                        'probe_sha256'=>hash_file('sha256',$script),
+                    ],
+                ]);
+                return 'PYTHON_SMOKE_PASSED';
+            }
+            // A known dependency or generator failure is more useful than
+            // a later generic startup error. Never expose arbitrary output.
+            if($diagnostic==='PYTHON_SMOKE_FAILED'||$diagnostic==='CANDIDATE_PROCESS_UNAVAILABLE'){
+                $diagnostic=$result;
+            }
         }
-        throw new \RuntimeException('PYTHON_SMOKE_FAILED');
+        throw new \RuntimeException($diagnostic);
     }
 
-    private static function runSmoke(string $binary,string $script,string $root): bool
+    /**
+     * Only a single allowlisted status token may leave the worker process.
+     * No Python traceback, file contents, paths or environment are shown.
+     */
+    private static function probeInterpreter(string $binary,string $script,string $root,float $timeout): string
     {
         $pipes=[];
-        $proc=@proc_open([$binary,$script],
-            [0=>['file','/dev/null','r'],1=>['pipe','w'],2=>['pipe','w']],$pipes,$root);
-        if(!is_resource($proc))return false;
-        $exit=-1;$started=microtime(true);
+        try {
+            $proc=@proc_open([$binary,$script],
+                [0=>['file','/dev/null','r'],1=>['pipe','w'],2=>['pipe','w']],$pipes,$root);
+        }catch(\Throwable){
+            return 'CANDIDATE_PROCESS_UNAVAILABLE';
+        }
+        if(!is_resource($proc))return 'CANDIDATE_PROCESS_UNAVAILABLE';
+        $exit=-1;$stdout='';$started=microtime(true);$timedOut=false;
         try{
             stream_set_blocking($pipes[1],false);
             stream_set_blocking($pipes[2],false);
-            do{
-                @stream_get_contents($pipes[1]);@stream_get_contents($pipes[2]);
+            while(true){
+                $stdout=substr($stdout.(string)@stream_get_contents($pipes[1]),-512);
+                @stream_get_contents($pipes[2]); // discard private diagnostics
                 $status=@proc_get_status($proc);
                 if(!$status||!($status['running']??false)){
                     $exit=(int)($status['exitcode']??-1);
                     break;
                 }
-                if(microtime(true)-$started>12){
+                if(microtime(true)-$started>$timeout){
+                    $timedOut=true;
                     @proc_terminate($proc,15);
                     usleep(150000);
                     $status=@proc_get_status($proc);
@@ -96,13 +128,18 @@ final class AiClippingActivation
                     break;
                 }
                 usleep(100000);
-            }while(true);
+            }
         }finally{
             foreach($pipes as $pipe)if(is_resource($pipe))@fclose($pipe);
             $closed=@proc_close($proc);
             if($exit===-1&&$closed>=0)$exit=$closed;
         }
-        return $exit===0;
+        if($timedOut)return 'CANDIDATE_TEST_TIMED_OUT';
+        if(preg_match('/(?:^|\\n)EPDI_AI_PROBE:([A-Z_]+)(?:\\r?\\n|$)/',$stdout,$m)
+            &&in_array($m[1],self::PROBE_CODES,true)){
+            return $exit===0&&$m[1]==='PASS'?'PASS':($m[1]==='PASS'?'PYTHON_SMOKE_FAILED':$m[1]);
+        }
+        return 'PYTHON_SMOKE_FAILED';
     }
 
     public static function workerState(bool $activeProbe=false): array
