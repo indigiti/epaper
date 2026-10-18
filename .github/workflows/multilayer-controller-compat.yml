@@ -1,0 +1,34 @@
+name: Multilayer controller compatibility
+on:
+  pull_request:
+    paths:
+      - 'codebase/app/**'
+      - 'codebase/tests/layered-controller-contracts.php'
+      - 'platform/app/**'
+      - 'platform/tests/layered-controller-contracts.php'
+      - '.github/workflows/multilayer-controller-compat.yml'
+  push:
+    branches:
+      - 'refactor/multilayer-controllers-20261018'
+permissions:
+  contents: read
+jobs:
+  php-compat:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        app: [codebase, platform]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          coverage: none
+          tools: none
+      - name: PHP source syntax
+        working-directory: ${{ matrix.app }}
+        run: find app -name '*.php' -print0 | xargs -0 -n1 php -l
+      - name: Controller method and repository contracts
+        working-directory: ${{ matrix.app }}
+        run: php tests/layered-controller-contracts.php
