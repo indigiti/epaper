@@ -1,8 +1,9 @@
 <?php
 declare(strict_types=1);
+require_once __DIR__.'/support/app-source.php';
 // Staging source-contract checks. Not HTTP/PHP session integration tests.
 $root=dirname(__DIR__);
-$app=file_get_contents($root.'/app/App.php');
+$app=epdiAppSource($root);
 $editor=file_get_contents($root.'/app/Services/AiEditorialReview.php');
 $bridge=file_get_contents($root.'/app/Services/AiCandidatePipeline.php');
 $worker=file_get_contents($root.'/app/Services/ProcessingPipeline.php');
