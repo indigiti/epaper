@@ -40,7 +40,7 @@ final class AdminFeatureCatalog
             ['Performance & Cache','/admin/performance','Speed and delivery','signal'],
         ];
         if($full)$groups['HEALTH & OPERATIONS'][]=['Storage & Backups','/admin/storage','Storage diagnostics','archive'];
-        if($infra&&in_array($role,['OWNER','ADMIN'],true)){
+        if($infra){
             $groups['HEALTH & OPERATIONS'][]=['Infrastructure','/admin/system/infrastructure','RabbitMQ and service configuration','settings'];
             $groups['HEALTH & OPERATIONS'][]=['Supervisor Doctor','/admin/system/infrastructure/supervisor','Worker lane diagnostics','activity'];
             $groups['HEALTH & OPERATIONS'][]=['Web Recovery','/admin/system/recovery','Inspect and repair safely','refresh'];

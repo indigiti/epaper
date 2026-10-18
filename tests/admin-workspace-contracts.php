@@ -13,6 +13,7 @@ $editor=$catalog::groups('EDITOR',true,false);
 $operator=$catalog::groups('OPERATOR',false,false);
 $publisher=$catalog::groups('PUBLISHER_ADMIN',false,false);
 $noAi=$catalog::groups('OWNER',false,true);
+$customInfra=$catalog::groups('PUBLISHER_ADMIN',false,true);
 foreach(['/admin','/admin/editions','/admin/processing','/admin/ai-review',
   '/admin/system/testing','/admin/system/infrastructure','/admin/access'] as $href){
  if(!in_array($href,$routes($owner),true))throw new RuntimeException('Owner navigation missing '.$href);
@@ -25,6 +26,7 @@ if(in_array('/admin/editions',$routes($operator),true))throw new RuntimeExceptio
 if(in_array('/admin/ai-review',$routes($noAi),true))throw new RuntimeException('Disabled AI is still advertised');
 if(!in_array('/admin/system/testing',$routes($operator),true))throw new RuntimeException('Operator lost QA');
 if(in_array('/admin/system/infrastructure',$routes($publisher),true))throw new RuntimeException('Publisher received infrastructure shortcut');
+if(!in_array('/admin/system/infrastructure',$routes($customInfra),true))throw new RuntimeException('Configured infrastructure role lost access to its own admin link');
 $view=(string)file_get_contents($root.'/app/Core/View.php');
 $app=(string)file_get_contents($root.'/app/App.php');
 $css=(string)file_get_contents($root.'/public_html/assets/admin-workspace.css');
