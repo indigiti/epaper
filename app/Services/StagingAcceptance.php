@@ -37,6 +37,12 @@ final class StagingAcceptance
         }
         $overall=in_array($readiness['status']??'', ['READY','DEGRADED','ACTION_REQUIRED'],true)
             ?$readiness['status']:'ACTION_REQUIRED';
+        if($overall==='READY'){
+            foreach(['editions','pages','clips','jobs'] as $name){
+                if($metrics[$name]===null){$overall='DEGRADED';break;}
+            }
+            if($aiEnabled && $metrics['ai']===null)$overall='DEGRADED';
+        }
         $items=[
             self::item('Publishing & editions','/admin/editions',$metrics['editions'],(int)($metrics['editions']['published']??0),'Published edition records exist; PDF upload/publishing flow is not automatically exercised.'),
             self::item('PDF processing & recovery','/admin/processing',$metrics['jobs'],(int)($metrics['jobs']['total']??0),'Queue/job records exist; retry and failure recovery still require controlled staging tests.'),
@@ -50,6 +56,7 @@ final class StagingAcceptance
         ];
         return [
             'schema_version'=>1,
+            'app_version'=>\EpaperSaas\Core\Build::version(),
             'captured_at'=>gmdate('c'),
             'automated_status'=>$overall,
             'checks'=>$checks,

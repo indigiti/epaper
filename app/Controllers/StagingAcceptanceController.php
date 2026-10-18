@@ -67,6 +67,11 @@ final class StagingAcceptanceController
         }else{
             $status=(string)($snapshot['automated_status']??'ACTION_REQUIRED');
             $time=(string)($snapshot['captured_at']??'unknown');
+            $currentVersion=\EpaperSaas\Core\Build::version();
+            $capturedAt=strtotime($time);
+            $stale=$capturedAt===false || (time()-$capturedAt)>3600 ||
+                (string)($snapshot['app_version']??'')!==$currentVersion;
+            $h.=$stale?'<p class="alert danger"><strong>STALE REPORT.</strong> The snapshot is over one hour old or from a different application build. Run safe checks again.</p>':'';
             $h.='<section class="panel"><h2>Automated readiness: '.$e(str_replace('_',' ',$status)).'</h2>'
                 .'<p>Checked at <strong>'.$e($time).'</strong> (UTC).</p>'
                 .'<p class="muted">Readiness is not full application acceptance. OBSERVED means source data exists, not that a user workflow passed.</p>'

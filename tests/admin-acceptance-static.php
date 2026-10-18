@@ -27,6 +27,7 @@ $input=[
 $report=$s->capture('some-tenant-binary',false,$input);
 if($fake->seen!=='some-tenant-binary')throw new RuntimeException('Tenant lookup was not bound');
 if($report['automated_status']!=='READY')throw new RuntimeException('Automated readiness lost');
+if(empty($report['app_version']))throw new RuntimeException('Report not linked to version');
 $features=$report['functional'];
 foreach($features as $item){
     if(in_array($item['status'],['PASS','READY','VERIFIED'],true))
