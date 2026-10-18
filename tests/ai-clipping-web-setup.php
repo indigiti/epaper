@@ -70,4 +70,13 @@ if(!str_contains($ready,'name="action" value="enable_ai"')||
    !str_contains($ready,'name="activation_confirmed"')){
     throw new RuntimeException('Owner cannot enable from existing staging UI');
 }
-echo "Existing staging browser AI setup/activation, CSRF, worker gates and no-console contracts: OK\n";
+$probeSource=(string)file_get_contents($root.'/bin/ai-clipping-probe.py');
+foreach(['NUMPY_MISSING','OPENCV_MISSING','NUMPY_IMPORT_FAILED','OPENCV_IMPORT_FAILED',
+        'TEMP_STORAGE_UNAVAILABLE','CANDIDATE_GENERATOR_FAILED','EPDI_AI_PROBE:'] as $token){
+    if(!str_contains($probeSource,$token))throw new RuntimeException('Python diagnostic missing '.$token);
+}
+foreach(['NUMPY_MISSING','OPENCV_MISSING','CANDIDATE_CONTRACT_FAILED','CANDIDATE_TEST_TIMED_OUT'] as $token){
+    if(!str_contains($controller,$token)||!str_contains($view,$token))
+        throw new RuntimeException('Sanitized Python diagnostic not linked '.$token);
+}
+echo "Existing staging browser AI setup/activation and classified diagnostics: OK\n";

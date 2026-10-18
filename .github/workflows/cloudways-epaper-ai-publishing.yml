@@ -30,13 +30,15 @@ jobs:
           extensions: pdo_mysql, mbstring
       - run: python -m pip install -r ai_processing/requirements-image.txt
       - name: Synthetic staging candidate end-to-end smoke
-        run: python bin/ai-clipping-smoke.py
+        run: |
+          python bin/ai-clipping-smoke.py
+          python bin/ai-clipping-probe.py
       - run: python -m unittest discover -s tests -p 'test_ai_*.py' -v
       - name: Validate read-only Cloudways acceptance runner (no live network)
         run: |
           python -m py_compile tests/staging_acceptance.py
           python tests/staging_acceptance.py --help > /dev/null
-      - run: python -m compileall -q ai_processing bin/ai-ocr-normalize.py bin/ai-layout-preview.py bin/ai-candidate-generate.py
+      - run: python -m compileall -q ai_processing bin/ai-ocr-normalize.py bin/ai-layout-preview.py bin/ai-candidate-generate.py bin/ai-clipping-probe.py bin/ai-clipping-smoke.py
       - run: |
           set -e
           php -l app/App.php

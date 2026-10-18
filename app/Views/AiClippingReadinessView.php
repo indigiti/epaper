@@ -33,10 +33,23 @@ final class AiClippingReadinessView
             'RABBITMQ_UNAVAILABLE'=>'RabbitMQ could not be reached. Check Processing Center.',
             'OCR_WORKER_NOT_RUNNING'=>'No active OCR worker heartbeat found. Check Worker Doctor.',
             'PYTHON_SMOKE_PASSED'=>'Synthetic Python and OpenCV candidate test passed.',
-            'PYTHON_NOT_CONFIGURED'=>'The staging Python interpreter is not yet configured.',
+            'PYTHON_NOT_CONFIGURED'=>'No usable Python interpreter was found at the supported local paths. Python provisioning is required in Cloudways.',
+
             'WORKER_PROCESS_UNAVAILABLE'=>'The staging application cannot start the Python test.',
             'WORKER_TEST_TIMED_OUT'=>'Python validation timed out. No user data was touched.',
-            'PYTHON_SMOKE_FAILED'=>'Synthetic Python test failed. Review the hosting worker configuration.',
+            'PYTHON_SMOKE_FAILED'=>'Python failed before the test could classify its result. Check Cloudways application process restrictions.',
+            'PYTHON_VERSION_UNSUPPORTED'=>'Available Python version is incompatible with the pinned image libraries. Python 3.9–3.12 is required.',
+            'NUMPY_MISSING'=>'NumPy is not installed in the detected Python environment. The AI image-processing dependencies need provisioning.',
+            'NUMPY_IMPORT_FAILED'=>'NumPy is installed but cannot load correctly. Its Python compatibility or native libraries need repair.',
+            'OPENCV_MISSING'=>'OpenCV (cv2) is not installed in the detected Python environment. Image-region detection cannot run yet.',
+            'OPENCV_IMPORT_FAILED'=>'OpenCV is installed but cannot load. A Python/NumPy/native-library incompatibility is likely.',
+            'TEMP_STORAGE_UNAVAILABLE'=>'Python cannot create or read a private temporary test file. Check staging filesystem permissions or space.',
+            'IMAGE_FIXTURE_FAILED'=>'OpenCV could not create the synthetic image. Check image library functionality and temporary storage.',
+            'CANDIDATE_GENERATOR_FAILED'=>'The candidate generator failed on a synthetic newspaper page. Its application files or runtime need attention.',
+            'CANDIDATE_CONTRACT_FAILED'=>'Python ran but returned an unexpected candidate layout. Check candidate-generation compatibility.',
+            'CANDIDATE_TEST_TIMED_OUT'=>'The Python candidate test exceeded the hosting process time limit.',
+            'CANDIDATE_PROCESS_UNAVAILABLE'=>'The hosting PHP process could not launch Python. Check Cloudways process restrictions.',
+
             'STAGING_ONLY_OR_CONFIRMATION_REQUIRED'=>'Staging database or backup confirmation did not match.',
             'STAGING_ONLY'=>'This action is restricted to isolated staging.',
             'MIGRATION_SOURCE_INVALID'=>'The known candidate migration was not verified; no SQL applied.',
@@ -116,6 +129,7 @@ final class AiClippingReadinessView
             if($canManage){
             $csrf=$e(Http::csrf());
             $html.='<p class="ai-muted">These actions run inside the current staging application. They do not publish articles or affect the public reader.</p>'
+                .'<p class="ai-muted">The Python test identifies missing dependencies, native-library problems, temporary-storage errors and generator failures. It does not install packages or expose server paths.</p>'
                 .'<div class="ai-actions"><form class="ai-form" method="post" action="/admin/ai-clipping/action">'
                 .'<input type="hidden" name="_csrf" value="'.$csrf.'">'
                 .'<input type="hidden" name="action" value="test_python">'
