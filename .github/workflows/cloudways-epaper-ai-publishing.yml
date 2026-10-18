@@ -51,6 +51,10 @@ jobs:
           php -l app/Services/ProcessingPipeline.php
           php tests/ai-review-static.php
           php tests/admin-acceptance-static.php
+          php tests/admin-workspace-contracts.php
+          php -l app/Services/AdminFeatureCatalog.php
+          php -l app/Services/AdminWorkspace.php
+          node --check public_html/assets/admin-workspace.js
       - env:
           EPDI_AI_TEST_DB_HOST: 127.0.0.1
           EPDI_AI_TEST_DB_USER: root

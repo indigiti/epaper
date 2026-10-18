@@ -102,7 +102,7 @@ if(Math.random()<Number(cfg.rumSampleRate||0.10)){
 (()=>{
   const palette=document.querySelector('[data-command-palette]');if(!palette)return;
   const input=palette.querySelector('[data-command-input]'),results=palette.querySelector('[data-command-results]');
-  const commands=[...document.querySelectorAll('.app-sidebar .app-nav-link')].map(a=>[a.querySelector('span')?.textContent?.trim()||a.textContent.trim(),a.getAttribute('href')||'#',a.closest('.nav-group')?.querySelector('.nav-group-label')?.textContent?.trim()||'Navigate']).filter(c=>c[1]&&c[1]!=='#');
+  const commands=[...document.querySelectorAll('.app-sidebar .app-nav-link')].map(a=>[a.querySelector('span')?.textContent?.trim()||a.textContent.trim(),a.getAttribute('href')||'#',a.closest('.nav-section')?.querySelector('.nav-section-title span')?.textContent?.trim()||a.closest('.nav-group')?.querySelector('.nav-group-label')?.textContent?.trim()||'Navigate']).filter(c=>c[1]&&c[1]!=='#');
   if(commands.some(c=>c[1]==='/admin/editions'))commands.unshift(['New edition','/admin/editions','Quick action']);
   let active=0,filtered=[],previousFocus=null;
   const close=()=>{palette.classList.add('hidden');input.value='';document.body.style.overflow='';const target=previousFocus;previousFocus=null;if(target&&target.isConnected)setTimeout(()=>target.focus(),0)};
