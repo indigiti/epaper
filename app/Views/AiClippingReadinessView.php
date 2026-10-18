@@ -14,9 +14,14 @@ final class AiClippingReadinessView
         $status=(string)($snapshot['status']??'UNKNOWN');
         $setup=is_array($snapshot['setup']??null)?$snapshot['setup']:[];
         $canStage=(bool)($setup['allowed']??false);
+        $canManage=(bool)($snapshot['setup_can_manage']??false);
         $result=(string)($_GET['setup_result']??'');
         $labels=[
-            'SCHEMA_CREATED'=>'Candidate table created in isolated staging.',
+            'EXISTING_STAGING_CONFIRMED'=>'This existing installation is confirmed for AI staging setup. No new environment was created and AI remains disabled.',
+            'STAGING_CONFIRMATION_REQUIRED'=>'Verify the current hostname and database name, then confirm staging and backup.',
+            'PRIVATE_RUNTIME_NOT_WRITABLE'=>'Private runtime configuration cannot be updated by the application. Check Cloudways application file permissions.',
+            'PRIVATE_RUNTIME_INVALID'=>'Existing private runtime configuration is invalid; no changes were made.',
+            'SCHEMA_CREATED'=>'Candidate table created in the current staging database.',
             'ALREADY_PRESENT'=>'Candidate table is already available; no changes were needed.',
             'PYTHON_SMOKE_PASSED'=>'Synthetic Python and OpenCV candidate test passed.',
             'PYTHON_NOT_CONFIGURED'=>'The staging Python interpreter is not yet configured.',
@@ -59,8 +64,8 @@ final class AiClippingReadinessView
         $html.='<div class="ai-tiles">'
             .'<div class="ai-tile"><small>AI detection</small><strong>'.$e(str_replace('_',' ',$status)).'</strong><small>'.$e($summary).'</small></div>'
             .'<div class="ai-tile"><small>Pending editorial candidates</small><strong>'.number_format(max(0,(int)($snapshot['counts']['PENDING']??0))).'</strong><small>Tenant-specific. Never automatically published.</small></div>'
-            .'<div class="ai-tile"><small>Environment</small><strong>'.($canStage?'Isolated staging':'Protected').'</strong>'
-            .'<small>'.($canStage?'Staging-only setup actions are available.':'Database and worker activation controls stay locked here.').'</small></div></div>';
+            .'<div class="ai-tile"><small>Environment</small><strong>'.($canStage?'Existing staging':'Not confirmed').'</strong>'
+            .'<small>'.($canStage?'This installation is approved for staging setup; AI is not automatically activated.':'Confirm this existing installation as staging to unlock protected setup steps.').'</small></div></div>';
         $html.='<section class="ai-panel"><div class="ai-head"><h2>Readiness checks</h2>'
             .'<a class="btn ghost" href="/admin/ai-clipping?refresh=1">Refresh checks</a></div>'
             .'<div class="ai-checks">';
@@ -73,15 +78,35 @@ final class AiClippingReadinessView
         $html.='</div></section>';
         $html.='<section class="ai-panel"><h2>AI Clipping setup</h2>';
         if(!$canStage){
-            $html.='<p><strong>Staging changes are locked.</strong></p>'
-                .'<p class="ai-muted">This application has not passed the isolated staging identity checks. '
-                .'For safety, candidate database migrations and worker tests are not available on the live ePaper tenant. '
-                .'Create or select an isolated Cloudways staging application using its web dashboard, and return to AI Clipping there.</p>'
-                .'<div class="ai-actions"><a class="btn ghost" href="/admin/system/health">System health</a>'
+            $html.='<p><strong>Existing Cloudways installation — staging confirmation required.</strong></p>'
+                .'<p class="ai-muted">You do not need another Cloudways application. Confirm that this current installation is your staging environment. '
+                .'The hostname alone cannot establish staging status. No SQL, Python jobs or feature activation runs during confirmation.</p>';
+            if($canManage){
+                $csrf=$e(Http::csrf());
+                $hostname=(string)(parse_url((string)Config::get('app.url',''),PHP_URL_HOST)?:'');
+                $db=(string)Config::get('db.name','');
+                $html.='<form class="ai-form" method="post" action="/admin/ai-clipping/action">'
+                    .'<input type="hidden" name="_csrf" value="'.$csrf.'">'
+                    .'<input type="hidden" name="action" value="confirm_existing_staging">'
+                    .'<label for="ai-current-host">Confirm current staging hostname</label>'
+                    .'<input id="ai-current-host" type="text" name="hostname" autocomplete="off" required placeholder="'.$e($hostname).'">'
+                    .'<label for="ai-current-db">Confirm current ePaper database name</label>'
+                    .'<input id="ai-current-db" type="text" name="database_name" autocomplete="off" required placeholder="'.$e($db).'">'
+                    .'<label class="ai-confirm"><input type="checkbox" name="staging_confirmed" value="yes" required>'
+                    .'<span>I confirm this existing installation contains staging/test data and may be used for AI setup. It is not serving production customer operations.</span></label>'
+                    .'<label class="ai-confirm"><input type="checkbox" name="backup_confirmed" value="yes" required>'
+                    .'<span>I confirm a backup and recovery plan for this installation are available.</span></label>'
+                    .'<button type="submit" class="btn primary">Confirm existing staging installation</button></form>';
+            }else{
+                $html.='<p class="ai-muted">An OWNER or ADMIN must confirm staging status. Your account has read-only access.</p>';
+            }
+            $html.='<div class="ai-actions"><a class="btn ghost" href="/admin/system/health">System health</a>'
                 .'<a class="btn ghost" href="/admin/system/infrastructure/supervisor">Worker Doctor</a></div>';
         }else{
+            $html.='<p class="ai-muted">This existing installation is confirmed for AI staging setup. Its configured Platform tenant, domains and public Reader remain unchanged.</p>';
+            if($canManage){
             $csrf=$e(Http::csrf());
-            $html.='<p class="ai-muted">These actions run inside the staging application. They do not publish articles or affect the public reader.</p>'
+            $html.='<p class="ai-muted">These actions run inside the current staging application. They do not publish articles or affect the public reader.</p>'
                 .'<form class="ai-form" method="post" action="/admin/ai-clipping/action">'
                 .'<input type="hidden" name="_csrf" value="'.$csrf.'">'
                 .'<input type="hidden" name="action" value="test_python">'
@@ -104,6 +129,9 @@ final class AiClippingReadinessView
             }else{
                 $html.='<p class="ai-muted">Database status is unavailable. Check System Health before changing it.</p>';
             }
+            }else{
+                $html.='<p class="ai-muted">Database and Python setup actions require OWNER or ADMIN permissions.</p>';
+            }
         }
         $html.='</section><section class="ai-panel"><h2>Editorial review</h2>'
             .'<p class="ai-muted">Ready for review: '.number_format(max(0,(int)($snapshot['counts']['PENDING']??0)))
@@ -115,7 +143,7 @@ final class AiClippingReadinessView
             $html.='<p class="ai-muted">Editorial review becomes available after the private feature flag, database and worker acceptance are complete.</p>';
         }
         $html.='</section><section class="ai-panel"><h2>Next readiness gates</h2>'
-            .'<p class="ai-muted">Use Cloudways web management for staging isolation and runtime provisioning. '
+            .'<p class="ai-muted">Continue on this existing Cloudways staging installation. No new staging application is required. '
             .'Use the built-in Worker Doctor and Processing Center for RabbitMQ diagnostics. '
             .'Activate AI only after a disposable edition passes full OCR and tenant-security acceptance.</p>'
             .'<div class="ai-actions"><a class="btn ghost" href="/admin/system/infrastructure/supervisor">Worker Doctor</a>'

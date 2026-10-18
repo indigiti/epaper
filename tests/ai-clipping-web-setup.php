@@ -15,11 +15,15 @@ foreach([
     "'staging'","'epaper.digiti.in'","'platform.default_tenant_guid'",
     "'platform.default_organisation_guid'","SELECT DATABASE()",
     "hash_equals(\$name,trim(\$typedName))","CREATE TABLE IF NOT EXISTS ep_ai_page_candidates",
-    "proc_open","proc_terminate","STAGING_ONLY","MIGRATION_SOURCE_INVALID"
+    "proc_open","proc_terminate","STAGING_ONLY","MIGRATION_SOURCE_INVALID",
+    "confirmExistingStaging","hash_equals(\$host,strtolower(trim(\$typedHost)))",
+    "hash_equals(\$dbName,trim(\$typedDb))","existing_staging_confirmed",
+    "PRIVATE_RUNTIME_NOT_WRITABLE","staging_declared"
 ] as $token){
     if(!str_contains($code,$token))throw new RuntimeException('Missing setup gate '.$token);
 }
-foreach(["Http::verifyCsrf()","'OWNER','ADMIN'","AiClippingWebSetup::applyCandidateSchema",
+foreach(["Http::verifyCsrf()","'OWNER','ADMIN'","AiClippingWebSetup::confirmExistingStaging",
+         "AiClippingWebSetup::applyCandidateSchema",
          "AiClippingWebSetup::testPython"] as $token){
     if(!str_contains($controller,$token))throw new RuntimeException('Missing POST guard '.$token);
 }
@@ -35,7 +39,17 @@ $disabled=\EpaperSaas\Views\AiClippingReadinessView::render([
         'platform_isolated'=>false,'database_match'=>false]
 ]);
 if(str_contains($disabled,'name="action" value="apply_schema"')||
-    !str_contains($disabled,'Staging changes are locked')){
+    str_contains($disabled,'name="action" value="confirm_existing_staging"')||
+    !str_contains($disabled,'staging confirmation required')){
     throw new RuntimeException('Production UI must not expose migration submit control');
 }
-echo "Browser-only AI setup, staging isolation, CSRF, role and no-console contracts: OK\n";
+$owner=\EpaperSaas\Views\AiClippingReadinessView::render([
+    'enabled'=>false,'status'=>'DISABLED','checks'=>[],'counts'=>[],
+    'review_url'=>null,'setup_can_manage'=>true,
+    'setup'=>['allowed'=>false,'database_match'=>true]
+]);
+if(!str_contains($owner,'name="action" value="confirm_existing_staging"')||
+    str_contains($owner,'name="action" value="apply_schema"')){
+    throw new RuntimeException('Existing staging confirmation must be separate from schema action');
+}
+echo "Existing Cloudways staging web setup, identity, CSRF, role and no-console contracts: OK\n";
