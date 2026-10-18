@@ -15,7 +15,7 @@ foreach([
     "'staging'","'epaper.digiti.in'","'platform.default_tenant_guid'",
     "'platform.default_organisation_guid'","SELECT DATABASE()",
     "hash_equals(\$name,trim(\$typedName))","CREATE TABLE IF NOT EXISTS ep_ai_page_candidates",
-    "proc_open","proc_terminate","STAGING_ONLY","MIGRATION_SOURCE_INVALID",
+    "STAGING_ONLY","MIGRATION_SOURCE_INVALID",
     "confirmExistingStaging","hash_equals(\$host,strtolower(trim(\$typedHost)))",
     "hash_equals(\$dbName,trim(\$typedDb))","existing_staging_confirmed",
     "PRIVATE_RUNTIME_NOT_WRITABLE","staging_declared"
@@ -56,7 +56,7 @@ if(!str_contains($owner,'name="action" value="confirm_existing_staging"')||
 $activation=(string)file_get_contents($root.'/app/Services/AiClippingActivation.php');
 foreach(['public static function enable','public static function disable','AiClippingWebSetup::gate',
         "InfrastructureConfig::workerStatus","RabbitMq::instance()->ping",
-        "python_validation","enabled'=>true","enabled'=>false","proc_open"] as $token){
+        "python_validation","enabled'=>true","enabled'=>false","proc_open","proc_terminate"] as $token){
     if(!str_contains($activation,$token))throw new RuntimeException('Activation guard missing '.$token);
 }
 $ready=\EpaperSaas\Views\AiClippingReadinessView::render([
