@@ -743,39 +743,93 @@ final class App
     private function adminDashboard(): never
     {
         $runtime=PublishingRuntime::snapshot();$tb=TenantData::tenantBin();
-        $totals=Store::all('SELECT status,COUNT(*) n FROM ep_editions WHERE tenant_guid=? GROUP BY status',[$tb]);$counts=array_column($totals,'n','status');
+        $totals=Store::all('SELECT status,COUNT(*) n FROM ep_editions WHERE tenant_guid=? GROUP BY status',[$tb]);
+        $counts=array_column($totals,'n','status');
         $membership=Auth::currentMembership();$role=strtoupper((string)($membership['role_key']??'VIEWER'));
         $canonical=parse_url((string)Config::get('app.url',''),PHP_URL_HOST);
         $infra=(bool)($canonical && strcasecmp((string)$canonical,Http::host())===0 && $membership
             && in_array($role,Config::get('auth.infrastructure_roles',['OWNER','ADMIN']),true));
-        $groups=\EpaperSaas\Services\AdminFeatureCatalog::groups($role,\EpaperSaas\Services\AiCandidatePipeline::enabled(),$infra);
+        $aiEnabled=\EpaperSaas\Services\AiCandidatePipeline::enabled();
+        $groups=\EpaperSaas\Services\AdminFeatureCatalog::groups($role,$aiEnabled,$infra);
         $canCreate=in_array($role,['OWNER','ADMIN','PUBLISHER_ADMIN','EDITOR'],true);
-        $html='<div class="publishing-desk"><section class="desk-header"><div><span class="eyebrow">PUBLISHER WORKSPACE</span><h1>Publishing desk</h1><p>Today’s editions, operational priorities and your publisher tools.</p></div><div class="desk-header-actions"><a class="btn ghost" href="/" target="_blank" rel="noopener">View website</a>'
-            .($canCreate?'<a class="btn primary" href="/admin/editions?create=1">+ Add edition</a>':'').'</div></section>';
         $scope=hash('sha256',RequestContext::tenantGuid().'|'.$role.'|'.(string)(Auth::user()['user_guid']??''));
-        $html.=\EpaperSaas\Services\AdminWorkspace::render($groups,$scope);
+        $html='<div class="publishing-desk studio-desk">';
+        $html.='<section class="studio-hero" aria-labelledby="studio-hero-title"><div class="studio-hero-copy">'
+            .'<span class="studio-eyebrow">EPAPER PUBLISHING STUDIO</span>'
+            .'<h1 id="studio-hero-title">Your publishing desk.</h1>'
+            .'<p>Manage editions, editorial decisions and publishing priorities in one clear workspace.</p>'
+            .'<div class="studio-hero-actions">'
+            .($canCreate?'<a class="studio-button studio-button-primary" href="/admin/editions?create=1">'.View::icon('plus').'Create edition</a>':'')
+            .($canCreate&&$aiEnabled?'<a class="studio-button studio-button-soft" href="/admin/ai-review">'.View::icon('clip').'Review AI clippings</a>':'')
+            .'<a class="studio-button studio-button-soft" href="/" target="_blank" rel="noopener">'.View::icon('external').'View website</a>'
+            .'</div></div><div class="studio-hero-aside" aria-label="Workspace focus">'
+            .'<span class="studio-hero-kicker">TODAY’S FOCUS</span>'
+            .'<a href="/admin/editions?status=NEEDS_ATTENTION"><strong>'.(int)($counts['NEEDS_ATTENTION']??0).'</strong><span>Editions needing attention '.View::icon('chev-right').'</span></a>'
+            .'<a href="/admin/editions?status=READY"><strong>'.(int)($counts['READY']??0).'</strong><span>Ready to publish '.View::icon('chev-right').'</span></a>'
+            .'</div></section>';
+        $html.='<nav class="desk-metrics studio-metrics" aria-label="Publishing overview">';
+        foreach([
+            ['Needs attention','NEEDS_ATTENTION','Review or recover','danger','activity'],
+            ['Processing','PROCESSING','Active edition pipeline','info','refresh'],
+            ['Ready to publish','READY','Review finished editions','success','pages'],
+            ['Scheduled','SCHEDULED','Upcoming publications','info','calendar']
+        ] as [$label,$state,$detail,$tone,$icon]){
+            $html.='<a class="desk-metric '.$tone.'" href="/admin/editions?status='.$state.'">'
+                .'<span class="studio-metric-label">'.View::icon($icon).$this->e($label).'</span>'
+                .'<strong>'.(int)($counts[$state]??0).'</strong>'
+                .'<small>'.$this->e($detail).' <span aria-hidden="true">→</span></small></a>';
+        }
+        $html.='</nav>';
         $editorial=(new \EpaperSaas\Services\EditorialActionCenter(
             new \EpaperSaas\Repositories\SqlEditorialActionRepository()
-        ))->snapshot($tb,$counts,$role,\EpaperSaas\Services\AiCandidatePipeline::enabled());
+        ))->snapshot($tb,$counts,$role,$aiEnabled);
         $html.=\EpaperSaas\Services\EditorialActionView::render($editorial);
-        $html.='<nav class="desk-metrics" aria-label="Publishing overview">';
-        foreach([['Needs attention','NEEDS_ATTENTION','Review and retry','danger'],['Processing','PROCESSING','View active editions','info'],['Ready to publish','READY','Review finished editions','success'],['Scheduled','SCHEDULED','Upcoming publications','info']] as[$label,$state,$detail,$tone]){
-            $html.='<a class="desk-metric '.$tone.'" href="/admin/editions?status='.$state.'"><span>'.$label.'</span><strong>'.(int)($counts[$state]??0).'</strong><small>'.$detail.' →</small></a>';
-        }$html.='</nav>';
+        $html.='<div class="studio-content-grid"><section class="panel desk-editions">'
+            .'<div class="section-head"><div><span class="studio-section-kicker">YOUR PUBLICATIONS</span><h2>Recent editions</h2>'
+            .'<p class="muted">Follow each edition from upload through publication.</p></div>'
+            .'<a class="btn ghost" href="/admin/editions">Manage editions →</a></div>'
+            .$this->editionTable(TenantData::editionsForAdmin('e.status NOT IN ("ARCHIVED","TRASHED")',[],8))
+            .'</section>';
         $attention=$runtime['attention']??[];
-        $html.='<section class="desk-attention"><div class="section-head"><h2>Needs your attention</h2><a class="text-btn" href="/admin/system/health">System health →</a></div>';
-        if(!$attention)$html.='<p class="desk-clear">No actionable warnings in this snapshot.</p>';
-        foreach(array_slice($attention,0,3) as$a){$href=(string)($a['href']??'/admin/system/health');if(!str_starts_with($href,'/admin/'))$href='/admin/system/health';$html.='<a class="desk-alert" href="'.$this->e($href).'"><div><strong>'.$this->e($a['title']).'</strong><p>'.$this->e($a['detail']).'</p></div><span>Review →</span></a>';}
-        if(count($attention)>3)$html.='<details class="desk-more"><summary>'.(count($attention)-3).' more notices</summary>';foreach(array_slice($attention,3) as$a)$html.='<p><strong>'.$this->e($a['title']).'</strong> — '.$this->e($a['detail']).'</p>';if(count($attention)>3)$html.='</details>';
-        $html.='</section><section class="panel desk-editions"><div class="section-head"><div><h2>Recent editions</h2><p class="muted">Processing and publishing in one place.</p></div><a class="btn ghost" href="/admin/editions">Manage all editions →</a></div>'.$this->editionTable(TenantData::editionsForAdmin('e.status NOT IN ("ARCHIVED","TRASHED")',[],8)).'</section>';
+        $available=array_column(\EpaperSaas\Services\AdminFeatureCatalog::flatten($groups),1);
+        $html.='<section class="panel desk-attention" aria-labelledby="studio-attention-heading">'
+            .'<div class="section-head"><div><span class="studio-section-kicker">OPERATIONS</span>'
+            .'<h2 id="studio-attention-heading">System alerts</h2>'
+            .'<p class="muted">Only items requiring a closer look.</p></div>'
+            .'<a class="text-btn" href="/admin/system/health">Health →</a></div>';
+        if(!$attention)$html.='<p class="desk-clear">'.View::icon('activity').'No operational warnings in the current snapshot.</p>';
+        foreach(array_slice($attention,0,3) as $a){
+            $href=(string)($a['href']??'/admin/system/health');
+            if(!str_starts_with($href,'/admin/')||!in_array($href,$available,true))$href='/admin/system/health';
+            $html.='<a class="desk-alert" href="'.$this->e($href).'"><div>'
+                .'<strong>'.$this->e($a['title']??'Attention required').'</strong>'
+                .'<p>'.$this->e($a['detail']??'').'</p></div><span>Review →</span></a>';
+        }
+        if(count($attention)>3){
+            $html.='<details class="desk-more"><summary>'.(count($attention)-3).' more notices</summary>';
+            foreach(array_slice($attention,3) as $a)
+                $html.='<p><strong>'.$this->e($a['title']??'Notice').'</strong> — '.$this->e($a['detail']??'').'</p>';
+            $html.='</details>';
+        }
+        $html.='</section></div>';
         $scheduled=Store::all('SELECT e.edition_date,e.scheduled_at,e.schedule_timezone,e.title,e.publish_mode,p.name publication_name
             FROM ep_editions e JOIN ep_publications p ON p.tenant_guid=e.tenant_guid AND p.publication_guid=e.publication_guid
             WHERE e.tenant_guid=? AND e.publish_mode="SCHEDULED" AND e.status NOT IN ("ARCHIVED","TRASHED") AND e.scheduled_at IS NOT NULL
             ORDER BY e.scheduled_at ASC LIMIT 4',[$tb]);
-        $html.='<div class="desk-bottom"><section class="panel"><div class="section-head"><h2>Upcoming publishing</h2><a class="text-btn" href="/admin/editions?status=SCHEDULED">View scheduled →</a></div>';
+        $html.='<div class="desk-bottom"><section class="panel"><div class="section-head"><div>'
+            .'<span class="studio-section-kicker">COMING UP</span><h2>Upcoming publishing</h2></div>'
+            .'<a class="text-btn" href="/admin/editions?status=SCHEDULED">View scheduled →</a></div>';
         if(!$scheduled)$html.='<p class="muted">No editions scheduled. Open a ready edition to choose a publishing time.</p>';
-        foreach(array_slice($scheduled,0,4) as$e)$html.='<a class="desk-schedule-row" href="/admin/editions?date='.$this->e($e['edition_date']).'"><strong>'.$this->e($e['title']?:$e['publication_name']).'</strong>'.$this->editionSchedulePresentation($e).'</a>';
-        $html.='</section><section class="panel"><div class="section-head"><h2>Workspace shortcuts</h2></div><nav class="desk-shortcuts">'.\EpaperSaas\Services\AdminWorkspace::shortcuts($groups).'</nav><p class="desk-checked">Status snapshot: '.$this->e($runtime['generated_at']??'').'</p></section></div></div>';
+        foreach(array_slice($scheduled,0,4) as $e)
+            $html.='<a class="desk-schedule-row" href="/admin/editions?date='.$this->e($e['edition_date']).'">'
+                .'<strong>'.$this->e($e['title']?:$e['publication_name']).'</strong>'
+                .$this->editionSchedulePresentation($e).'</a>';
+        $html.='</section><section class="panel studio-secondary-links"><div class="section-head"><div>'
+            .'<span class="studio-section-kicker">FAST ACCESS</span><h2>Useful shortcuts</h2></div></div>'
+            .'<nav class="desk-shortcuts">'.\EpaperSaas\Services\AdminWorkspace::shortcuts($groups).'</nav>'
+            .'<p class="desk-checked">Operational snapshot: '.$this->e($runtime['generated_at']??'').'</p></section></div>';
+        $html.=\EpaperSaas\Services\AdminWorkspace::render($groups,$scope);
+        $html.='</div>';
         View::layout('Publishing desk',$html,['brand'=>$this->brandName(),'admin'=>true]);
     }
 

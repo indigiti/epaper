@@ -49,4 +49,15 @@ if(!str_contains($workspace,'data-admin-launchpad') ||
    str_contains($workspace,'/admin/system/infrastructure') ||
    !str_contains($workspace,'/admin/editions'))
  throw new RuntimeException('Launcher role filtering is inconsistent with sidebar');
-echo "Role-aware admin navigation, browser launcher and bounded query contracts: OK\n";
+$studioCss=(string)file_get_contents($root.'/public_html/assets/admin-studio.css');
+foreach(['OVERVIEW','PUBLISHING','AI & EDITORIAL','READER & AUDIENCE','MANAGE','OPERATIONS','ACCOUNT'] as $section)
+ if(!isset($owner[$section]))throw new RuntimeException('Missing studio workspace '.$section);
+if(isset($operator['AI & EDITORIAL'])||isset($operator['PUBLISHING']))
+ throw new RuntimeException('Operator received editor-only studio navigation');
+if(!str_contains($view,"Build::asset('/assets/admin-studio.css')"))
+ throw new RuntimeException('Studio stylesheet is not loaded after the admin base');
+foreach(['studio-hero','studio-content-grid','studio-metrics','studio-section-kicker','@media(max-width:740px)'] as $token)
+ if(!str_contains($studioCss,$token))throw new RuntimeException('Missing responsive studio styles: '.$token);
+foreach(['studio-hero','studio-content-grid','EditorialActionView::render','AdminWorkspace::render'] as $token)
+ if(!str_contains($app,$token))throw new RuntimeException('Dashboard studio integration missing '.$token);
+echo "Role-aware admin navigation, responsive studio and bounded query contracts: OK\n";

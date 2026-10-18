@@ -17,8 +17,8 @@ final class AdminWorkspace
         foreach($preferred as $target)foreach($all as $item)if($item[1]===$target){$quick[]=$item;break;}
         if(!$quick)$quick=array_slice($all,0,5);
         $h='<section class="admin-launchpad" data-admin-launchpad data-storage-scope="'.$e($scope).'">'
-            .'<div class="launchpad-head"><div><span class="eyebrow">ONE PLACE FOR EVERY TOOL</span>'
-            .'<h2>Quick access</h2><p>Pin your frequently used features, search modules, or press Ctrl + K.</p></div>'
+            .'<div class="launchpad-head"><div><span class="eyebrow">ALL PUBLISHER TOOLS</span>'
+            .'<h2>Tools &amp; shortcuts</h2><p>Find, pin, or search tools without crowding your Publishing Desk.</p></div>'
             .'<input type="search" data-admin-feature-search placeholder="Find editions, clipping, settings…" aria-label="Search publisher tools" autocomplete="off"></div>'
             .'<nav class="launchpad-quick" aria-label="Frequent publisher tasks">';
         foreach(array_slice($quick,0,6) as $item)

@@ -2,7 +2,10 @@
 declare(strict_types=1);
 namespace EpaperSaas\Services;
 
-/** Role-filtered display catalog; authorization remains enforced on every route. */
+/**
+ * Discoverable publisher features. This catalog only controls display;
+ * authorization remains enforced by the application routes.
+ */
 final class AdminFeatureCatalog
 {
     /** @return array<string,list<array{0:string,1:string,2:string,3:string}>> */
@@ -12,46 +15,61 @@ final class AdminFeatureCatalog
         $editor=in_array($role,['OWNER','ADMIN','PUBLISHER_ADMIN','EDITOR'],true);
         $operator=in_array($role,['OWNER','ADMIN','PUBLISHER_ADMIN','EDITOR','OPERATOR'],true);
         $full=in_array($role,['OWNER','ADMIN','PUBLISHER_ADMIN'],true);
-        $groups=['PUBLISHING'=>[['Overview','/admin','Your publishing desk','dashboard']]];
-        if($editor)$groups['PUBLISHING'][]=['Editions','/admin/editions','Upload, reorder and publish','pages'];
-        if($operator)$groups['PUBLISHING'][]=['Processing Center','/admin/processing','Render, OCR and job recovery','activity'];
-        if($editor)$groups['PUBLISHING'][]=['AI Clipping','/admin/ai-clipping','Feature readiness and setup','scan-text'];
-        if($editor&&$aiEnabled)$groups['PUBLISHING'][]=['AI Editorial Review','/admin/ai-review','Review clipping candidates','clip'];
-        if($editor)$groups['READER & DISCOVERY']=[
-            ['Reader Navigation','/admin/navigation','Menus and scopes','menu'],
-            ['Articles','/admin/articles','Stories and semantic publishing','pages'],
-            ['Highlights','/admin/highlights','Homepage promotions','bookmark'],
-            ['Topics','/admin/topics','Curated discovery','bookmark'],
-            ['Entities','/admin/entities','People, places and organisations','search'],
-            ['Authors','/admin/authors','Profiles and bylines','user'],
+
+        $groups=['OVERVIEW'=>[
+            ['Publishing Desk','/admin','Actions, editions and publishing status','dashboard'],
+        ]];
+        if($editor)$groups['PUBLISHING']=[
+            ['Editions','/admin/editions','Upload, reorder, schedule and publish','pages'],
         ];
-        if($full)$groups['AUDIENCE & ACCESS']=[
-            ['Subscribers','/admin/subscribers','Readers and subscriptions','user'],
-            ['Plans & Entitlements','/admin/plans','Subscriber capabilities','settings'],
-        ];
-        if($editor)$groups['PUBLICATION SETUP']=[
-            ['Publications','/admin/publications','Brands and mastheads','pages'],
-            ['Master Data','/admin/master-data','Cities, languages and sections','settings'],
-        ];
-        if($full)$groups['PUBLICATION SETUP'][]=['Publisher Settings','/admin/settings','Brand, SEO, Reader and processing','settings'];
-        if($operator)$groups['HEALTH & OPERATIONS']=[
-            ['Testing & QA','/admin/system/testing','Readiness and acceptance','activity'],
-            ['System Health','/admin/system/health','Database, cache and services','activity'],
-            ['Error Center','/admin/errors','Incident diagnostics','signal'],
-            ['Performance & Cache','/admin/performance','Speed and delivery','signal'],
-        ];
-        if($full)$groups['HEALTH & OPERATIONS'][]=['Storage & Backups','/admin/storage','Storage diagnostics','archive'];
-        if($infra){
-            $groups['HEALTH & OPERATIONS'][]=['Infrastructure','/admin/system/infrastructure','RabbitMQ and service configuration','settings'];
-            $groups['HEALTH & OPERATIONS'][]=['Supervisor Doctor','/admin/system/infrastructure/supervisor','Worker lane diagnostics','activity'];
-            $groups['HEALTH & OPERATIONS'][]=['Web Recovery','/admin/system/recovery','Inspect and repair safely','refresh'];
-            $groups['HEALTH & OPERATIONS'][]=['Upgrade Center','/admin/system/upgrade','Database preflight','settings'];
+        if($editor){
+            $groups['AI & EDITORIAL']=[
+                ['AI Clipping','/admin/ai-clipping','Feature readiness and setup','scan-text'],
+            ];
+            if($aiEnabled)$groups['AI & EDITORIAL'][]=['AI Editorial Review','/admin/ai-review','Review and correct clipping candidates','clip'];
+            array_push($groups['AI & EDITORIAL'],
+                ['Articles','/admin/articles','Stories and semantic publishing','pages'],
+                ['Highlights','/admin/highlights','Homepage promotions','bookmark'],
+                ['Topics','/admin/topics','Curated discovery','bookmark'],
+                ['Entities','/admin/entities','People, places and organisations','search'],
+                ['Authors','/admin/authors','Profiles and bylines','user']
+            );
+            $groups['READER & AUDIENCE']=[
+                ['Reader Navigation','/admin/navigation','Reader menus and scopes','menu'],
+            ];
         }
-        if($full)$groups['GOVERNANCE']=[
-            ['Roles & Access','/admin/access','Memberships and roles','user'],
-            ['Audit Trail','/admin/audit','Administrative changes','clock'],
-            ['Release Audit','/admin/system/release-audit','Deployment integrity','signal'],
-        ];
+        if($full){
+            $groups['READER & AUDIENCE'][]=['Subscribers','/admin/subscribers','Readers and subscriptions','user'];
+            $groups['READER & AUDIENCE'][]=['Plans & Entitlements','/admin/plans','Subscriber capabilities','settings'];
+        }
+        if($editor){
+            $groups['MANAGE']=[
+                ['Publications','/admin/publications','Brands and mastheads','pages'],
+                ['Master Data','/admin/master-data','Cities, languages and sections','settings'],
+            ];
+        }
+        if($full){
+            $groups['MANAGE'][]=['Publisher Settings','/admin/settings','Brand, SEO, Reader and processing','settings'];
+            $groups['MANAGE'][]=['Roles & Access','/admin/access','Memberships and roles','user'];
+            $groups['MANAGE'][]=['Audit Trail','/admin/audit','Administrative changes','clock'];
+            $groups['MANAGE'][]=['Release Audit','/admin/system/release-audit','Deployment integrity','signal'];
+        }
+        if($operator){
+            $groups['OPERATIONS']=[
+                ['Processing Center','/admin/processing','Render, OCR and job recovery','activity'],
+                ['Testing & QA','/admin/system/testing','Readiness and acceptance','activity'],
+                ['System Health','/admin/system/health','Database, cache and services','signal'],
+                ['Error Center','/admin/errors','Incident diagnostics','signal'],
+                ['Performance & Cache','/admin/performance','Speed and delivery','signal'],
+            ];
+        }
+        if($full)$groups['OPERATIONS'][]=['Storage & Backups','/admin/storage','Storage diagnostics','archive'];
+        if($infra){
+            $groups['OPERATIONS'][]=['Infrastructure','/admin/system/infrastructure','RabbitMQ and service configuration','settings'];
+            $groups['OPERATIONS'][]=['Supervisor Doctor','/admin/system/infrastructure/supervisor','Worker lane diagnostics','activity'];
+            $groups['OPERATIONS'][]=['Web Recovery','/admin/system/recovery','Inspect and repair safely','refresh'];
+            $groups['OPERATIONS'][]=['Upgrade Center','/admin/system/upgrade','Database preflight','settings'];
+        }
         $groups['ACCOUNT']=[['My Account','/admin/account','Publisher profile','user']];
         return array_filter($groups,static fn(array $items):bool=>!empty($items));
     }
