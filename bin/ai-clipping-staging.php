@@ -25,8 +25,14 @@ $environment=strtolower(trim((string)Config::get('app.environment','production')
 $url=(string)Config::get('app.url','');
 $host=strtolower((string)(parse_url($url,PHP_URL_HOST)?:''));
 $dbName=(string)Config::get('db.name','');
+// Require an explicit Platform domain-to-test-tenant binding in staging.
+// The canonical fallback would otherwise silently reuse a cloned live tenant.
+$defaultTenant=trim((string)Config::get('platform.default_tenant_guid',''));
+$defaultOrganisation=trim((string)Config::get('platform.default_organisation_guid',''));
+$noTenantFallback=$defaultTenant===''&&$defaultOrganisation==='';
 $staging=$environment==='staging'&&$host!==''&&!in_array($host,
-    ['epaper.digiti.in','platform.digiti.in','localhost','127.0.0.1'],true);
+    ['epaper.digiti.in','platform.digiti.in','localhost','127.0.0.1'],true)
+    &&$noTenantFallback;
 $schema='UNAVAILABLE';
 $dbActual=null;
 try{
@@ -49,6 +55,7 @@ $plan=[
     'application'=>'EPAPER',
     'environment'=>$environment,
     'staging_guard'=>$staging?'PASS':'BLOCKED',
+    'platform_fallback_disabled'=>$noTenantFallback,
     'ai_enabled'=>AiCandidatePipeline::enabled(),
     'candidate_schema'=>$schema,
     'database_selected'=>$dbActual!==null&&hash_equals($dbName,$dbActual),
@@ -71,7 +78,7 @@ if(!$staging||$schema==='UNAVAILABLE'||!$code||
    $dbName===''||$dbActual===null||!hash_equals($dbName,$dbActual)||
    !hash_equals($host,strtolower($confirmHost))||
    !hash_equals($dbName,$confirmDb)||$backup!=='yes'){
-    fwrite(STDERR,"BLOCKED: isolated staging environment, matching DB/host and verified backup are required. No schema changes made.\n");
+    fwrite(STDERR,"BLOCKED: isolated staging environment, disabled Platform tenant fallback, matching DB/host and verified backup are required. No schema changes made.\n");
     exit(3);
 }
 if($schema==='PRESENT'){
