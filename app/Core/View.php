@@ -48,27 +48,38 @@ final class View
 
     private static function adminNav(): string
     {
-        $current=self::currentPath();$m=Auth::currentMembership();$role=strtoupper((string)($m['role_key']??'VIEWER'));
-        $full=in_array($role,['OWNER','ADMIN','PUBLISHER_ADMIN'],true);$editor=in_array($role,['OWNER','ADMIN','PUBLISHER_ADMIN','EDITOR'],true);$operator=in_array($role,['OWNER','ADMIN','PUBLISHER_ADMIN','EDITOR','OPERATOR'],true);
-        $groups=[];
-        $groups['PUBLISHING']=[['Overview','/admin','Publisher operations']];
-        if($editor){if(\EpaperSaas\Services\AiCandidatePipeline::enabled())$groups['PUBLISHING'][]=['AI Clipping Review','/admin/ai-review','Check candidate headlines, photos and articles'];$groups['PUBLISHING'][]=['Editions','/admin/editions','Process, schedule & publish'];$groups['PUBLISHING'][]=['Articles','/admin/articles','Semantic stories & bylines'];$groups['PUBLISHING'][]=['Highlights','/admin/highlights','Homepage promotion'];}
-        if($operator)$groups['PUBLISHING'][]=['Processing','/admin/processing','Render, OCR, recovery & finalize'];
-        if($editor)$groups['CONTENT']=[['Reader Navigation','/admin/navigation','Public navigation & scopes'],['Topics','/admin/topics','Curated discovery collections'],['Entities','/admin/entities','People, places & organisations'],['Authors','/admin/authors','Bylines, bios & expertise']];
-        if($full)$groups['ACCESS']=[['Subscribers','/admin/subscribers','Readers & access'],['Plans & Entitlements','/admin/plans','Effective plan capabilities']];
-        if($editor)$groups['SETTINGS']=[['Publications','/admin/publications','Publication mastheads'],['Master data','/admin/master-data','Cities, languages & sections']];
-        if($full)$groups['SETTINGS'][]=['Publisher Control','/admin/settings','Brand, SEO, Reader & processing'];
-        if($operator)$groups['OPERATIONS']=[['Production readiness','/admin/system/health','Launch readiness & recovery'],['Error Center','/admin/errors','Request & processing failures'],['Performance & Cache','/admin/performance','Delivery, cache & queue signals']];
-        if($full)$groups['OPERATIONS'][]=['Storage & backups','/admin/storage','Storage diagnostics'];
-        if($full)$groups['GOVERNANCE']=[['Roles & Access','/admin/access','Membership & security'],['Audit Trail','/admin/audit','Administrative activity'],['Release audit','/admin/system/release-audit','Parity & release guard']];
-        $canonical=parse_url((string)Config::get('app.url',''),PHP_URL_HOST);$infraRoles=Config::get('auth.infrastructure_roles',['OWNER','ADMIN']);
-        if($canonical&&strcasecmp((string)$canonical,Http::host())===0&&$m&&in_array($role,$infraRoles,true)){
-            $groups['OPERATIONS'][]=['Recovery Center','/admin/system/recovery','Analyze, preview & safe repair'];
-            $groups['OPERATIONS'][]=['Upgrade Center','/admin/system/upgrade','Database preflight & safe repair'];
-            $groups['OPERATIONS'][]=['Infrastructure','/admin/system/infrastructure','RabbitMQ & Supervisor'];
+        $current=self::currentPath();$membership=Auth::currentMembership();
+        $role=strtoupper((string)($membership['role_key']??'VIEWER'));
+        $canonical=parse_url((string)Config::get('app.url',''),PHP_URL_HOST);
+        $infraRoles=Config::get('auth.infrastructure_roles',['OWNER','ADMIN']);
+        $canInfra=(bool)($canonical && strcasecmp((string)$canonical,Http::host())===0
+            && $membership && in_array($role,$infraRoles,true));
+        $groups=\EpaperSaas\Services\AdminFeatureCatalog::groups(
+            $role,\EpaperSaas\Services\AiCandidatePipeline::enabled(),$canInfra
+        );
+        $html='<div class="sidebar-context"><span class="eyebrow">PUBLISHER WORKSPACE</span>'
+            .'<strong>'.self::e(RequestContext::get('tenant_name')?:'ePaper SaaS').'</strong>'
+            .'<span class="role-pill">'.self::e(str_replace('_',' ',$role)).'</span></div>'
+            .'<nav class="app-nav grouped-nav grouped-nav-compact" aria-label="Publisher operations console">';
+        foreach($groups as $group=>$items){
+            $active=false;
+            foreach($items as $item){
+                $url=$item[1];
+                if($current===$url || ($url!=='/admin'&&str_starts_with($current,$url.'/'))){$active=true;break;}
+            }
+            $html.='<details class="nav-section"'.(($group==='PUBLISHING'||$active)?' open':'').'>'
+                .'<summary class="nav-section-title"><span>'.self::e($group).'</span>'
+                .'<span class="nav-section-count">'.count($items).'</span></summary>'
+                .'<div class="nav-group">';
+            foreach($items as [$label,$url,$hint,$icon]){
+                $selected=$current===$url||($url!=='/admin'&&str_starts_with($current,$url.'/'));
+                $html.='<a class="app-nav-link'.($selected?' active':'').'" href="'.self::e($url).'"'
+                    .($selected?' aria-current="page"':'').'>'
+                    .'<span class="admin-nav-icon" aria-hidden="true">'.self::icon($icon).'</span>'
+                    .'<span>'.self::e($label).'</span></a>';
+            }
+            $html.='</div></details>';
         }
-        $html='<div class="sidebar-context"><span class="eyebrow">PUBLISHER OPERATIONS</span><strong>'.self::e(RequestContext::get('tenant_name')?:'ePaper SaaS').'</strong><span class="role-pill">'.self::e(str_replace('_',' ',$role)).'</span></div><nav class="app-nav grouped-nav" aria-label="Publisher operations console">';
-        foreach($groups as$label=>$items){if(!$items)continue;$html.='<div class="nav-group"><span class="nav-group-label">'.self::e($label).'</span>';foreach($items as[$name,$href,$hint])$html.=self::navLink($name,$href,$current,$hint);$html.='</div>';}
         return $html.'</nav>';
     }
     private static function accountNav(): string
