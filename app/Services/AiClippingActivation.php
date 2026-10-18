@@ -1,0 +1,182 @@
+<?php
+declare(strict_types=1);
+namespace EpaperSaas\Services;
+
+use EpaperSaas\Core\{Config,Database};
+
+/**
+ * Browser-owned staging activation; does not publish, enqueue or edit articles.
+ * Expensive checks run only on explicit OWNER/ADMIN POST, not on each page load.
+ */
+final class AiClippingActivation
+{
+    private const TEST_TTL=86400;
+
+    public static function pythonState(): array
+    {
+        $path=(string)Config::get('ai_clipping.python_binary','');
+        $test=Config::get('ai_clipping.python_validation',[]);
+        $test=is_array($test)?$test:[];
+        $script=dirname(__DIR__,2).'/bin/ai-clipping-smoke.py';
+        $valid=str_starts_with($path,'/')&&is_file($path)&&is_executable($path)
+            &&(int)($test['at']??0)>time()-self::TEST_TTL
+            &&hash_equals((string)($test['binary_sha256']??''),hash('sha256',$path))
+            &&is_file($script)
+            &&hash_equals((string)($test['smoke_sha256']??''),hash_file('sha256',$script));
+        return ['verified'=>$valid,'configured'=>str_starts_with($path,'/')&&is_executable($path)];
+    }
+
+    /** @return string[] fixed interpreter candidates, never accepted from browser input. */
+    private static function interpreters(): array
+    {
+        $root=dirname(__DIR__,2);
+        $configured=trim((string)Config::get('ai_clipping.python_binary',''));
+        $candidates=[$configured,$root.'/storage/private/ai-venv/bin/python',
+            '/usr/local/bin/python3.12','/usr/bin/python3.12','/usr/local/bin/python3',
+            '/usr/bin/python3'];
+        $list=[];
+        foreach($candidates as $path){
+            if(!str_starts_with($path,'/')||str_contains($path,'..')||
+                !is_file($path)||!is_executable($path))continue;
+            $real=realpath($path);
+            if($real&&str_starts_with($real,'/')&&is_executable($real))$list[$real]=$real;
+        }
+        return array_values($list);
+    }
+
+    public static function verifyPython(): string
+    {
+        if(!AiClippingWebSetup::gate()['allowed'])throw new \RuntimeException('STAGING_ONLY');
+        $root=dirname(__DIR__,2);
+        $script=$root.'/bin/ai-clipping-smoke.py';
+        if(!is_file($script))throw new \RuntimeException('SMOKE_TEST_UNAVAILABLE');
+        if(!function_exists('proc_open'))throw new \RuntimeException('WORKER_PROCESS_UNAVAILABLE');
+        $executables=self::interpreters();
+        if(!$executables)throw new \RuntimeException('PYTHON_NOT_CONFIGURED');
+        $tested=0;
+        // At most two local interpreters; never invoke shell or download packages.
+        foreach($executables as $path){
+            if(++$tested>2)break;
+            if(!self::runSmoke($path,$script,$root))continue;
+            self::writeAi([
+                'python_binary'=>$path,
+                'python_validation'=>[
+                    'at'=>time(),
+                    'binary_sha256'=>hash('sha256',$path),
+                    'smoke_sha256'=>hash_file('sha256',$script),
+                ],
+            ]);
+            return 'PYTHON_SMOKE_PASSED';
+        }
+        throw new \RuntimeException('PYTHON_SMOKE_FAILED');
+    }
+
+    private static function runSmoke(string $binary,string $script,string $root): bool
+    {
+        $pipes=[];
+        $proc=@proc_open([$binary,$script],
+            [0=>['file','/dev/null','r'],1=>['pipe','w'],2=>['pipe','w']],$pipes,$root);
+        if(!is_resource($proc))return false;
+        $exit=-1;$started=microtime(true);
+        try{
+            stream_set_blocking($pipes[1],false);
+            stream_set_blocking($pipes[2],false);
+            do{
+                @stream_get_contents($pipes[1]);@stream_get_contents($pipes[2]);
+                $status=@proc_get_status($proc);
+                if(!$status||!($status['running']??false)){
+                    $exit=(int)($status['exitcode']??-1);
+                    break;
+                }
+                if(microtime(true)-$started>12){
+                    @proc_terminate($proc,15);
+                    usleep(150000);
+                    $status=@proc_get_status($proc);
+                    if($status&&($status['running']??false))@proc_terminate($proc,9);
+                    break;
+                }
+                usleep(100000);
+            }while(true);
+        }finally{
+            foreach($pipes as $pipe)if(is_resource($pipe))@fclose($pipe);
+            $closed=@proc_close($proc);
+            if($exit===-1&&$closed>=0)$exit=$closed;
+        }
+        return $exit===0;
+    }
+
+    public static function workerState(bool $activeProbe=false): array
+    {
+        if(!QueueService::rabbitEnabled())
+            return ['ready'=>false,'reason'=>'RABBITMQ_NOT_CONFIGURED'];
+        if(!$activeProbe)return ['ready'=>false,'reason'=>'NOT_TESTED'];
+        try {
+            $ping=RabbitMq::instance()->ping();
+            if(!($ping['ok']??false))
+                return ['ready'=>false,'reason'=>'RABBITMQ_UNAVAILABLE'];
+            $status=InfrastructureConfig::workerStatus();
+            if(($status['live']['ocr']??0)<1)
+                return ['ready'=>false,'reason'=>'OCR_WORKER_NOT_RUNNING'];
+            return ['ready'=>true,'reason'=>'OCR_WORKER_READY'];
+        }catch(\Throwable){
+            return ['ready'=>false,'reason'=>'RABBITMQ_UNAVAILABLE'];
+        }
+    }
+
+    public static function enable(bool $confirmed): string
+    {
+        if(!AiClippingWebSetup::gate()['allowed'])throw new \RuntimeException('STAGING_ONLY');
+        if(!$confirmed)throw new \RuntimeException('ACTIVATION_CONFIRMATION_REQUIRED');
+        $db=Database::pdo();
+        $table=$db->prepare('SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME=?');
+        $table->execute(['ep_ai_page_candidates']);
+        if((int)$table->fetchColumn()!==1)throw new \RuntimeException('CANDIDATE_SCHEMA_MISSING');
+        if(!is_file(dirname(__DIR__,2).'/bin/ai-candidate-generate.py'))
+            throw new \RuntimeException('AI_SOURCE_MISSING');
+        if(!self::pythonState()['verified']){
+            // Run and persist a real synthetic smoke on this installation first.
+            self::verifyPython();
+        }
+        $worker=self::workerState(true);
+        if(!$worker['ready'])throw new \RuntimeException($worker['reason']);
+        self::writeAi(['enabled'=>true]);
+        return 'AI_DETECTION_ENABLED';
+    }
+
+    public static function disable(): string
+    {
+        // Emergency stop is available even if the worker/database has degraded.
+        self::writeAi(['enabled'=>false]);
+        return 'AI_DETECTION_DISABLED';
+    }
+
+    /** Atomic, narrow update of private AI runtime fields; no DB/Platform writes. */
+    private static function writeAi(array $fields): void
+    {
+        $root=dirname(__DIR__,2);
+        $file=$root.'/config/runtime.php';
+        if(is_link($file)||!is_dir(dirname($file))||!is_writable(dirname($file))){
+            throw new \RuntimeException('PRIVATE_RUNTIME_NOT_WRITABLE');
+        }
+        $runtime=[];
+        if(is_file($file)){
+            $runtime=require $file;
+            if(!is_array($runtime))throw new \RuntimeException('PRIVATE_RUNTIME_INVALID');
+        }
+        if(!is_array($runtime['ai_clipping']??null))$runtime['ai_clipping']=[];
+        foreach($fields as $key=>$value)$runtime['ai_clipping'][$key]=$value;
+        $tmp=tempnam(dirname($file),'.ai-activate-');
+        if($tmp===false)throw new \RuntimeException('PRIVATE_RUNTIME_NOT_WRITABLE');
+        try{
+            $payload="<?php\n// Private ePaper runtime configuration.\nreturn "
+                .var_export($runtime,true).";\n";
+            if(file_put_contents($tmp,$payload,LOCK_EX)===false)
+                throw new \RuntimeException('PRIVATE_RUNTIME_NOT_WRITABLE');
+            @chmod($tmp,0600);
+            if(!rename($tmp,$file))throw new \RuntimeException('PRIVATE_RUNTIME_NOT_WRITABLE');
+            @chmod($file,0600);
+        }finally {
+            if(is_file($tmp))@unlink($tmp);
+        }
+    }
+}
