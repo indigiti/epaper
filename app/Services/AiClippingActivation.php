@@ -27,7 +27,7 @@ final class AiClippingActivation
             &&hash_equals((string)($test['probe_sha256']??''),
                 hash_file('sha256',dirname(__DIR__,2).'/bin/ai-clipping-probe.py'))
             &&hash_equals((string)($test['library_sha256']??''),
-                hash('sha256',(string)Config::get('ai_clipping.python_lib_dir','')));
+                hash('sha256',(string)(AiClippingDependencies::libraryDirectory()??'')));
         return ['verified'=>$valid,'configured'=>str_starts_with($path,'/')&&is_executable($path)];
     }
 
@@ -82,7 +82,7 @@ final class AiClippingActivation
                         'binary_sha256'=>hash('sha256',$path),
                         'smoke_sha256'=>hash_file('sha256',$smoke),
                         'probe_sha256'=>hash_file('sha256',$script),
-                        'library_sha256'=>hash('sha256',(string)Config::get('ai_clipping.python_lib_dir','')),
+                        'library_sha256'=>hash('sha256',(string)(AiClippingDependencies::libraryDirectory()??'')),
                     ],
                 ]);
                 return 'PYTHON_SMOKE_PASSED';
