@@ -53,6 +53,7 @@ final class AiClippingReadiness
             'enabled'=>$enabled,'status'=>$status,'checks'=>$checks,
             'counts'=>$schema['counts'],
             'review_url'=>$enabled&&$schema['state']==='AVAILABLE'?'/admin/ai-review':null,
+            'setup'=>AiClippingWebSetup::gate(),
         ];
     }
 }
