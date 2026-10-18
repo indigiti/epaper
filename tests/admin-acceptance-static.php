@@ -40,7 +40,7 @@ if(!str_contains($main,'Auth::requireAdmin();if($method===\'POST\')Http::verifyC
  throw new RuntimeException('Admin CSRF boundary missing');
 if(!str_contains($main,'/admin/system/testing'))throw new RuntimeException('QA route is not wired');
 $controller=(string)file_get_contents($root.'/app/Controllers/StagingAcceptanceController.php');
-if(!str_contains($controller,'Http::privateNoStore()')||!str_contains($controller,"$"+"e(Http::csrf())"))
+if(!str_contains($controller,'Http::privateNoStore()')||!str_contains($controller,'$e(Http::csrf())'))
  throw new RuntimeException('Private QA page or CSRF token missing');
 if(!str_contains($controller,"hash('sha256',RequestContext::tenantGuid())"))
  throw new RuntimeException('Reports are not tenant-isolated');
