@@ -24,7 +24,7 @@ final class ServiceAuth
         $service=self::requireScope($scope);
         if(!empty($service['product_guid'])){
             $tenant=Store::one('SELECT product_guid FROM product_tenants WHERE product_tenant_guid=?',[Uuid::toBinary($tenantGuid)]);
-            if(!$tenant||!\\Digiti\\Domain\\ServiceProductScope::allows($service['product_guid'],$tenant['product_guid']??null)){
+            if(!$tenant||!\Digiti\Domain\ServiceProductScope::allows($service['product_guid'],$tenant['product_guid']??null)){
                 Http::json(['ok'=>false,'code'=>'TENANT_SCOPE_DENIED'],403);
             }
         }
