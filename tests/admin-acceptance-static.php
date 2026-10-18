@@ -67,4 +67,17 @@ $production=(string)file_get_contents($root.'/app/Services/ProductionReadiness.p
 if(!str_contains($production,'server-wide maxmemory') ||
    !str_contains($production,'verification_deferred'))
  throw new RuntimeException('Readiness no longer describes shared Redis and deferred broker consumers');
+$qaPage=(string)file_get_contents($root.'/app/Controllers/StagingAcceptanceController.php');
+if(!str_contains($qaPage,'qa-dashboard') || !str_contains($qaPage,'class="qa-grid"')
+ || !str_contains($qaPage,'class="qa-card"')
+ || str_contains($qaPage,'class="readiness-row"'))
+ throw new RuntimeException('QA page still depends on the 10px readiness-row grid');
+$qaStyles=(string)file_get_contents($root.'/public_html/assets/staging-qa.css');
+foreach(['.qa-grid','grid-template-columns:repeat(2,minmax(0,1fr))',
+          '.qa-card-copy','@media(max-width:620px)','overflow-wrap:anywhere'] as $rule){
+ if(!str_contains($qaStyles,$rule))throw new RuntimeException('Missing QA responsive style: '.$rule);
+}
+if(!str_contains((string)file_get_contents($root.'/app/Core/View.php'),
+   "Build::asset('/assets/staging-qa.css')"))
+ throw new RuntimeException('QA styling not included in admin layout');
 echo "Admin dashboard first-party acceptance/reporting assertions: OK\n";

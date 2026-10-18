@@ -50,10 +50,10 @@ final class StagingAcceptanceController
     private static function page(?array $snapshot): never
     {
         $e=static fn(mixed $v):string=>View::e($v);
-        $h='<section class="admin-head readiness-head"><div><span class="eyebrow">STAGING QUALITY ASSURANCE</span>'
+        $h='<div class="qa-dashboard"><section class="admin-head qa-page-head"><div><span class="eyebrow">STAGING QUALITY ASSURANCE</span>'
             .'<h1>Testing & QA</h1><p class="muted">Read-only production-like checks from the authenticated admin dashboard. '
             .'No console commands and no destructive test actions.</p></div></section>';
-        $h.='<section class="panel"><div class="section-head"><div><h2>Latest validation</h2>'
+        $h.='<section class="panel qa-panel"><div class="section-head qa-section-head"><div><h2>Latest validation</h2>'
             .'<p class="muted">Run Checks records a tenant-scoped snapshot of current database, queue, cache and Platform readiness.</p>'
             .'</div></div><form method="post" action="/admin/system/testing/run"><input type="hidden" name="_csrf" value="'
             .$e(Http::csrf()).'"><button class="btn primary" type="submit">Run safe checks</button></form>'
@@ -62,7 +62,7 @@ final class StagingAcceptanceController
             .'<a href="/admin/processing">Processing Center</a></p></section>';
         if(isset($_GET['storage']))$h.='<p class="alert danger">Report could not be saved to private storage. Verify application storage permissions.</p>';
         if($snapshot===null){
-            $h.='<section class="panel"><h2>No report recorded</h2>'
+            $h.='<section class="panel qa-panel"><h2>No report recorded</h2>'
                 .'<p class="muted">Select Run safe checks to create the first test report.</p></section>';
         }else{
             $status=(string)($snapshot['automated_status']??'ACTION_REQUIRED');
@@ -72,43 +72,44 @@ final class StagingAcceptanceController
             $stale=$capturedAt===false || (time()-$capturedAt)>3600 ||
                 (string)($snapshot['app_version']??'')!==$currentVersion;
             $h.=$stale?'<p class="alert danger"><strong>STALE REPORT.</strong> The snapshot is over one hour old or from a different application build. Run safe checks again.</p>':'';
-            $h.='<section class="panel"><h2>Automated readiness: '.$e(str_replace('_',' ',$status)).'</h2>'
+            $h.='<section class="panel qa-panel"><h2>Automated readiness: '.$e(str_replace('_',' ',$status)).'</h2>'
                 .'<p>Checked at <strong>'.$e($time).'</strong> (UTC).</p>'
                 .'<p class="muted">Readiness is not full application acceptance. OBSERVED means source data exists, not that a user workflow passed.</p>'
                 .'</section>';
-            $h.='<section class="readiness-group"><div class="section-head"><div><span class="eyebrow">FIX IN ORDER</span><h2>Next actions</h2><p class="muted">Follow the linked admin screens. No automatic cache flushing, queue switching or worker restarts.</p></div></div><div class="readiness-list">';
+            $h.='<section class="qa-section"><div class="section-head qa-section-head"><div><span class="eyebrow">FIX IN ORDER</span><h2>Next actions</h2><p class="muted">Follow the linked admin screens. No automatic cache flushing, queue switching or worker restarts.</p></div></div><div class="qa-grid">';
             foreach(($snapshot['priority_actions']??[]) as $item){
                 $url=(string)($item['url']??'/admin/system/health');
                 if(!str_starts_with($url,'/admin/'))$url='/admin/system/health';
-                $h.='<article class="readiness-row"><div class="readiness-copy"><strong>'
+                $h.='<article class="qa-card"><div class="qa-card-copy"><strong>'
                     .(int)($item['priority']??0).'. '.$e($item['title']??'')
                     .'</strong><p>'.$e($item['detail']??'').'</p><a href="'.$e($url).'">Open admin diagnostics →</a></div>'
-                    .'<span class="readiness-badge">'.$e(str_replace('_',' ',(string)($item['status']??'REVIEW'))).'</span></article>';
+                    .'<span class="qa-state">'.$e(str_replace('_',' ',(string)($item['status']??'REVIEW'))).'</span></article>';
             }
             $h.='</div></section>';
-            $h.='<section class="readiness-group"><h2>Functional acceptance</h2><div class="readiness-list">';
+            $h.='<section class="qa-section"><h2>Functional acceptance</h2><div class="qa-grid">';
             foreach(($snapshot['functional']??[]) as $item){
                 $state=(string)($item['status']??'NOT_TESTED');
                 $url=(string)($item['url']??'/admin/system/health');
                 if(!str_starts_with($url,'/admin/'))$url='/admin/system/health';
-                $h.='<article class="readiness-row"><div class="readiness-copy">'
+                $h.='<article class="qa-card"><div class="qa-card-copy">'
                     .'<strong>'.$e($item['name']??'').'</strong>'
                     .'<p>'.$e($item['detail']??'').'</p>'
                     .'<a href="'.$e($url).'">Open module →</a></div>'
-                    .'<span class="readiness-badge">'.$e(str_replace('_',' ',$state)).'</span></article>';
+                    .'<span class="qa-state">'.$e(str_replace('_',' ',$state)).'</span></article>';
             }
             $h.='</div></section>';
-            $h.='<section class="readiness-group"><h2>Live subsystem checks</h2><div class="readiness-list">';
+            $h.='<section class="qa-section"><h2>Live subsystem checks</h2><div class="qa-grid">';
             foreach(($snapshot['checks']??[]) as $check){
                 $state=(string)($check['status']??'REVIEW');
-                $h.='<article class="readiness-row"><div class="readiness-copy">'
+                $h.='<article class="qa-card"><div class="qa-card-copy">'
                     .'<strong>'.$e($check['name']??'').'</strong>'
                     .'<p>'.$e($check['detail']??'').'</p>'
                     .(!empty($check['action'])?'<small>Next: '.$e($check['action']).'</small>':'')
-                    .'</div><span class="readiness-badge">'.$e(str_replace('_',' ',$state)).'</span></article>';
+                    .'</div><span class="qa-state">'.$e(str_replace('_',' ',$state)).'</span></article>';
             }
             $h.='</div></section>';
         }
+        $h.='</div>';
         View::layout('Testing & QA',$h,['brand'=>(string)(\EpaperSaas\Services\TenantData::brand()['site_name']??'ePaper'),'admin'=>true]);
     }
 
