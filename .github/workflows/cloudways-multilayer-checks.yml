@@ -19,9 +19,11 @@ jobs:
       - name: Compile PHP app and tests
         run: find app tests bin -name '*.php' -print0 | xargs -0 -n1 php -l > /tmp/epdi-lint.log
       - name: Assert route and repository contracts
-        run: php tests/layered-controller-contracts.php && php tests/concrete-controllers.php
+        run: php tests/layered-controller-contracts.php && php tests/concrete-controllers.php && php tests/independent-layer-regressions.php
       - name: Ephemeral PHP HTTP smoke (not Cloudways)
         run: bash tests/http-route-smoke.sh
+      - name: Validate staging acceptance CLI
+        run: python3 -m py_compile tests/staging_acceptance.py && python3 tests/staging_acceptance.py --help >/dev/null
       - name: Assert AI editorial review guards
         run: php tests/ai-review-static.php
       - name: Tenant SQL isolation and security hardening

@@ -45,10 +45,12 @@ trait ClippingActions
 
     private function clipOr404(string $slug): array
     {
-        $c=ClipService::bySlug($slug);if(!$c||!ClipService::canView($c))$this->notFound('Clip unavailable');return$c;
+        $clip=(new \EpaperSaas\Services\ClipVisibilityService(new \EpaperSaas\Services\ClipServiceReader()))->visible($slug);
+        if(!$clip)$this->notFound('Clip unavailable');
+        return $clip;
     }
 
-    private function publicClipImage(string $slug): never
+        private function publicClipImage(string $slug): never
     {
         $c=$this->clipOr404($slug);if(strtoupper((string)$c['visibility'])==='PRIVATE')Http::privateNoStore();$full=ClipService::previewPath($c);if(!is_file($full))$this->notFound('Clip image unavailable');header('Content-Type: image/webp');header('Content-Length: '.filesize($full));header('Content-Disposition: inline; filename="epaper-clip-'.$this->e($slug).'.webp"');header('Cache-Control: '.(strtoupper((string)$c['visibility'])==='PRIVATE'?'private, no-store':'public, max-age=3600'));readfile($full);exit;
     }

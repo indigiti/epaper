@@ -95,6 +95,9 @@ trait ReaderActions
 
     private function articleAt(string $pageGuid): never
     {
-        $p=Store::one('SELECT width,height FROM ep_pages WHERE tenant_guid=? AND page_guid=?',[TenantData::tenantBin(),Uuid::toBinary($pageGuid)]);if(!$p)Http::json(['ok'=>false,'code'=>'PAGE_NOT_FOUND'],404);$x=max(0,min(1,(float)($_GET['x']??0)));$y=max(0,min(1,(float)($_GET['y']??0)));$px=(int)round($x*$p['width']);$py=(int)round($y*$p['height']);$blocks=Store::all('SELECT block_guid,text_content,x1,y1,x2,y2 FROM ep_ocr_blocks WHERE tenant_guid=? AND page_guid=? AND x1<=? AND x2>=? AND y1<=? AND y2>=? ORDER BY (x2-x1)*(y2-y1) LIMIT 12',[TenantData::tenantBin(),Uuid::toBinary($pageGuid),$px,$px,$py,$py]);$text=trim(implode("\n",array_column($blocks,'text_content')));Http::json(['ok'=>(bool)$blocks,'page_guid'=>$pageGuid,'text'=>$text,'blocks'=>array_map(fn($b)=>['block_guid'=>$this->guid($b['block_guid']),'text'=>$b['text_content'],'bbox'=>[(int)$b['x1'],(int)$b['y1'],(int)$b['x2'],(int)$b['y2']]],$blocks)]);
+        $controller=new ReaderArticleAtController(new \EpaperSaas\Repositories\SqlPageArticleReader());
+        [$status,$payload]=$controller->lookup($pageGuid,(float)($_GET['x']??0),(float)($_GET['y']??0));
+        Http::json($payload,$status);
     }
+
 }
