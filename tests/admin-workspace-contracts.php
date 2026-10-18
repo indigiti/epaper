@@ -24,6 +24,8 @@ foreach(['/admin/system/infrastructure','/admin/access','/admin/plans','/admin/s
 }
 if(in_array('/admin/editions',$routes($operator),true))throw new RuntimeException('Operator received edition creation tools');
 if(in_array('/admin/ai-review',$routes($noAi),true))throw new RuntimeException('Disabled AI is still advertised');
+if(!in_array('/admin/ai-clipping',$routes($noAi),true))throw new RuntimeException('Readiness is hidden with AI disabled');
+if(in_array('/admin/ai-clipping',$routes($operator),true))throw new RuntimeException('Operator received editorial AI readiness');
 if(!in_array('/admin/system/testing',$routes($operator),true))throw new RuntimeException('Operator lost QA');
 if(in_array('/admin/system/infrastructure',$routes($publisher),true))throw new RuntimeException('Publisher received infrastructure shortcut');
 if(!in_array('/admin/system/infrastructure',$routes($customInfra),true))throw new RuntimeException('Configured infrastructure role lost access to its own admin link');

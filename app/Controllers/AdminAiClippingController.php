@@ -18,6 +18,7 @@ final class AdminAiClippingController
             http_response_code(403);
             View::layout('Access denied','<section class="empty-state"><h1>Editorial permission required</h1></section>',
                 ['brand'=>(string)RequestContext::get('tenant_name','ePaper SaaS'),'admin'=>true]);
+            exit;
         }
         Http::privateNoStore();
         $body=AiClippingReadinessView::render(AiClippingReadiness::snapshot());

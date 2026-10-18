@@ -15,6 +15,7 @@ final class AdminFeatureCatalog
         $groups=['PUBLISHING'=>[['Overview','/admin','Your publishing desk','dashboard']]];
         if($editor)$groups['PUBLISHING'][]=['Editions','/admin/editions','Upload, reorder and publish','pages'];
         if($operator)$groups['PUBLISHING'][]=['Processing Center','/admin/processing','Render, OCR and job recovery','activity'];
+        if($editor)$groups['PUBLISHING'][]=['AI Clipping','/admin/ai-clipping','Feature readiness and setup','scan-text'];
         if($editor&&$aiEnabled)$groups['PUBLISHING'][]=['AI Editorial Review','/admin/ai-review','Review clipping candidates','clip'];
         if($editor)$groups['READER & DISCOVERY']=[
             ['Reader Navigation','/admin/navigation','Menus and scopes','menu'],
