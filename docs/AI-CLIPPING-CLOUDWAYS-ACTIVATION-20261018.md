@@ -11,6 +11,8 @@ Cloudways Python packages, update the private runtime, or migrate the hosting da
 - On the standalone `cw-epaper` branch, the **application root** contains `app/`, `bin/`, `database/`, `storage/`, `config/`, `public_html/`. The webroot is the nested `public_html/`, not the outer directory.
 - Do **not** use the canonical `epaper.digiti.in` hostname for staging. Update private `app.url` and `app.environment` to `staging` and ensure the staging database connection points to its own database.
 - Cloudways' app cloning may copy original URLs and credentials. Recheck both before applying any migration. Keep staging workers, cron and RabbitMQ routing separate from live queues. **Do not** run staging OCR workers against live broker queues.
+- **Digiti Platform tenant boundary:** `DomainResolver` permits a canonical-host fallback through `platform.default_tenant_guid`. On staging, clear both `platform.default_tenant_guid` and `platform.default_organisation_guid` in the private effective configuration. Register the distinct staging hostname with a dedicated test EPAPER product tenant, or use a separate staging Platform. Ensure that the staged service token and OAuth redirect URI are scoped to the staging identity. Do not use a live production tenant or allow staging workers to report usage to it. No source-code change to `cw-platform` is needed.
+- If the staging hostname has not been registered with Platform and approved for OAuth, stop before authenticated web testing: the HTTP dispatcher may reject domain resolution. Do not bypass this by copying production tenant fallback values.
 
 ## 1. Safe preflight (read-only)
 
@@ -21,7 +23,7 @@ php bin/ai-clipping-staging.php --check
 php bin/supervisor-preflight.php --json
 ```
 
-Both commands may report warnings. The AI CLI preflight does not print database credentials and does not enable AI or mutate schema. Inspect environment, database_selected, candidate_schema, source_modules and python_binary.
+Both commands may report warnings. The AI CLI preflight does not print database credentials and does not enable AI or mutate schema. Inspect environment, staging_guard, platform_fallback_disabled, database_selected, candidate_schema, source_modules and python_binary.
 A Git pull into Cloudways updates source only; it does not enable AI.
 
 ## 2. Stage Python privately
@@ -51,7 +53,7 @@ unset EPDI_AI_STAGING_HOST EPDI_AI_STAGING_DB_NAME EPDI_AI_BACKUP_VERIFIED
 ```
 
 The script denies schema changes if `app.environment` is not `staging`,
-if the canonical live host is configured, or if host/database/backup
+if the canonical live host or any default Platform tenant fallback is configured, or if host/database/backup
 confirmations do not match. It permits only the existing add-only
 `CREATE TABLE IF NOT EXISTS ep_ai_page_candidates` SQL. It never drops or edits existing candidate rows.
 
