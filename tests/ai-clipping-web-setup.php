@@ -90,7 +90,7 @@ $readinessSource=(string)file_get_contents($root.'/app/Services/AiClippingReadin
 foreach(["'queue'=>[","'driver'=>","'ocr_heartbeat'=>","'amqp_client'=>"] as $token){
     if(!str_contains($readinessSource,$token))throw new RuntimeException('Queue diagnostics missing '.$token);
 }
-$databaseQueue=\\EpaperSaas\\Views\\AiClippingReadinessView::render([
+$databaseQueue=\EpaperSaas\Views\AiClippingReadinessView::render([
     'enabled'=>false,'status'=>'DISABLED','checks'=>[
         ['name'=>'Feature flag','status'=>'DISABLED'],
         ['name'=>'Candidate database','status'=>'AVAILABLE']],
@@ -103,7 +103,7 @@ if(str_contains($databaseQueue,'name="action" value="enable_ai"')||
     !str_contains($databaseQueue,'Test RabbitMQ connection')){
     throw new RuntimeException('Inactive RabbitMQ must block unsafe activation and show web guidance');
 }
-$rabbitQueue=\\EpaperSaas\\Views\\AiClippingReadinessView::render([
+$rabbitQueue=\EpaperSaas\Views\AiClippingReadinessView::render([
     'enabled'=>false,'status'=>'DISABLED','checks'=>[
         ['name'=>'Feature flag','status'=>'DISABLED'],
         ['name'=>'Candidate database','status'=>'AVAILABLE']],
