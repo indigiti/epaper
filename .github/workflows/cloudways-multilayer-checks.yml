@@ -19,4 +19,4 @@ jobs:
       - name: Compile Platform PHP
         run: find app bin tests -name '*.php' -print0 | xargs -0 -n1 php -l > /tmp/platform-lint.log
       - name: Verify entry points and controller / repository contracts
-        run: php tests/layered-controller-contracts.php && php tests/concrete-controllers.php
+        run: php tests/layered-controller-contracts.php && php tests/concrete-controllers.php && php tests/security-boundaries.php
