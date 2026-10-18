@@ -1,5 +1,6 @@
 <?php
 declare(strict_types=1);
+require_once __DIR__.'/support/app-source.php';
 $root=dirname(__DIR__);require_once $root.'/app/Services/SchemaDoctor.php';
 $fails=[];$pass=function(bool$ok,string$name)use(&$fails){echo($ok?'PASS':'FAIL')." — {$name}\n";if(!$ok)$fails[]=$name;};
 $ref=new ReflectionClass(EpaperSaas\Services\SchemaDoctor::class);$m=$ref->getMethod('splitSql');$m->setAccessible(true);
@@ -19,6 +20,6 @@ $pass(str_contains($source,'RC1_TABLES')&&str_contains($source,'upgrade-v2.0.0-r
 $pass(str_contains($source,'MOBILE15_TABLES')&&str_contains($source,'upgrade-v2.0.1.5-mobile-auth.sql'),'Schema Doctor integrates v2.0.1.5 mobile-auth migration');
 $pass(str_contains($source,'FLEX17_TABLES')&&str_contains($source,'upgrade-v2.0.1.7-flexible-reader-identity.sql'),'Schema Doctor integrates v2.0.1.7 flexible-reader migration');
 $pass(str_contains($source,'TRUST18_TABLES')&&str_contains($source,'upgrade-v2.0.1.8-trusted-app-desktop-login.sql'),'Schema Doctor integrates v2.0.1.8 trusted-login migration');
-$app=(string)file_get_contents($root.'/app/App.php');
+$app=epdiAppSource($root);
 $pass(str_contains($app,'SchemaDoctor::hasTrustedAppSchema()')&&str_contains($app,'Database upgrade required.'),'Subscribers page has missing-schema degraded mode');
 if($fails){fwrite(STDERR,"\nSCHEMA DOCTOR STATIC TEST FAILED\n");exit(1);}echo"\nSCHEMA DOCTOR STATIC TEST PASSED\n";

@@ -1,6 +1,7 @@
 <?php
 declare(strict_types=1);
-$root=dirname(__DIR__);$js=(string)file_get_contents($root.'/public_html/assets/reader.js');$css=(string)file_get_contents($root.'/public_html/assets/reader.css');$app=(string)file_get_contents($root.'/app/App.php');$fail=[];$t=function(bool $ok,string $n)use(&$fail){echo($ok?'PASS':'FAIL')." — {$n}\n";if(!$ok)$fail[]=$n;};
+require_once __DIR__.'/support/app-source.php';
+$root=dirname(__DIR__);$js=(string)file_get_contents($root.'/public_html/assets/reader.js');$css=(string)file_get_contents($root.'/public_html/assets/reader.css');$app=epdiAppSource($root);$fail=[];$t=function(bool $ok,string $n)use(&$fail){echo($ok?'PASS':'FAIL')." — {$n}\n";if(!$ok)$fail[]=$n;};
 foreach(['fitPageScale','fitWidthScale','scaleLimits','zoomAt','normalizePan','pointers=new Map','pinch={','setClipMode','data-clip-reselect','data-clip-cancel','gotoPage','prefetchAdjacent','history.pushState','popstate','saveProgress'] as$x)$t(str_contains($js,$x),'Reader JS '.$x);
 foreach(['reader-shell','reader-stage','reader-rail','reader-pages','clip-selection','reader-clip-actions','article-modal'] as$x)$t(str_contains($css,$x),'Reader CSS '.$x);
 foreach(['data-default-fit','data-scroll-zoom-default','data-clip-visibility','data-reader-prev','data-reader-next','data-reader-page-link'] as$x)$t(str_contains($app,$x),'Reader SSR hook '.$x);

@@ -1,7 +1,8 @@
 <?php
 declare(strict_types=1);
+require_once __DIR__.'/support/app-source.php';
 $root=dirname(__DIR__);$fails=[];$ok=function(bool$c,string$m)use(&$fails){echo($c?'PASS':'FAIL')." — {$m}\n";if(!$c)$fails[]=$m;};
-$app=(string)file_get_contents($root.'/app/App.php');$view=(string)file_get_contents($root.'/app/Core/View.php');$css=(string)file_get_contents($root.'/public_html/assets/admin-beta.css');$crud=(string)file_get_contents($root.'/public_html/assets/crud.js');
+$app=epdiAppSource($root);$view=(string)file_get_contents($root.'/app/Core/View.php');$css=(string)file_get_contents($root.'/public_html/assets/admin-beta.css');$crud=(string)file_get_contents($root.'/public_html/assets/crud.js');
 $archiveMarker=<<<'SRC'
 action="/admin/editions/'.$guid.'/archive"
 SRC;
