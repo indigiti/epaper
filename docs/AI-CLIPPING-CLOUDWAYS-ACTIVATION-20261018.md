@@ -1,3 +1,11 @@
+## Preferred path: existing staging ePaper, browser only
+
+1. Open the existing authenticated ePaper **Admin → AI Clipping** page.
+2. OWNER/ADMIN selects **Confirm existing staging installation**, enters the displayed current hostname and ePaper database name, and acknowledges current backup and staging-only use. No SQL, worker jobs or AI processing run in this step.
+3. Refresh the same page, then use **Create candidate table** if missing. This is an additive schema change with a separate database-name and backup confirmation.
+4. Use **Test Python and image detection**. It checks the configured interpreter using synthetic data, without installing packages or running against customer editions. If the Python interpreter is not provisioned, use Cloudways web management; the application cannot independently install OS packages.
+5. Continue via **Worker Doctor**, **Processing Center** and **AI Editorial Review** once the worker and AI flag prerequisites are satisfied. Confirm that AI remains off until the actual RabbitMQ OCR/tenant security test passes.
+
 # Cloudways AI Clipping — isolated staging activation procedure
 
 This is a **server-operator procedure**, not a statement of completed Cloudways activation.
@@ -6,13 +14,13 @@ Cloudways Python packages, update the private runtime, or migrate the hosting da
 
 ## Isolation and multilayer paths
 
-- Clone/create an **isolated staging ePaper application** with its own MariaDB database and application domain. See Cloudways Staging Management.
+- **Use the existing ePaper installation when it is the designated staging deployment.** No second Cloudways application is required. The owner confirms staging and the current hostname/database through the AI Clipping dashboard. Confirm that real production customer traffic/data are not on this installation; a staging declaration does not make shared production resources isolated.
 - Keep `platform.digiti.in` and `cw-platform` unchanged.
 - On the standalone `cw-epaper` branch, the **application root** contains `app/`, `bin/`, `database/`, `storage/`, `config/`, `public_html/`. The webroot is the nested `public_html/`, not the outer directory.
-- Do **not** use the canonical `epaper.digiti.in` hostname for staging. Update private `app.url` and `app.environment` to `staging` and ensure the staging database connection points to its own database.
+- An ePaper hostname such as `epaper.digiti.in` does **not** determine environment status. The dashboard permits this hostname only after explicit OWNER/ADMIN staging and backup confirmation, stored in private runtime config. Do not change `app.url`, application environment, database or Platform membership just to satisfy the wizard.
 - Cloudways' app cloning may copy original URLs and credentials. Recheck both before applying any migration. Keep staging workers, cron and RabbitMQ routing separate from live queues. **Do not** run staging OCR workers against live broker queues.
-- **Digiti Platform tenant boundary:** `DomainResolver` permits a canonical-host fallback through `platform.default_tenant_guid`. On staging, clear both `platform.default_tenant_guid` and `platform.default_organisation_guid` in the private effective configuration. Register the distinct staging hostname with a dedicated test EPAPER product tenant, or use a separate staging Platform. Ensure that the staged service token and OAuth redirect URI are scoped to the staging identity. Do not use a live production tenant or allow staging workers to report usage to it. No source-code change to `cw-platform` is needed.
-- If the staging hostname has not been registered with Platform and approved for OAuth, stop before authenticated web testing: the HTTP dispatcher may reject domain resolution. Do not bypass this by copying production tenant fallback values.
+- **Digiti Platform tenant boundary:** Keep the existing Platform connection and domain mapping unchanged for the designated staging deployment. Confirm that the mapped EPAPER tenant is used for testing; do not route test OCR activity into real customer operations. No change to `cw-platform` is needed. Platform fallback values by themselves do not prove whether the deployment is production or staging.
+- If your existing staging domain already logs in and resolves tenants correctly, do not reconfigure OAuth or create a new domain. Preserve the working Platform integration.
 
 ## 1. Safe preflight (read-only)
 
