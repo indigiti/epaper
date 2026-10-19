@@ -11,6 +11,19 @@ use EpaperSaas\Core\{Auth,Http,RequestContext,Store,Uuid};
 final class ManualClipMarking
 {
     private const ROLES=['OWNER','ADMIN','PUBLISHER_ADMIN','EDITOR'];
+    private const UNTITLED_ARTICLE='Untitled article';
+
+    /**
+     * Editorial area markings need valid geometry, not a headline.
+     * Keep a non-empty display label because ep_clip_marks.title is NOT NULL.
+     */
+    public static function normalizeTitle(string $title): string
+    {
+        $title=trim($title);
+        if(mb_strlen($title)>180)
+            throw new \InvalidArgumentException('Headline cannot exceed 180 characters');
+        return $title!==''?$title:self::UNTITLED_ARTICLE;
+    }
 
     private static function actor(): array
     {
@@ -27,9 +40,7 @@ final class ManualClipMarking
         [$actor,]=self::actor();
         if(!Uuid::isValid($pageGuid))throw new \InvalidArgumentException('Invalid newspaper page');
         $geometry=ManualClipGeometry::parse($box);
-        $title=trim($title);
-        if($title===''||mb_strlen($title)>180)
-            throw new \InvalidArgumentException('Enter an article headline (maximum 180 characters)');
+        $title=self::normalizeTitle($title);
         $tenant=TenantData::tenantBin();
         $ready=Store::one(
             'SELECT e.status FROM ep_pages p JOIN ep_editions e
@@ -62,9 +73,7 @@ final class ManualClipMarking
         if(!Uuid::isValid($pageGuid)||!Uuid::isValid($markGuid))
             throw new \InvalidArgumentException('Invalid outline');
         $box=ManualClipGeometry::parse($input);
-        $title=trim($title);
-        if($title===''||mb_strlen($title)>180)
-            throw new \InvalidArgumentException('Enter a headline (maximum 180 characters)');
+        $title=self::normalizeTitle($title);
         $tenant=TenantData::tenantBin();
         $row=Store::one(
             'SELECT platform_user_guid FROM ep_clip_marks
