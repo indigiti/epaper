@@ -5,7 +5,6 @@
 .reader-editorial-marker::after{content:attr(data-clip-label);position:absolute;bottom:100%;left:-2px;max-width:240px;min-width:70px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:none;padding:5px 8px;border-radius:6px 6px 0 0;background:#154fce;color:#fff;text-align:left;font:600 12px/1.3 system-ui,sans-serif}
 .reader-editorial-marker:hover::after,.reader-editorial-marker:focus-visible::after{display:block}
 .reader-editorial-layer[hidden],.reader-editorial-marker[hidden]{display:none!important}
-.reader-editorial-toggle[aria-pressed="true"]{color:#175cd5!important;background:rgba(41,102,224,.12)!important}
 .reader-flip-page .reader-editorial-layer,.reader-continuous-paper .reader-editorial-layer{z-index:5}
 .reader-flip-page .reader-editorial-marker{border-width:1px}
 .reader-shell.clip-active .reader-editorial-layer,.reader-shell .reader-stage.article-pick .reader-editorial-layer{pointer-events:none;opacity:.2}
