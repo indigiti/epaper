@@ -138,3 +138,27 @@ body.dark .reader-edition-menu{background:rgba(33,33,36,.985);border-color:#3d3d
 .reader-edition-dates:has(.reader-edition-archive) .reader-edition-date{width:58px;min-width:58px}
 body.dark .reader-edition-empty{border-color:#45495a;background:#24262d;color:#c4c6ce}
 @media(max-width:900px){.reader-edition-archive{min-width:90px}}
+
+/* Page-mode swipe feedback; stays inside the newspaper viewport, never hijacks touch. */
+.reader-swipe-fx{
+  position:absolute;inset:0;z-index:24;display:grid;place-items:center;
+  overflow:hidden;opacity:0;visibility:hidden;pointer-events:none;
+  transition:opacity .16s ease,visibility .16s ease;
+}
+.reader-swipe-fx.visible{visibility:visible;opacity:1}
+.reader-swipe-fx canvas{position:absolute;inset:0;display:block;width:100%;height:100%}
+.reader-swipe-fx-arrow{
+  position:relative;z-index:1;display:grid;place-items:center;
+  width:58px;height:58px;border-radius:50%;background:rgba(255,255,255,.94);
+  color:#242b38;font:700 27px/1 system-ui,sans-serif;
+  box-shadow:0 8px 32px rgba(15,23,42,.2);border:1px solid rgba(255,255,255,.8);
+  transform:scale(.82);transition:transform .17s ease;backdrop-filter:blur(8px);
+}
+.reader-swipe-fx.visible .reader-swipe-fx-arrow{transform:scale(1)}
+.reader-swipe-fx.committed .reader-swipe-fx-arrow{transform:scale(1.12)}
+body.dark .reader-swipe-fx-arrow{background:rgba(35,38,46,.94);color:#fff;border-color:#404754}
+@media(prefers-reduced-motion:reduce){
+  .reader-swipe-fx,.reader-swipe-fx-arrow{transition:none!important}
+  .reader-swipe-fx canvas{display:none}
+  .reader-swipe-fx.committed .reader-swipe-fx-arrow{transform:none}
+}
