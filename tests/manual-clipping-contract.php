@@ -29,7 +29,7 @@ $js=$read('public_html/assets/manual-clipping.js');
 foreach(["Auth::requireAdmin();if(\$method==='POST')Http::verifyCsrf();",
  'AdminManualClippingController::dispatch'] as $tok)if(!str_contains($app,$tok))throw new RuntimeException('Admin/CSRF route missing');
 foreach(['OWNER','PUBLISHER_ADMIN','EDITOR','Http::privateNoStore()','RateLimiter::allow',
- 'TenantData::tenantBin()','ClipService::createEditorial','LIMIT 80','LIMIT 24','realpath('] as $tok)
+ 'TenantData::tenantBin()','ClipService::createEditorial','LIMIT 21','LIMIT 500','LIMIT 24','realpath('] as $tok)
  if(!str_contains($controller,$tok))throw new RuntimeException('Missing security contract '.$tok);
 foreach(['clip.manual_created',"'PRIVATE',true",'expiresAt=$editorial?null',
  'if(!$editorial)PlatformClient::instance()->usage'] as $tok)
@@ -41,4 +41,31 @@ foreach(['pointerdown','pointermove','pointerup','getContext','data-manual-coord
  if(!str_contains($js,$tok))throw new RuntimeException('Client selection missing '.$tok);
 foreach(["Build::asset('/assets/manual-clipping.css')","Build::asset('/assets/manual-clipping.js')"] as $tok)
  if(!str_contains($view,$tok))throw new RuntimeException('Clipping assets not included');
-echo "Manual clipping authorization, geometry and editor contracts: OK\n";
+
+foreach(['GROUP BY e.edition_guid','COUNT(p.page_guid) ready_pages',
+  'JOIN ep_pages p','p.edition_guid=?','checkdate(','has_next','LIMIT 21 OFFSET'] as $tok)
+ if(!str_contains($controller,$tok))throw new RuntimeException('Edition-first browse contract missing '.$tok);
+foreach(['manual-edition-filters','manual-collection-layout','manual-edition-card',
+  'manual-page-picker','selected edition','pageNo','http_build_query'] as $tok)
+ if(!str_contains(strtolower($ui),strtolower($tok)))throw new RuntimeException('Edition collection view contract missing '.$tok);
+$css=$read('public_html/assets/manual-clipping.css');
+foreach(['.manual-edition-list','.manual-edition-pages','.manual-page-pick','@media(max-width:900px)'] as $tok)
+ if(!str_contains($css,$tok))throw new RuntimeException('Edition collection responsive CSS missing '.$tok);
+$editionGuid='01a14d4c-0ee8-71df-a18e-e714ad1d8bc7';
+$pageGuid='01a14d4c-0ee8-71df-a18e-e714ad1d8bc8';
+$rendered=\EpaperSaas\Views\ManualClippingView::index(
+ [['edition_guid'=>\EpaperSaas\Core\Uuid::toBinary($editionGuid),
+   'edition_title'=>'Civic Mirror','edition_date'=>'2026-10-18',
+   'publication_name'=>'Civic Mirror','ready_pages'=>1]],
+ [['page_guid'=>\EpaperSaas\Core\Uuid::toBinary($pageGuid),'page_number'=>1,'label'=>'Front page']],
+ [['publication_guid'=>\EpaperSaas\Core\Uuid::toBinary($editionGuid),'name'=>'Civic Mirror']],
+ ['edition_guid'=>\EpaperSaas\Core\Uuid::toBinary($editionGuid),
+   'edition_title'=>'Civic Mirror','edition_date'=>'2026-10-18',
+   'publication_name'=>'Civic Mirror','ready_pages'=>1],
+ ['publication'=>'','date'=>'','page'=>1,'has_next'=>false]
+);
+if(substr_count($rendered,'class="manual-edition-card active"')!==1 ||
+   !str_contains($rendered,'/admin/manual-clipping/'.$pageGuid) ||
+   !str_contains($rendered,'Page 1'))
+ throw new RuntimeException('Edition page picker rendering contract failed');
+echo "Manual clipping and edition-first collection contracts: OK\n";

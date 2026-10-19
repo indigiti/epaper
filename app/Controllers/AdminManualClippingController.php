@@ -53,21 +53,92 @@ final class AdminManualClippingController
 
     private static function index(): never
     {
-        $rows=Store::all(
-            'SELECT p.page_guid,p.page_number,e.title edition_title,e.edition_date,
-                    pub.name publication_name FROM ep_pages p
-             JOIN ep_editions e ON e.tenant_guid=p.tenant_guid AND e.edition_guid=p.edition_guid
-             JOIN ep_publications pub ON pub.tenant_guid=e.tenant_guid AND pub.publication_guid=e.publication_guid
-             JOIN ep_page_assets preview ON preview.tenant_guid=p.tenant_guid
-                   AND preview.page_guid=p.page_guid AND preview.asset_type="PREVIEW"
-             JOIN ep_page_assets hires ON hires.tenant_guid=p.tenant_guid
-                   AND hires.page_guid=p.page_guid AND hires.asset_type="HIGHRES"
-             WHERE p.tenant_guid=? AND e.status NOT IN ("TRASHED")
-             ORDER BY e.edition_date DESC,p.page_number ASC LIMIT 80',
-            [TenantData::tenantBin()]
+        $tb=TenantData::tenantBin();
+        $publications=Store::all(
+            'SELECT publication_guid,name FROM ep_publications
+             WHERE tenant_guid=? AND status="ACTIVE" ORDER BY name LIMIT 200',[$tb]
         );
-        View::layout('Manual clipping',ManualClippingView::index($rows),[
-            'brand'=>(string)RequestContext::get('tenant_name','ePaper SaaS'),'admin'=>true]);
+        $publication=trim((string)($_GET['publication']??''));
+        $available=[];
+        foreach($publications as $pub){
+            $available[]=Uuid::fromBinary($pub['publication_guid']);
+        }
+        if(!Uuid::isValid($publication)||!in_array(strtolower($publication),$available,true)){
+            $publication='';
+        }
+        $date=trim((string)($_GET['date']??''));
+        if(!preg_match('/^\d{4}-\d{2}-\d{2}$/D',$date)){
+            $date='';
+        }else{
+            [$yy,$mm,$dd]=array_map('intval',explode('-',$date));
+            if(!checkdate($mm,$dd,$yy))$date='';
+        }
+        $requestedPage=filter_var($_GET['p']??1,FILTER_VALIDATE_INT,
+            ['options'=>['min_range'=>1,'max_range'=>500]]);
+        $currentPage=$requestedPage===false?1:$requestedPage;
+        $where='WHERE e.tenant_guid=? AND e.status NOT IN ("TRASHED")';
+        $params=[$tb];
+        if($publication!==''){
+            $where.=' AND e.publication_guid=?';
+            $params[]=Uuid::toBinary($publication);
+        }
+        if($date!==''){
+            $where.=' AND e.edition_date=?';
+            $params[]=$date;
+        }
+        // Page selection is edition-first: LIMIT applies to complete editions, not
+        // individual pages. One summary query and one bounded page query only.
+        $editions=Store::all(
+            'SELECT e.edition_guid,e.title edition_title,e.edition_date,
+                    pub.name publication_name,pub.publication_guid,
+                    COUNT(p.page_guid) ready_pages
+             FROM ep_editions e
+             JOIN ep_publications pub ON pub.tenant_guid=e.tenant_guid
+                 AND pub.publication_guid=e.publication_guid
+             JOIN ep_pages p ON p.tenant_guid=e.tenant_guid
+                 AND p.edition_guid=e.edition_guid
+             JOIN ep_page_assets preview ON preview.tenant_guid=p.tenant_guid
+                 AND preview.page_guid=p.page_guid AND preview.asset_type="PREVIEW"
+             JOIN ep_page_assets hires ON hires.tenant_guid=p.tenant_guid
+                 AND hires.page_guid=p.page_guid AND hires.asset_type="HIGHRES"
+             '.$where.'
+             GROUP BY e.edition_guid,e.title,e.edition_date,e.created_at,
+                      pub.name,pub.publication_guid
+             ORDER BY e.edition_date DESC,e.created_at DESC,e.edition_guid DESC
+             LIMIT 21 OFFSET '.(($currentPage-1)*20),$params
+        );
+        $hasNext=count($editions)>20;
+        $editions=array_slice($editions,0,20);
+        $selected=(string)($_GET['edition']??'');
+        $chosen=null;
+        foreach($editions as $edition){
+            if($selected!==''&&
+               strtolower((string)Uuid::fromBinary($edition['edition_guid']))===strtolower($selected)){
+                $chosen=$edition;break;
+            }
+        }
+        if($chosen===null)$chosen=$editions[0]??null;
+        $pages=[];
+        if($chosen!==null){
+            $pages=Store::all(
+                'SELECT p.page_guid,p.page_number,p.label FROM ep_pages p
+                 JOIN ep_page_assets preview ON preview.tenant_guid=p.tenant_guid
+                      AND preview.page_guid=p.page_guid AND preview.asset_type="PREVIEW"
+                 JOIN ep_page_assets hires ON hires.tenant_guid=p.tenant_guid
+                      AND hires.page_guid=p.page_guid AND hires.asset_type="HIGHRES"
+                 WHERE p.tenant_guid=? AND p.edition_guid=?
+                 ORDER BY p.page_number ASC LIMIT 500',
+                [$tb,$chosen['edition_guid']]
+            );
+        }
+        View::layout('Manual clipping',ManualClippingView::index(
+            $editions,$pages,$publications,$chosen,[
+                'publication'=>$publication,'date'=>$date,'page'=>$currentPage,
+                'has_next'=>$hasNext,
+            ]
+        ),[
+            'brand'=>(string)RequestContext::get('tenant_name','ePaper SaaS'),'admin'=>true,
+        ]);
     }
 
     private static function detail(string $guid,?string $error=null): never

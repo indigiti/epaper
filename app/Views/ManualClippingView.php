@@ -7,34 +7,102 @@ use EpaperSaas\Core\{Http,Uuid,View};
 /** Semantic, progressive-enhancement interface for manual editorial clipping. */
 final class ManualClippingView
 {
-    public static function index(array $pages): string
+    /**
+     * Edition collections; only pages for the chosen edition are rendered.
+     * All links are tenant-authorized through the existing controller.
+     */
+    public static function index(
+        array $editions,array $pages,array $publications,?array $chosen,array $filters
+    ): string
     {
-        $h='<section class="manual-clipping-page admin-section"><div class="manual-titlebar"><div>'
+        $publication=(string)($filters['publication']??'');
+        $date=(string)($filters['date']??'');
+        $pageNo=(int)($filters['page']??1);
+        $params=[];
+        if($publication!=='')$params['publication']=$publication;
+        if($date!=='')$params['date']=$date;
+        $currentQuery=http_build_query($params,'','&',PHP_QUERY_RFC3986);
+        $queryPrefix='/admin/manual-clipping?';
+        $h='<section class="manual-clipping-page manual-editions-page admin-section">'
+          .'<div class="manual-titlebar"><div>'
           .'<span class="eyebrow">EDITORIAL WORKSPACE</span><h1>Manual clipping</h1>'
-          .'<p>Select a processed page to mark an article. Works without AI detection.</p></div>'
+          .'<p>Choose an edition, then select the newspaper page you want to clip. No AI required.</p></div>'
           .'<a class="btn ghost" href="/admin/editions">All editions →</a></div>'
-          .'<section class="panel"><div class="section-head"><div><h2>Ready pages</h2>'
-          .'<p class="muted">Latest 80 pages with preview and high-resolution media.</p></div></div>'
-          .'<div class="manual-pages">';
-        foreach($pages as $row){
-            $guid=Uuid::fromBinary($row['page_guid']);
-            $title=trim((string)($row['edition_title']??''))?:$row['publication_name'];
-            $h.='<a class="manual-page-card" href="/admin/manual-clipping/'.View::e($guid).'">'
-              .'<span class="manual-page-icon">'.View::icon('newspaper').'</span>'
-              .'<span class="manual-page-copy"><strong>'.View::e($title).'</strong>'
-              .'<small>'.View::e($row['publication_name']).' · '.View::e($row['edition_date'])
-              .' · Page '.(int)$row['page_number'].'</small></span>'
-              .View::icon('chev-right').'</a>';
+          .'<section class="panel manual-browser-panel"><div class="section-head">'
+          .'<div><h2>Edition collections</h2><p class="muted">Organized by publication and edition date, rather than individual pages.</p></div></div>'
+          .'<form method="get" action="/admin/manual-clipping" class="manual-edition-filters" aria-label="Filter editions">'
+          .'<label>Publication<select name="publication"><option value="">All publications</option>';
+        foreach($publications as $pub){
+            $id=(string)Uuid::fromBinary($pub['publication_guid']);
+            $h.='<option value="'.View::e($id).'"'.($id===$publication?' selected':'').'>'
+                .View::e($pub['name']).'</option>';
         }
-        if(!$pages)$h.='<div class="manual-empty">No page is ready. Upload an edition and finish processing first.</div>';
-        return $h.'</div></section></section>';
+        $h.='</select></label><label>Edition date<input type="date" name="date" value="'.View::e($date).'"></label>'
+          .'<div class="manual-filter-actions"><button class="btn primary" type="submit">Apply filters</button>'
+          .'<a class="btn ghost" href="/admin/manual-clipping">Clear</a></div></form>'
+          .'<div class="manual-collection-layout"><div class="manual-edition-list" aria-label="Edition collections">';
+        foreach($editions as $edition){
+            $id=(string)Uuid::fromBinary($edition['edition_guid']);
+            $active=$chosen!==null&&$chosen['edition_guid']===$edition['edition_guid'];
+            $name=trim((string)($edition['edition_title']??''))?:$edition['publication_name'];
+            $query=$params+['p'=>$pageNo,'edition'=>$id];
+            $url=$queryPrefix.http_build_query($query,'','&',PHP_QUERY_RFC3986);
+            $ready=(int)($edition['ready_pages']??0);
+            $h.='<a class="manual-edition-card'.($active?' active':'').'" href="'.View::e($url).'"'
+                .($active?' aria-current="true"':'').'>'
+                .'<span class="manual-page-icon">'.View::icon('newspaper').'</span>'
+                .'<span class="manual-page-copy"><strong>'.View::e($name).'</strong>'
+                .'<small>'.View::e($edition['publication_name']).' · '.View::e($edition['edition_date']).'</small>'
+                .'<span class="manual-edition-count">'.$ready.' '.($ready===1?'page':'pages').' ready</span></span>'
+                .View::icon('chev-right').'</a>';
+        }
+        if(!$editions)$h.='<div class="manual-empty">No processed editions match these filters. Check your publication, date or processing status.</div>';
+        $h.='</div><section class="manual-edition-pages" aria-labelledby="manual-chosen-heading">';
+        if($chosen!==null){
+            $name=trim((string)($chosen['edition_title']??''))?:$chosen['publication_name'];
+            $h.='<div class="manual-selected-heading"><span class="eyebrow">SELECTED EDITION</span>'
+               .'<h3 id="manual-chosen-heading">'.View::e($name).'</h3>'
+               .'<p>'.View::e($chosen['publication_name']).' · '.View::e($chosen['edition_date'])
+               .' · '.(int)$chosen['ready_pages'].' pages ready</p></div>'
+               .'<div class="manual-page-picker">';
+            foreach($pages as $row){
+                $id=(string)Uuid::fromBinary($row['page_guid']);
+                $number=(int)$row['page_number'];
+                $label=trim((string)($row['label']??''));
+                $h.='<a class="manual-page-pick" href="/admin/manual-clipping/'.View::e($id).'">'
+                  .'<span class="manual-pick-icon">'.View::icon('pages').'</span>'
+                  .'<strong>Page '.$number.'</strong>'
+                  .($label!==''?'<small>'.View::e($label).'</small>':'')
+                  .'</a>';
+            }
+            if(!$pages)$h.='<p class="muted">This edition has no ready pages.</p>';
+            if((int)$chosen['ready_pages']>count($pages))$h.='<p class="muted">Showing the first 500 ready pages of this edition.</p>';
+            $h.='</div>';
+        }else{
+            $h.='<div class="manual-empty" id="manual-chosen-heading">Select a different date or publication to find available editions.</div>';
+        }
+        $h.='</section></div>';
+        if($pageNo>1||!empty($filters['has_next'])){
+            $h.='<nav class="manual-pagination" aria-label="Edition collection pagination">';
+            if($pageNo>1){
+                $prev=$queryPrefix.http_build_query($params+['p'=>$pageNo-1],'','&',PHP_QUERY_RFC3986);
+                $h.='<a class="btn ghost" href="'.View::e($prev).'">← Newer editions</a>';
+            }
+            $h.='<span>Collection page '.$pageNo.'</span>';
+            if(!empty($filters['has_next'])){
+                $next=$queryPrefix.http_build_query($params+['p'=>$pageNo+1],'','&',PHP_QUERY_RFC3986);
+                $h.='<a class="btn ghost" href="'.View::e($next).'">Older editions →</a>';
+            }
+            $h.='</nav>';
+        }
+        return $h.'</section></section>';
     }
 
     public static function detail(array $page,string $guid,array $clips,string $saved='',?string $error=null): string
     {
         $ready=!empty($page['preview_path'])&&!empty($page['highres_path']);
         $h='<section class="manual-clipping-page admin-section" data-manual-clipping>'
-          .'<div class="manual-titlebar"><div><a href="/admin/manual-clipping">← All pages</a>'
+          .'<div class="manual-titlebar"><div><a href="/admin/manual-clipping?edition='.View::e(Uuid::fromBinary($page['edition_guid'])).'">← Edition collection</a>'
           .'<span class="eyebrow">MANUAL EDITORIAL CLIPPING</span>'
           .'<h1>Page '.(int)$page['page_number'].'</h1><p>'
           .View::e($page['publication_name']).' · '.View::e($page['edition_date'])
