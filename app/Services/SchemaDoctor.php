@@ -11,7 +11,7 @@ use EpaperSaas\Core\{Build,Config,Database,RedisStore,RequestContext,Store};
  */
 final class SchemaDoctor
 {
-    private const CACHE_KEY = 'schema:doctor:v2:20181';
+    private const CACHE_KEY = 'schema:doctor:v2:20182';
 
     private const ALPHA2_TABLES = [
         'ep_navigation_scopes',
@@ -144,6 +144,7 @@ final class SchemaDoctor
     private const MOBILE15_TABLES = ['ep_local_mobile_accounts','ep_mobile_auth_challenges'];
     private const FLEX17_TABLES = ['ep_local_device_accounts'];
     private const TRUST18_TABLES = ['ep_reader_devices','ep_reader_sessions','ep_desktop_login_challenges'];
+    private const CLIP_MARK_TABLE = 'ep_clip_marks';
 
     public static function quickStatus(bool $refresh=false): array
     {
@@ -178,6 +179,7 @@ final class SchemaDoctor
             foreach(self::MOBILE15_TABLES as$table)if(!self::tableExists($table)){$pending[]='v2.0.1.5 mobile auth schema';break;}
             foreach(self::FLEX17_TABLES as$table)if(!self::tableExists($table)){$pending[]='v2.0.1.7 flexible reader identity schema';break;}
             foreach(self::TRUST18_TABLES as$table)if(!self::tableExists($table)){$pending[]='v2.0.1.8 trusted app / desktop login schema';break;}
+            if(!self::tableExists(self::CLIP_MARK_TABLE))$pending[]='v2.0.2.2 clip marking schema';
         } catch (\Throwable $e) {
             $status=['ok'=>false,'pending'=>['database preflight unavailable'],'error'=>$e->getMessage(),'checked_at'=>gmdate('c')];
             RedisStore::setJson(self::CACHE_KEY,$status,30);
@@ -244,6 +246,10 @@ final class SchemaDoctor
         foreach(self::MOBILE15_TABLES as$table){$ok=self::tableExists($table);$checks[]=self::check('migration:2015:table:'.$table,'v2.0.1.5 table '.$table,$ok,$ok?'Present':'Missing mobile authentication table',true);}
         foreach(self::FLEX17_TABLES as$table){$ok=self::tableExists($table);$checks[]=self::check('migration:2017:table:'.$table,'v2.0.1.7 table '.$table,$ok,$ok?'Present':'Missing flexible reader identity table',true);}
         foreach(self::TRUST18_TABLES as$table){$ok=self::tableExists($table);$checks[]=self::check('migration:2018:table:'.$table,'v2.0.1.8 table '.$table,$ok,$ok?'Present':'Missing trusted-app / desktop-login table',true);}
+
+        $clipMarksReady=self::tableExists(self::CLIP_MARK_TABLE);
+        $checks[]=self::check('migration:clip-marking:table','v2.0.2.2 clip marking table',
+            $clipMarksReady,$clipMarksReady?'Present':'Missing pre-marking table',true);
 
         $redisEnabled=RedisStore::enabled();
         if($redisEnabled){
@@ -365,6 +371,10 @@ final class SchemaDoctor
             // /admin/subscribers referenced ep_reader_devices before its migration had been applied.
             $trust18Missing=false;foreach(self::TRUST18_TABLES as$table)if(!self::tableExists($table)){$trust18Missing=true;break;}
             if($trust18Missing)self::applyMigrationFile($pdo,'upgrade-v2.0.1.8-trusted-app-desktop-login.sql',$actions,'Applied v2.0.1.8 trusted-app / desktop-login schema');
+
+            if(!self::tableExists(self::CLIP_MARK_TABLE))
+                self::applyMigrationFile($pdo,'upgrade-v2.0.2.2-clip-marking.sql',$actions,
+                    'Created clip marking geometry table');
 
             // Record the migration status in the existing application state table when available.
             if(self::tableExists('ep_system_state')){

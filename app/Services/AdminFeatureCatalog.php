@@ -24,7 +24,7 @@ final class AdminFeatureCatalog
         ];
         if($editor){
             $groups['AI & EDITORIAL']=[
-                ['Manual Clipping','/admin/manual-clipping','Mark newspaper articles manually','clip'],
+                ['Clip Marking','/admin/manual-clipping','Premark clickable reader clipping regions','scan-text'],
                 ['AI Clipping','/admin/ai-clipping','Feature readiness and setup','scan-text'],
             ];
             if($aiEnabled)$groups['AI & EDITORIAL'][]=['AI Editorial Review','/admin/ai-review','Review and correct clipping candidates','clip'];

@@ -10,6 +10,8 @@
   const inputs=Object.fromEntries(['x','y','w','h'].map(k=>[k,form.querySelector('[data-manual-coord="'+k+'"]')]));
   const feedback=form.querySelector('[data-manual-feedback]');
   const submit=form.querySelector('[data-manual-submit]');
+  const privateButton=form.querySelector('[data-manual-save-private]');
+  const markingReady=form.dataset.markingReady==='1';
   const canvas=form.querySelector('[data-manual-crop-preview]');
   const clamp=n=>Math.max(0,Math.min(1,n));
   const values=()=>Object.fromEntries(Object.entries(inputs).map(([k,el])=>[k,el.value.trim()===''?NaN:Number(el.value)]));
@@ -31,7 +33,8 @@
       }
     }else if(canvas)canvas.hidden=true;
     if(feedback){feedback.textContent=ok?'Area selected. Review the preview and save.':'Select an area at least 2% wide and tall, entirely inside the page.';feedback.classList.toggle('is-valid',ok);}
-    if(submit)submit.disabled=!ok;
+    if(submit)submit.disabled=!ok||!markingReady;
+    if(privateButton)privateButton.disabled=!ok;
   }
   const point=e=>{
     const r=stage.getBoundingClientRect();
@@ -62,7 +65,8 @@
   img.addEventListener('load',()=>repaint());
   form.addEventListener('submit',e=>{
     if(!valid(values())){e.preventDefault();repaint();return}
-    submit.disabled=true;submit.textContent='Saving…';
+    if(submit)submit.disabled=true;
+    if(privateButton)privateButton.disabled=true;
   });
   repaint();
 })();

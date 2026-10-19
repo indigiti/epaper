@@ -75,3 +75,21 @@
 @media(max-width:900px){.admin-shell .manual-collection-layout{grid-template-columns:1fr}.admin-shell .manual-edition-list{max-height:300px}.admin-shell .manual-edition-pages{min-height:230px}}
 @media(max-width:520px){.admin-shell .manual-browser-panel{padding:15px}.admin-shell .manual-edition-filters{padding:11px}.admin-shell .manual-filter-actions{width:100%}.admin-shell .manual-filter-actions .btn{flex:1}.admin-shell .manual-edition-pages{padding:14px}.admin-shell .manual-page-picker{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(prefers-reduced-motion:reduce){.admin-shell .manual-edition-card{transition:none}}
+
+/* Clip Marking — outlines are regions; no image file is generated on save. */
+.admin-shell .manual-existing-mark{position:absolute;z-index:1;box-sizing:border-box;border:1.5px solid rgba(38,102,221,.6);background:rgba(41,105,239,.075);pointer-events:none}
+.admin-shell .manual-selection{z-index:3}
+.admin-shell .manual-mark-list{display:grid;gap:0}
+.admin-shell .manual-mark-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:11px 0;border-top:1px solid var(--console-border)}
+.admin-shell .manual-mark-row>div{display:grid;gap:4px;min-width:0}
+.admin-shell .manual-mark-row strong{font-size:13px;line-height:1.4;overflow-wrap:anywhere}
+.admin-shell .manual-mark-row small{font-size:11px;color:var(--console-muted)}
+.admin-shell .manual-mark-row form{margin:0}
+.admin-shell .manual-mark-row .btn{min-height:35px}
+.admin-shell .manual-legacy-clip{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:11px 0;border-top:1px solid var(--console-border);flex-wrap:wrap}
+.admin-shell .manual-legacy-clip>a{display:flex;flex:1 1 160px;align-items:center;justify-content:space-between;gap:10px;text-decoration:none}
+.admin-shell .manual-legacy-clip>a span{display:grid;gap:4px}
+.admin-shell .manual-legacy-clip>a strong{font-size:13px}
+.admin-shell .manual-legacy-clip>a small{font-size:11px;color:var(--console-muted)}
+.admin-shell .manual-legacy-clip form{margin:0}
+.admin-shell .manual-legacy-clip .btn{min-height:35px}

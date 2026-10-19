@@ -29,13 +29,13 @@ $js=$read('public_html/assets/manual-clipping.js');
 foreach(["Auth::requireAdmin();if(\$method==='POST')Http::verifyCsrf();",
  'AdminManualClippingController::dispatch'] as $tok)if(!str_contains($app,$tok))throw new RuntimeException('Admin/CSRF route missing');
 foreach(['OWNER','PUBLISHER_ADMIN','EDITOR','Http::privateNoStore()','RateLimiter::allow',
- 'TenantData::tenantBin()','ClipService::createEditorial','LIMIT 21','LIMIT 500','LIMIT 24','realpath('] as $tok)
+ 'TenantData::tenantBin()','ClipService::createEditorial','ManualClipMarking::add','LIMIT 21','LIMIT 500','LIMIT 24','realpath('] as $tok)
  if(!str_contains($controller,$tok))throw new RuntimeException('Missing security contract '.$tok);
 foreach(['clip.manual_created',"'PRIVATE',true",'expiresAt=$editorial?null',
  'if(!$editorial)PlatformClient::instance()->usage'] as $tok)
  if(!str_contains($clip,$tok))throw new RuntimeException('Manual storage contract missing '.$tok);
 if(!str_contains($catalog,"'/admin/manual-clipping'"))throw new RuntimeException('Navigation missing');
-foreach(['data-manual-stage','data-manual-crop-preview','data-manual-form','Save private clip'] as $tok)
+foreach(['data-manual-stage','data-manual-crop-preview','data-manual-form','Create private clip now','Save article outline'] as $tok)
  if(!str_contains($ui,$tok))throw new RuntimeException('Editor UI missing '.$tok);
 foreach(['pointerdown','pointermove','pointerup','getContext','data-manual-coord'] as $tok)
  if(!str_contains($js,$tok))throw new RuntimeException('Client selection missing '.$tok);
@@ -68,4 +68,38 @@ if(substr_count($rendered,'class="manual-edition-card active"')!==1 ||
    !str_contains($rendered,'/admin/manual-clipping/'.$pageGuid) ||
    !str_contains($rendered,'Page 1'))
  throw new RuntimeException('Edition page picker rendering contract failed');
-echo "Manual clipping and edition-first collection contracts: OK\n";
+$mark=$read('app/Services/ManualClipMarking.php');
+$migration=$read('database/upgrade-v2.0.2.2-clip-marking.sql');
+$schemaDoc=$read('app/Services/SchemaDoctor.php');
+$reader=$read('public_html/assets/reader.js');
+$flip=$read('public_html/assets/reader-flip.js');
+$overlay=$read('public_html/assets/reader-editorial-clips.js');
+$readerCss=$read('public_html/assets/reader-editorial-clips.css');
+foreach(['ep_clip_marks','ix_mark_page','ix_mark_actor','status VARCHAR(16)'] as $tok)
+ if(!str_contains($migration,$tok))throw new RuntimeException('Clipping migration missing '.$tok);
+foreach(['upgrade-v2.0.2.2-clip-marking.sql','CLIP_MARK_TABLE'] as $tok)
+ if(!str_contains($schemaDoc,$tok))throw new RuntimeException('Clip marking schema repair missing '.$tok);
+foreach(['e.status="PUBLISHED"','m.status="ACTIVE"','m.tenant_guid=?','m.page_guid=?',
+ 'LIMIT 80','no_crop_generated','ManualClipGeometry::parse','hash_equals','Audit::log'] as $tok)
+ if(!str_contains($mark,$tok))throw new RuntimeException('Marking security contract missing '.$tok);
+foreach(['Use as reader outline','manual-existing-mark','manual-mark-row',
+ 'Save article outline','manual-legacy-clip'] as $tok)
+ if(!str_contains($ui,$tok))throw new RuntimeException('Clip marking editor missing '.$tok);
+foreach(['ManualClipMarking::add','ManualClipMarking::change','ManualClipMarking::importPrivateClip',
+ 'limitActions','self::allow()','Http::redirect'] as $tok)
+ if(!str_contains($controller,$tok))throw new RuntimeException('Controller mark workflow missing '.$tok);
+foreach(['clip-marks','ManualClipMarking::respond'] as $tok)
+ if(!str_contains($app,$tok))throw new RuntimeException('Public mark lookup missing '.$tok);
+foreach(['createFromEditorialMarker','openClipModal({bounds:b','pageGuid!==sourcePageGuid',
+ 'window.EpdiReaderViews?.setMode'] as $tok)
+ if(!str_contains($reader,$tok))throw new RuntimeException('On-demand clipping bridge missing '.$tok);
+foreach(['MutationObserver','reader-flip-page','reader-continuous-page',
+ 'clip-marks','reader-editorial-marker','createFromEditorialMarker'] as $tok)
+ if(!str_contains($overlay,$tok))throw new RuntimeException('Reader outline handling missing '.$tok);
+if(!str_contains($flip,'delete el.dataset.editorialBoundGuid') ||
+   !str_contains($readerCss,'.reader-editorial-marker'))
+ throw new RuntimeException('Reader outline lifecycle missing');
+foreach(["Build::asset('/assets/reader-editorial-clips.css')",
+ "Build::asset('/assets/reader-editorial-clips.js')"] as $tok)
+ if(!str_contains($view,$tok))throw new RuntimeException('Reader assets missing '.$tok);
+echo "Clip marking and on-demand reader clipping contracts: OK\n";

@@ -61,6 +61,7 @@ final class App
         if(preg_match('#^/api/v1/reader/([^/]+)/page/(\d+)/state$#',$path,$m))$this->readerState($m[1],(int)$m[2]);
         if(preg_match('#^/api/v1/pages/([0-9a-f-]{36})/tiles$#i',$path,$m))$this->tileManifest($m[1]);
         if(preg_match('#^/api/v1/pages/([0-9a-f-]{36})/tiles/(\d+)/(\d+)/(\d+)\.webp$#i',$path,$m))$this->tile($m[1],(int)$m[2],(int)$m[3],(int)$m[4]);
+        if(preg_match('#^/api/v1/pages/([0-9a-f-]{36})/clip-marks$#i',$path,$m)&&$method==='GET')\EpaperSaas\Services\ManualClipMarking::respond($m[1]);
         if(preg_match('#^/api/v1/pages/([0-9a-f-]{36})/article-at$#i',$path,$m))$this->articleAt($m[1]);
         if($path==='/api/v1/search')$this->apiSearch();
         if($path==='/robots.txt')$this->robotsTxt();
@@ -761,7 +762,7 @@ final class App
             .'<p>Manage editions, editorial decisions and publishing priorities in one clear workspace.</p>'
             .'<div class="studio-hero-actions">'
             .($canCreate?'<a class="studio-button studio-button-primary" href="/admin/editions?create=1">'.View::icon('plus').'Create edition</a>':'')
-            .($canCreate?'<a class="studio-button studio-button-soft" href="/admin/manual-clipping">'.View::icon('clip').'Manual clipping</a>':'')
+            .($canCreate?'<a class="studio-button studio-button-soft" href="/admin/manual-clipping">'.View::icon('scan-text').'Clip Marking</a>':'')
             .($canCreate&&$aiEnabled?'<a class="studio-button studio-button-soft" href="/admin/ai-review">'.View::icon('scan-text').'Review AI clippings</a>':'')
             .'<a class="studio-button studio-button-soft" href="/" target="_blank" rel="noopener">'.View::icon('external').'View website</a>'
             .'</div></div><div class="studio-hero-aside" aria-label="Workspace focus">'

@@ -73,7 +73,12 @@ jobs:
           php -l app/Views/ManualClippingView.php
           php -l app/Services/ManualClipGeometry.php
           php -l app/Services/ClipService.php
+          php -l app/Services/ManualClipMarking.php
+          php -l app/Services/SchemaDoctor.php
           php tests/manual-clipping-contract.php
+          node --check public_html/assets/reader-editorial-clips.js
+          node --check public_html/assets/reader.js
+          node --check public_html/assets/manual-clipping.js
           node --check public_html/assets/manual-clipping.js
           php tests/editorial-action-center.php
           php -l app/Services/EditorialActionCenter.php

@@ -3,7 +3,7 @@ declare(strict_types=1);
 namespace EpaperSaas\Controllers;
 
 use EpaperSaas\Core\{Auth,Http,RateLimiter,RequestContext,Store,Uuid,View};
-use EpaperSaas\Services\{Audit,ClipService,ManualClipGeometry,TenantData};
+use EpaperSaas\Services\{Audit,ClipService,ManualClipGeometry,ManualClipMarking,TenantData};
 use EpaperSaas\Views\ManualClippingView;
 
 /** Authenticated publisher-only page selection, preview, and clip creation. */
@@ -22,6 +22,10 @@ final class AdminManualClippingController
     {
         self::allow(); // App::runAdmin also authenticates every route and verifies CSRF on POST.
         if($path==='/admin/manual-clipping'&&$method==='GET')self::index();
+        if(preg_match('#^/admin/manual-clipping/([0-9a-f-]{36})/marks/([0-9a-f-]{36})/(activate|hide)$#i',$path,$m)&&$method==='POST')
+            self::toggleMark(strtolower($m[1]),strtolower($m[2]),$m[3]);
+        if(preg_match('#^/admin/manual-clipping/([0-9a-f-]{36})/import/([0-9a-z]{18})$#i',$path,$m)&&$method==='POST')
+            self::importClip(strtolower($m[1]),strtolower($m[2]));
         if(preg_match('#^/admin/manual-clipping/([0-9a-f-]{36})/preview$#i',$path,$m)&&$method==='GET')
             self::preview(strtolower($m[1]));
         if(preg_match('#^/admin/manual-clipping/([0-9a-f-]{36})$#i',$path,$m)){
@@ -131,7 +135,7 @@ final class AdminManualClippingController
                 [$tb,$chosen['edition_guid']]
             );
         }
-        View::layout('Manual clipping',ManualClippingView::index(
+        View::layout('Clip marking',ManualClippingView::index(
             $editions,$pages,$publications,$chosen,[
                 'publication'=>$publication,'date'=>$date,'page'=>$currentPage,
                 'has_next'=>$hasNext,
@@ -146,17 +150,54 @@ final class AdminManualClippingController
         $page=self::page($guid);
         if(!$page){http_response_code(404);exit('Page not found');}
         $actor=(string)(Auth::user()['user_guid']??'');
-        $clips=Uuid::isValid($actor)?Store::all(
-            'SELECT clip_slug,title,created_at FROM ep_clips
-             WHERE tenant_guid=? AND page_guid=? AND platform_user_guid=? AND expires_at IS NULL
-             ORDER BY created_at DESC LIMIT 24',
-            [TenantData::tenantBin(),Uuid::toBinary($guid),Uuid::toBinary($actor)]
-        ):[];
+        $role=strtoupper((string)(Auth::currentMembership()['role_key']??''));
+        $clips=[];
+        if(Uuid::isValid($actor)){
+            $clips=Store::all('SELECT clip_slug,title,created_at FROM ep_clips
+                WHERE tenant_guid=? AND page_guid=? AND platform_user_guid=? AND expires_at IS NULL
+                ORDER BY created_at DESC LIMIT 24',
+                [TenantData::tenantBin(),Uuid::toBinary($guid),Uuid::toBinary($actor)]);
+        }
+        $marks=[];$schemaReady=true;
+        try{$marks=ManualClipMarking::forAdmin($guid);}
+        catch(\Throwable){$schemaReady=false;}
         $created=(string)($_GET['created']??'');
         $notice=preg_match('/^[a-f0-9]{18}$/D',$created)?'/c/'.$created:'';
-        View::layout('Manual clipping · Page '.(int)$page['page_number'],
-            ManualClippingView::detail($page,$guid,$clips,$notice,$error),
+        View::layout('Clip marking · Page '.(int)$page['page_number'],
+            ManualClippingView::detail($page,$guid,$clips,$notice,$error,$marks,$schemaReady,
+                $actor,$role),
             ['brand'=>(string)RequestContext::get('tenant_name','ePaper SaaS'),'admin'=>true]);
+    }
+
+    private static function toggleMark(string $pageGuid,string $markGuid,string $action): never
+    {
+        self::limitActions();
+        try{
+            ManualClipMarking::change($pageGuid,$markGuid,$action);
+            Http::redirect('/admin/manual-clipping/'.$pageGuid.'?mark='.($action==='hide'?'hidden':'activated'));
+        }catch(\Throwable $e){
+            http_response_code(422);self::detail($pageGuid,'Mark status could not be changed: '.$e->getMessage());
+        }
+    }
+
+    private static function importClip(string $pageGuid,string $slug): never
+    {
+        self::limitActions();
+        try{
+            ManualClipMarking::importPrivateClip($pageGuid,$slug);
+            Http::redirect('/admin/manual-clipping/'.$pageGuid.'?mark=imported');
+        }catch(\Throwable $e){
+            http_response_code(422);self::detail($pageGuid,'Clipping could not be marked: '.$e->getMessage());
+        }
+    }
+
+    private static function limitActions(): void
+    {
+        $actor=(string)(Auth::user()['user_guid']??'');
+        if(!Uuid::isValid($actor)){http_response_code(403);exit('Editor identity required');}
+        if(!RateLimiter::allow('clip-mark:'.RequestContext::tenantGuid().':'.$actor,30,60)){
+            http_response_code(429);exit('Too many clipping actions. Please retry shortly.');
+        }
     }
 
     private static function preview(string $guid): never
@@ -194,9 +235,13 @@ final class AdminManualClippingController
             $box=ManualClipGeometry::parse($_POST);
             $title=trim((string)($_POST['title']??''));
             if(mb_strlen($title)>180)throw new \InvalidArgumentException('Title is too long');
-            $clip=ClipService::createEditorial(
-                $guid,$box['x'],$box['y'],$box['w'],$box['h'],$title);
-            Http::redirect('/admin/manual-clipping/'.$guid.'?created='.rawurlencode($clip['slug']));
+            if((string)($_POST['action']??'mark')==='private'){
+                $clip=ClipService::createEditorial(
+                    $guid,$box['x'],$box['y'],$box['w'],$box['h'],$title);
+                Http::redirect('/admin/manual-clipping/'.$guid.'?created='.rawurlencode($clip['slug']));
+            }
+            $markGuid=ManualClipMarking::add($guid,$box,$title);
+            Http::redirect('/admin/manual-clipping/'.$guid.'?mark=saved');
         }catch(\InvalidArgumentException $e){
             http_response_code(422);self::detail($guid,$e->getMessage());
         }catch(\Throwable $e){
