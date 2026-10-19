@@ -38,8 +38,8 @@ final class ManualClippingView
                 .View::e($pub['name']).'</option>';
         }
         $h.='</select></label><label>Edition date<input type="date" name="date" value="'.View::e($date).'"></label>'
-          .'<div class="manual-filter-actions"><button class="btn primary" type="submit">Apply filters</button>'
-          .'<a class="btn ghost" href="/admin/manual-clipping">Clear</a></div></form>'
+          .'<div class="manual-filter-actions"><button class="btn primary manual-icon-action" type="submit" title="Apply edition filters" aria-label="Apply edition filters">'.View::icon('search').'</button>'
+          .'<a class="btn ghost manual-icon-action" href="/admin/manual-clipping" title="Clear edition filters" aria-label="Clear edition filters">'.View::icon('reset').'</a></div></form>'
           .'<div class="manual-collection-layout"><div class="manual-edition-list" aria-label="Edition collections">';
         foreach($editions as $edition){
             $id=(string)Uuid::fromBinary($edition['edition_guid']);
@@ -126,8 +126,8 @@ final class ManualClippingView
             $h.='<div class="alert success" role="status">Article marking '.View::e($marked).'.</div>';
         $h.='<div class="manual-editor-grid"><section class="panel manual-canvas-panel">'
           .'<div class="section-head"><h2>Map article outlines</h2></div>'
-          .'<div class="manual-map-toolbar"><button type="button" class="btn ghost" data-manual-start>'
-          .View::icon('scan').' New area</button>'
+          .'<div class="manual-map-toolbar"><button type="button" class="btn ghost manual-icon-action" data-manual-start title="Create a new article outline" aria-label="Create a new article outline">'
+          .View::icon('plus').'</button>'
           .'<span>Drag to draw; then move the box or resize using its corners. Select a blue outline to edit.</span>'
           .'</div>';
         if($ready){
@@ -140,7 +140,8 @@ final class ManualClippingView
               .'<span class="manual-resize-handle ne" data-manual-handle="ne" aria-hidden="true"></span>'
               .'<span class="manual-resize-handle sw" data-manual-handle="sw" aria-hidden="true"></span>'
               .'<span class="manual-resize-handle se" data-manual-handle="se" aria-hidden="true"></span>'
-              .'<button type="button" data-manual-quick-save class="manual-quick-save" disabled>Save outline</button>'
+              .'<button type="button" data-manual-quick-save class="manual-quick-save" title="Save article outline" aria-label="Save article outline" disabled>'.View::icon('save').'</button>'
+              .'<button type="button" data-manual-discard class="manual-selection-dismiss" title="Discard selection (Esc)" aria-label="Discard selection">'.View::icon('close').'</button>'
               .'</div>';
             foreach($marks as $mark){
                 if(strtoupper((string)$mark['status'])!=='ACTIVE')continue;
@@ -162,6 +163,23 @@ final class ManualClippingView
                     .'top:'.max(0,min(100,(float)$mark['y']*100)).'%;'
                     .'width:'.max(0,min(100,(float)$mark['width']*100)).'%;'
                     .'height:'.max(0,min(100,(float)$mark['height']*100)).'%;"></'.$tag.'>';
+                if($editable){
+                    // Sibling form, not a nested button: keyboard and pointer removal work independently of edit.
+                    $closeX=max(0,min(100,((float)$mark['x']+(float)$mark['width'])*100));
+                    $closeY=max(0,min(100,(float)$mark['y']*100));
+                    $h.='<form class="manual-overlay-remove" data-manual-remove-overlay method="post"'
+                       .' action="/admin/manual-clipping/'.View::e($guid).'/marks/'.View::e($id).'/remove"'
+                       .' data-confirm="Remove this marked article? The Reader outline will disappear. Existing clips stay saved.">'
+                       .'<input type="hidden" name="_csrf" value="'.View::e(Http::csrf()).'">'
+                       .'<button type="submit" class="manual-overlay-remove-btn"'
+                       .' title="Remove marked article: '.View::e($mark['title']).'"'
+                       .' aria-label="Remove marked article: '.View::e($mark['title']).'">'
+                       .View::icon('close').'</button></form>';
+                    // Position is measured in newspaper-page coordinates; clamp near page edges.
+                    $h=str_replace('class="manual-overlay-remove" data-manual-remove-overlay',
+                        'class="manual-overlay-remove" data-manual-remove-overlay'
+                        .' style="left:'.$closeX.'%;top:'.$closeY.'%;"',$h);
+                }
             }
             $h.='</div>';
         }else $h.='<div class="manual-empty">Page preview unavailable.</div>';
@@ -183,9 +201,9 @@ final class ManualClippingView
         $h.='</div><p class="manual-validation" data-manual-feedback aria-live="polite">'
           .'Draw a clipping rectangle to begin.</p>'
           .'<canvas data-manual-crop-preview hidden aria-label="Selected clipping preview"></canvas>'
-          .'<div class="manual-form-actions"><button class="btn ghost" type="button" data-manual-reset>Clear</button>'
-          .'<button class="btn primary" type="submit" name="action" value="mark" data-manual-submit disabled>Save article outline</button>'
-          .'<button class="btn ghost" type="submit" name="action" value="private" data-manual-save-private disabled>Create private clip now</button></div>'
+          .'<div class="manual-form-actions"><button class="btn ghost manual-icon-action" type="button" data-manual-reset title="Clear current selection" aria-label="Clear current selection">'.View::icon('reset').'</button>'
+          .'<button class="btn primary manual-icon-action" type="submit" name="action" value="mark" data-manual-submit title="Save article outline (headline optional)" aria-label="Save article outline" disabled>'.View::icon('save').'</button>'
+          .'<button class="btn ghost manual-icon-action" type="submit" name="action" value="private" data-manual-save-private title="Create private clipping now" aria-label="Create private clipping now" disabled>'.View::icon('clip').'</button></div>'
           .'<p class="manual-map-shortcut">Keyboard: Ctrl/⌘ + S to save, Escape to clear. Use arrow keys to nudge the selection when the newspaper is focused.</p>'
           .'</form></section><section class="panel"><h2>Marked articles</h2>'
           .'<p class="muted">Only active outlines appear publicly on published editions. Hide to disable temporarily, or Remove to delete from this marking list.</p>'
@@ -200,22 +218,26 @@ final class ManualClippingView
               .'<small>'.($active?'Active outline':'Hidden outline').'</small></div>';
             if($full||$mine){
                 $h.='<div class="manual-mark-actions">'
-                  .'<button class="btn ghost" type="button" data-manual-open-mark="'.View::e($id).'"'
+                  .'<button class="btn ghost manual-icon-action" type="button" title="Edit marked article" aria-label="Edit marked article: '.View::e($mark['title']).'" data-manual-open-mark="'.View::e($id).'"'
                   .' data-mark-id="'.View::e($id).'" data-mark-title="'.View::e($mark['title']).'"'
                   .' data-mark-x="'.(float)$mark['x'].'" data-mark-y="'.(float)$mark['y'].'"'
                   .' data-mark-w="'.(float)$mark['width'].'" data-mark-h="'.(float)$mark['height'].'">'
-                  .'Edit</button>';
+                  .View::icon('edit').'</button>';
                 $action=$active?'hide':'activate';
                 $h.='<form method="post" action="/admin/manual-clipping/'.View::e($guid).'/marks/'
                  .View::e($id).'/'.$action.'">'
                  .'<input type="hidden" name="_csrf" value="'.View::e(Http::csrf()).'">'
-                 .'<button class="btn ghost" type="submit">'.($active?'Hide':'Show').'</button></form>';
+                 .'<button class="btn ghost manual-icon-action" type="submit"'
+                 .' title="'.($active?'Hide outline from Reader':'Show outline in Reader').'"'
+                 .' aria-label="'.($active?'Hide':'Show').' marked article: '.View::e($mark['title']).'">'
+                 .View::icon($active?'power':'eye').'</button></form>';
                 $h.='<form method="post" action="/admin/manual-clipping/'.View::e($guid).'/marks/'
                  .View::e($id).'/remove"'
                  .' data-confirm="Remove this marked article? Its outline will disappear from the Reader. Use Hide instead if you might need it again.">'
                  .'<input type="hidden" name="_csrf" value="'.View::e(Http::csrf()).'">'
-                 .'<button class="btn ghost manual-mark-remove" type="submit" aria-label="Remove marked article: '
-                 .View::e($mark['title']).'">Remove</button></form></div>';
+                 .'<button class="btn ghost manual-icon-action manual-mark-remove" type="submit"'
+                 .' title="Remove marked article" aria-label="Remove marked article: '
+                 .View::e($mark['title']).'">'.View::icon('trash').'</button></form></div>';
             }
             $h.='</article>';
         }
@@ -232,7 +254,7 @@ final class ManualClippingView
                 $h.='<form method="post" action="/admin/manual-clipping/'.View::e($guid)
                   .'/import/'.View::e($slug).'">'
                   .'<input type="hidden" name="_csrf" value="'.View::e(Http::csrf()).'">'
-                  .'<button type="submit" class="btn ghost">Use as reader outline</button></form>';
+                  .'<button type="submit" class="btn ghost manual-icon-action" title="Convert private clip to reader outline" aria-label="Convert private clip to reader outline">'.View::icon('scan-text').'</button></form>';
             }
             $h.='</div>';
         }
