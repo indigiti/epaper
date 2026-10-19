@@ -11,7 +11,7 @@ use EpaperSaas\Core\{Build,Config,Database,RedisStore,RequestContext,Store};
  */
 final class SchemaDoctor
 {
-    private const CACHE_KEY = 'schema:doctor:v2:20182';
+    private const CACHE_KEY = 'schema:doctor:v2:2022-clip-repair';
 
     private const ALPHA2_TABLES = [
         'ep_navigation_scopes',
@@ -264,15 +264,68 @@ final class SchemaDoctor
         $navWritable=is_dir($navDir)?is_writable($navDir):is_writable($storage.'/cache')||is_writable($storage);
         $checks[]=self::check('runtime:nav-cache','Compiled navigation cache path',$navWritable,$navWritable?'Writable/creatable':'Cannot create navigation cache files',false);
 
-        $lockFile=$storage.'/installed.lock';$lockVersion='unknown';
-        if(is_file($lockFile)){$d=json_decode((string)@file_get_contents($lockFile),true);if(is_array($d))$lockVersion=(string)($d['version']??'unknown');}
-        $checks[]=self::check('runtime:version-lock','Installed version marker',$lockVersion===Build::version(),$lockVersion===Build::version()?'Aligned at '.Build::version():'Marker '.$lockVersion.' · code '.Build::version(),true);
+        // The optional installer lock is deployment metadata, not a database migration.
+        // Git/Cloudways releases may not have installed.lock; never report it as
+        // a FIXABLE database issue or block a healthy installation because of it.
 
         $pending=[];foreach($checks as $c)if(!$c['ok']&&$c['repairable'])$pending[]=$c['id'];
         $baseOk=true;foreach($checks as$c)if(str_starts_with($c['id'],'base:')&&!$c['ok']){$baseOk=false;break;}
         $report=['ok'=>$baseOk&&$pending===[],'base_ok'=>$baseOk,'version'=>Build::version(),'database'=>$dbName,'server'=>$server,'checks'=>$checks,'pending'=>$pending,'checked_at'=>gmdate('c')];
         RedisStore::setJson(self::CACHE_KEY,['ok'=>$report['ok'],'pending'=>$pending,'checked_at'=>$report['checked_at']],60);
         return $report;
+    }
+
+    /**
+     * One-purpose, additive Clip Marking repair for an authenticated infrastructure
+     * administrator. Uses the same advisory lock as the cumulative schema repair,
+     * so two Upgrade Center submissions cannot race to create the table.
+     * Existing marks and clipping images are never deleted or rewritten.
+     */
+    public static function repairClipMarking(?string $actorGuid=null): array
+    {
+        $before=self::report(true);
+        if(empty($before['base_ok'])){
+            throw new \RuntimeException(
+                'Base schema is incomplete. Clip Marking repair is blocked until the original database is restored.'
+            );
+        }
+        $pdo=Database::pdo();
+        $lockName='epdi:v2:schema-upgrade';
+        if((int)Store::value('SELECT GET_LOCK(?,10)',[$lockName])!==1)
+            throw new \RuntimeException('Another schema upgrade is running. Recheck its result before retrying.');
+        $actions=[];
+        try{
+            if(!self::tableExists(self::CLIP_MARK_TABLE)){
+                self::applyMigrationFile(
+                    $pdo,'upgrade-v2.0.2.2-clip-marking.sql',$actions,
+                    'Created Clip Marking article outline table'
+                );
+            }
+            if(!self::tableExists(self::CLIP_MARK_TABLE))
+                throw new \RuntimeException('Clip Marking table still missing after repair');
+            if(!$actions)$actions[]='Clip Marking table already present; no database changes needed';
+
+            if(self::tableExists('ep_system_state')){
+                $payload=json_encode([
+                    'version'=>Build::version(),'actor'=>$actorGuid,
+                    'actions'=>$actions,'at'=>gmdate('c'),'target'=>'clip-marking',
+                ],JSON_UNESCAPED_SLASHES|JSON_UNESCAPED_UNICODE);
+                Store::exec(
+                    'INSERT INTO ep_system_state(state_key,state_value,updated_at)
+                     VALUES("schema.v2.last_repair",?,NOW(6))
+                     ON DUPLICATE KEY UPDATE state_value=VALUES(state_value),updated_at=NOW(6)',
+                    [$payload]
+                );
+            }
+            RedisStore::del(self::CACHE_KEY);
+            $after=self::report(true);
+            return [
+                'ok'=>(bool)($after['ok']??false),
+                'actions'=>$actions,'before'=>$before,'after'=>$after,
+            ];
+        }finally{
+            try{Store::value('SELECT RELEASE_LOCK(?)',[$lockName]);}catch(\Throwable){}
+        }
     }
 
     public static function repair(?string $actorGuid=null): array

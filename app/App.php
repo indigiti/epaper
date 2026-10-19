@@ -1489,28 +1489,129 @@ $h.='<section class="panel processing-settings-card processing-recovery-card"><d
         Auth::requireInfrastructureAdmin();
         $notice='';$result=null;
         if($method==='POST'){
-            if((string)($_POST['confirm']??'')!=='1')$this->adminError('Confirm the database repair before applying schema changes.');
+            if((string)($_POST['confirm']??'')!=='1')
+                $this->adminError('Confirm the database repair and backup before applying schema changes.');
+            $target=(string)($_POST['repair_target']??'all');
+            if(!in_array($target,['all','clip-marking'],true))
+                $this->adminError('Unknown database repair target.');
             try{
-                $u=Auth::user();$result=SchemaDoctor::repair($u['user_guid']??null);
-                // Schema repair must not be converted into a 500 by a secondary audit failure.
-                try{Audit::log('system.schema.repair','system',null,'SUCCESS',['resource_ref'=>'schema-v2','version'=>$this->version(),'actions'=>$result['actions']??[]]);}catch(\Throwable){}
-                $notice='<div class="alert success"><strong>Database repair completed.</strong><p>'.($result['ok']?'All v2 schema checks now pass.':'Some checks still need review.').'</p></div>';
+                $u=Auth::user();
+                $actor=$u['user_guid']??null;
+                $result=$target==='clip-marking'
+                    ?SchemaDoctor::repairClipMarking($actor)
+                    :SchemaDoctor::repair($actor);
+                try{
+                    Audit::log('system.schema.repair','system',null,'SUCCESS',[
+                        'resource_ref'=>'schema-v2','target'=>$target,
+                        'version'=>$this->version(),'actions'=>$result['actions']??[],
+                    ]);
+                }catch(\Throwable){}
+                $notice='<div class="alert success" role="status"><strong>Database repair completed.</strong>'
+                    .'<p>'.(!empty($result['ok'])
+                        ?'All required database checks now pass.'
+                        :'The selected repair completed; review any other outstanding checks below.')
+                    .'</p></div>';
             }catch(\Throwable $e){
-                try{Audit::log('system.schema.repair','system',null,'FAILED',['resource_ref'=>'schema-v2','version'=>$this->version(),'message'=>$e->getMessage()]);}catch(\Throwable){}
-                $notice='<div class="alert"><strong>Repair stopped.</strong><p>'.$this->e($e->getMessage()).'</p></div>';
+                try{
+                    Audit::log('system.schema.repair','system',null,'FAILED',[
+                        'resource_ref'=>'schema-v2','target'=>$target,
+                        'version'=>$this->version(),'message'=>$e->getMessage(),
+                    ]);
+                }catch(\Throwable){}
+                $notice='<div class="alert danger" role="alert"><strong>Repair stopped.</strong>'
+                    .'<p>'.$this->e($e->getMessage()).'</p></div>';
             }
         }
-        $report=SchemaDoctor::report(true);$checks=$report['checks']??[];$pending=(array)($report['pending']??[]);$lastRepair=SchemaDoctor::lastRepair();
-        $h='<section class="admin-head"><div><span class="eyebrow">SYSTEM MAINTENANCE</span><h1>Upgrade Center</h1><p class="muted">Checks the installed database against the current EP-DI build and applies only known, missing v2 migration steps.</p></div><span class="pill">'.$this->e($this->version()).'</span></section>'.$notice;
-        if($lastRepair){$actions=is_array($lastRepair['actions']??null)?$lastRepair['actions']:[];$h.='<div class="alert success"><strong>Previous schema repair recorded.</strong><p>'.($this->e((string)($lastRepair['version']??'v2'))).' · '.$this->e((string)($lastRepair['at']??'time unavailable')).' · '.count($actions).' action'.(count($actions)===1?'':'s').'. This confirms the migration transaction reached the repair-record step even if a previous browser request ended with an audit/UI error.</p></div>'; }
-        $h.='<section class="panel"><div class="section-head"><div><h2>Schema status</h2><p class="muted">Database '.$this->e((string)($report['database']??'unknown')).' · checked '.$this->e((string)($report['checked_at']??'')).'</p></div><span class="status '.($report['ok']?'active':'inactive').'">'.($report['ok']?'Ready':'Repair required').'</span></div>';
-        $h.='<div class="record-stack">';foreach($checks as$c){$ok=!empty($c['ok']);$h.='<div class="record-row"><div><strong>'.($ok?'✓ ':'× ').$this->e((string)$c['label']).'</strong><p>'.$this->e((string)$c['detail']).'</p></div><span class="status '.($ok?'active':'inactive').'">'.($ok?'PASS':(!empty($c['repairable'])?'FIXABLE':'REVIEW')).'</span></div>';}$h.='</div></section>';
-        if($result&&($result['actions']??[])){$h.='<section class="panel"><h2>Actions performed</h2><div class="record-stack">';foreach($result['actions'] as$a)$h.='<div class="record-row"><div><strong>✓ '.$this->e((string)$a).'</strong></div></div>';$h.='</div></section>';}
-        if($pending){
-            $h.='<section class="panel upgrade-action"><span class="eyebrow">SAFE REPAIR</span><h2>Apply missing v2 database changes</h2><p>This action is idempotent for the known alpha.1/alpha.2 migrations. It will not recreate an unknown base database. Take a database backup or Cloudways on-demand backup before applying changes on production.</p><form method="post" action="/admin/system/upgrade">'.$this->csrf().'<label class="check"><input type="checkbox" name="confirm" value="1" required> I have a current backup and authorize repair of the missing EP-DI v2 schema changes.</label><div class="form-actions"><button class="btn primary" type="submit">Run checks & repair missing changes</button><a class="btn ghost" href="/admin/system/upgrade">Re-run checks only</a></div></form></section>';
-        }else{
-            $h.='<section class="panel"><div class="empty-inline"><strong>EP-DI database is aligned.</strong><p>No known v2 schema migration is pending.</p><div class="form-actions"><a class="btn primary" href="/admin">Return to dashboard</a><a class="btn ghost" href="/admin/navigation">Open Reader Navigation</a></div></div></section>';
+        $report=SchemaDoctor::report(true);
+        $checks=(array)($report['checks']??[]);
+        $pending=(array)($report['pending']??[]);
+        $lastRepair=SchemaDoctor::lastRepair();
+        $failed=[];$passed=[];
+        foreach($checks as $c){
+            if(!empty($c['ok']))$passed[]=$c;else $failed[]=$c;
         }
+        $baseOk=!empty($report['base_ok']);
+        $ready=empty($failed)&&!empty($report['ok']);
+        $h='<section class="admin-head"><div><span class="eyebrow">SYSTEM MAINTENANCE</span>'
+            .'<h1>Upgrade Center</h1><p class="muted">Fix only missing database migrations.'
+            .' Completed checks are grouped below to keep this workspace easy to use.</p></div>'
+            .'<span class="pill">'.$this->e($this->version()).'</span></section>'.$notice;
+        if($lastRepair){
+            $actions=is_array($lastRepair['actions']??null)?$lastRepair['actions']:[];
+            $h.='<div class="alert success"><strong>Last database repair recorded.</strong><p>'
+                .$this->e((string)($lastRepair['version']??'v2')).' · '
+                .$this->e((string)($lastRepair['at']??'time unavailable'))
+                .' · '.count($actions).' action'.(count($actions)===1?'':'s').'.</p></div>';
+        }
+        $h.='<section class="panel upgrade-checks"><div class="section-head"><div>'
+            .'<h2>Database status</h2><p class="muted">Database '
+            .$this->e((string)($report['database']??'unknown'))
+            .' · checked '.$this->e((string)($report['checked_at']??'')).'</p></div>'
+            .'<span class="status '.($ready?'active':'inactive').'">'
+            .($ready?'Ready':($pending?'Action required':'Review required')).'</span></div>';
+        if($failed){
+            $h.='<h3>Needs attention</h3><div class="record-stack">';
+            foreach($failed as $c){
+                $repairable=!empty($c['repairable']);
+                $clipIssue=($c['id']??'')==='migration:clip-marking:table';
+                $h.='<div class="record-row upgrade-issue"><div><strong>× '
+                    .$this->e((string)$c['label']).'</strong><p>'.$this->e((string)$c['detail']).'</p>';
+                if($clipIssue&&$repairable&&$baseOk){
+                    $h.='<form method="post" action="/admin/system/upgrade" class="upgrade-target-repair">'
+                        .$this->csrf()
+                        .'<input type="hidden" name="repair_target" value="clip-marking">'
+                        .'<label class="check"><input type="checkbox" name="confirm" value="1" required>'
+                        .' I have a current Cloudways or database backup and authorize creation of the missing Clip Marking table.</label>'
+                        .'<button class="btn primary" type="submit">Repair Clip Marking table</button>'
+                        .'</form>';
+                }elseif($clipIssue&&!$baseOk){
+                    $h.='<p class="muted">Repair unavailable until the base database is healthy.</p>';
+                }
+                $h.='</div><span class="status inactive">'
+                    .($repairable?'FIXABLE':'REVIEW').'</span></div>';
+            }
+            $h.='</div>';
+        }
+        if($passed){
+            $h.='<details class="upgrade-passed-details"><summary>'
+                .count($passed).' passed checks — show details</summary><div class="record-stack">';
+            foreach($passed as $c){
+                $h.='<div class="record-row"><div><strong>✓ '.$this->e((string)$c['label'])
+                    .'</strong><p>'.$this->e((string)$c['detail'])
+                    .'</p></div><span class="status active">PASS</span></div>';
+            }
+            $h.='</div></details>';
+        }
+        $h.='</section>';
+        if($result&&!empty($result['actions'])){
+            $h.='<section class="panel"><h2>Actions performed</h2><div class="record-stack">';
+            foreach($result['actions'] as $action)
+                $h.='<div class="record-row"><div><strong>✓ '
+                    .$this->e((string)$action).'</strong></div></div>';
+            $h.='</div></section>';
+        }
+        $otherPending=array_values(array_filter($pending,
+            static fn(string $id):bool=>$id!=='migration:clip-marking:table'));
+        if($otherPending&&$baseOk){
+            $h.='<section class="panel upgrade-action"><span class="eyebrow">OTHER DATABASE MIGRATIONS</span>'
+                .'<h2>Repair remaining missing schema changes</h2>'
+                .'<p>This uses the existing cumulative v2 repair for other known missing migrations.'
+                .' It will not recreate the base database. Verify a backup first.</p>'
+                .'<form method="post" action="/admin/system/upgrade">'.$this->csrf()
+                .'<input type="hidden" name="repair_target" value="all">'
+                .'<label class="check"><input type="checkbox" name="confirm" value="1" required>'
+                .' I have a current database backup and authorize the remaining safe v2 migrations.</label>'
+                .'<div class="form-actions"><button class="btn primary" type="submit">'
+                .'Repair remaining schema changes</button></div></form></section>';
+        }elseif(!$failed){
+            $h.='<section class="panel"><div class="empty-inline"><strong>'
+                .'Database schema checks passed.</strong><p>No database migrations are pending.</p>'
+                .'<div class="form-actions"><a class="btn primary" href="/admin">Return to dashboard</a>'
+                .'<a class="btn ghost" href="/admin/manual-clipping">Open Clip Marking</a>'
+                .'</div></div></section>';
+        }
+        $h.='<p class="muted"><a href="/admin/system/upgrade">Re-run checks only</a>'
+            .' — this does not modify your database.</p>';
         View::layout('Upgrade Center',$h,['brand'=>$this->brandName(),'admin'=>true]);
     }
 

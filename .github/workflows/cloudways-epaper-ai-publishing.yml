@@ -69,6 +69,7 @@ jobs:
           php tests/ai-review-static.php
           php tests/admin-acceptance-static.php
           php tests/admin-workspace-contracts.php
+          php tests/upgrade-center-contract.php
           php -l app/Controllers/AdminManualClippingController.php
           php -l app/Views/ManualClippingView.php
           php -l app/Services/ManualClipGeometry.php

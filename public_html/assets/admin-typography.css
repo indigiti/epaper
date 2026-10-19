@@ -289,3 +289,49 @@ body.admin-shell .admin-sidebar-account-copy small {font-size:var(--admin-text-c
 @media(prefers-reduced-motion:reduce){
   body.admin-shell .admin-sidebar-nav .nav-section-title {transition:none}
 }
+
+
+/* Upgrade Center: action first, passing diagnostics collapsed by default. */
+body.admin-shell .upgrade-checks>.section-head{margin-bottom:15px}
+body.admin-shell .upgrade-checks>h3{font-size:17px;font-weight:700;margin:12px 0}
+body.admin-shell .upgrade-issue{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:start}
+body.admin-shell .upgrade-issue>div{min-width:0}
+body.admin-shell .upgrade-issue .status{margin-top:2px}
+body.admin-shell .upgrade-target-repair{
+  display:grid;align-items:start;justify-items:start;gap:11px;
+  margin-top:14px;padding:14px;background:var(--console-surface-soft);
+  border:1px solid var(--console-border);border-radius:11px;max-width:680px;
+}
+body.admin-shell .upgrade-target-repair .check{
+  display:flex;align-items:flex-start;gap:9px;margin:0;
+  font-size:13px!important;line-height:1.5;font-weight:500;
+}
+body.admin-shell .upgrade-target-repair .check input{
+  flex:none;width:17px;height:17px;min-height:0!important;
+  margin-top:2px;
+}
+body.admin-shell .upgrade-target-repair button{
+  min-height:41px;font-size:13px!important;font-weight:650;
+}
+body.admin-shell .upgrade-passed-details{
+  margin-top:16px;border:1px solid var(--console-border);border-radius:11px;
+  overflow:hidden;background:var(--console-surface-soft);
+}
+body.admin-shell .upgrade-passed-details>summary{
+  padding:13px 15px;cursor:pointer;font-size:13px;font-weight:650;
+  color:var(--console-text);list-style-position:inside;
+}
+body.admin-shell .upgrade-passed-details[open]>summary{
+  border-bottom:1px solid var(--console-border);
+}
+body.admin-shell .upgrade-passed-details>.record-stack{
+  padding:0 12px 9px;background:var(--console-surface);
+}
+body.admin-shell .upgrade-passed-details .record-row{background:transparent}
+body.admin-shell .upgrade-checks+ .panel{margin-top:15px}
+@media(max-width:680px){
+  body.admin-shell .upgrade-issue{grid-template-columns:minmax(0,1fr)}
+  body.admin-shell .upgrade-issue .status{justify-self:start}
+  body.admin-shell .upgrade-target-repair{padding:12px}
+  body.admin-shell .upgrade-target-repair button{width:100%}
+}
