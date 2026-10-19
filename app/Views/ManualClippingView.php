@@ -204,7 +204,10 @@ final class ManualClippingView
           .'<button class="btn ghost manual-icon-action" type="submit" name="action" value="private" data-manual-save-private title="Create private clipping now" aria-label="Create private clipping now" disabled>'.View::icon('clip').'</button></div>'
           .'<p class="manual-map-shortcut">Keyboard: Ctrl/⌘ + S to save, Escape to clear. Use arrow keys to nudge the selection when the newspaper is focused.</p>'
           .'</form></section><section class="panel"><h2>Marked articles</h2>'
-          .'<p class="muted">Only active outlines appear publicly on published editions. Hide to disable temporarily, or Remove to delete from this marking list.</p>'
+          .'<p class="muted">Only active outlines appear in the published Reader. Hover or focus on an icon for its action; Remove is confirmed.</p>'
+          .'<p class="manual-actions-legend" aria-label="Article action icon reference">'
+          .'<span>'.View::icon('edit').' Edit</span><span>'.View::icon('power').' Hide</span>'
+          .'<span>'.View::icon('eye').' Show</span><span>'.View::icon('trash').' Remove</span></p>'
           .'<div class="manual-mark-list">';
         $full=in_array(strtoupper($role),['OWNER','ADMIN','PUBLISHER_ADMIN'],true);
         foreach($marks as $mark){
