@@ -127,6 +127,17 @@ foreach(['MutationObserver','reader-flip-page','reader-continuous-page',
 if(!str_contains($flip,'delete el.dataset.editorialBoundGuid') ||
    !str_contains($readerCss,'.reader-editorial-marker'))
  throw new RuntimeException('Reader outline lifecycle missing');
+if(str_contains($overlay,'reader-editorial-toggle') ||
+   str_contains($overlay,"toggle.textContent='Articles'") ||
+   str_contains($overlay,'header.insertBefore(toggle') ||
+   str_contains($readerCss,'.reader-editorial-toggle'))
+ throw new RuntimeException('Public Reader Articles toolbar control must stay removed');
+if(!str_contains($overlay,"let enabled=true;") ||
+   !str_contains($overlay,"layer.hidden=!enabled") ||
+   !str_contains($overlay,'window.EpdiEditorialClips={attach,showPage:syncDocument,scan:scanOtherViews,setEnabled}'))
+ throw new RuntimeException('Approved editorial outlines must still display and remain operable');
+if(!str_contains($view,'editorial-ui=no-toolbar-20261019'))
+ throw new RuntimeException('Reader editorial JS needs targeted cache bust after toolbar removal');
 foreach(["Build::asset('/assets/reader-editorial-clips.css')",
  "Build::asset('/assets/reader-editorial-clips.js')"] as $tok)
  if(!str_contains($view,$tok))throw new RuntimeException('Reader assets missing '.$tok);
