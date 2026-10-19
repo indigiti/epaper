@@ -96,3 +96,23 @@
 5. Retirement: only after an explicit unused-code dependency review and rollback approval; no storage/database purges as part of a navigation cleanup.
 
 No production deployment is part of this source-only PR.
+
+## Follow-up implementation: role hardening and bounded reads (19 October 2026)
+
+- **Direct URL authorization:** `AdminRoutePolicy::enforce()` now runs after the existing login/CSRF boundary. Manager-only endpoints (subscribers, plans, publisher settings, access, audit, storage and release audit) no longer rely on sidebar hiding. Editor-only endpoints (editions, publications, clipping, semantic content, AI editor and Reader Navigation) explicitly reject OPERATOR. Infrastructure controls retain their independent canonical-host and configurable infrastructure-role checks.
+- **Articles page:** `SemanticNews::adminArticles()` projects only listing metadata, not potentially large `body`, `deck`, `source_notes` or `correction_note`. The dedicated single-article edit lookup still returns complete article content.
+- **Error Center:** Show the newest 75 incidents, select displayed columns only and count last-24-hour incidents with a separate indexed tenant/time query. This improves page payload size without deleting error records.
+- **Global asset delivery:** The manual Clip Marking canvas CSS and JavaScript are requested only on `/admin/manual-clipping*`, not all admin pages. The Publishing group is open by default for everyday navigation.
+- **Source contracts:** Added `admin-route-policy.php` and `admin-query-bounds.php`, both executed in the existing GitHub Actions pipeline.
+- **No claims of measured speedups:** Resource-query reductions are code-level optimizations; actual p50/p95 latency and bytes transferred still need Cloudways staging evidence.
+
+### Permission checklist for staging
+
+| Role | Must be accessible | Must be forbidden by direct URL |
+|---|---|---|
+| OWNER / ADMIN | Publishing, management, audit, processing | Infrastructure endpoints when not on canonical host |
+| PUBLISHER_ADMIN | Publishing, subscriptions, settings, audit | Infrastructure unless explicitly in the configured infrastructure-role list |
+| EDITOR | Editions, clipping, articles, AI/editorial, navigation | Subscribers, plans, settings, audit, storage and release audit |
+| OPERATOR | Processing, QA, health, errors, performance metrics | Publishing edits, editorial mutations, subscriber data, audit, settings and storage |
+
+Review `/admin/system/testing` in the authenticated staging dashboard; preserve Cloudways production until the route-matrix, cross-tenant, visual, functional and performance checks pass. Do not execute test mutations against production customer data.
