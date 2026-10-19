@@ -69,6 +69,12 @@ jobs:
           php tests/ai-review-static.php
           php tests/admin-acceptance-static.php
           php tests/admin-workspace-contracts.php
+          php -l app/Controllers/AdminManualClippingController.php
+          php -l app/Views/ManualClippingView.php
+          php -l app/Services/ManualClipGeometry.php
+          php -l app/Services/ClipService.php
+          php tests/manual-clipping-contract.php
+          node --check public_html/assets/manual-clipping.js
           php tests/editorial-action-center.php
           php -l app/Services/EditorialActionCenter.php
           php -l app/Services/EditorialActionView.php

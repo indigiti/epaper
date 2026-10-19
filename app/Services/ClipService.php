@@ -10,14 +10,14 @@ final class ClipService
     public const BRANDING_SETTING_COMPAT = 'clipping.watermark';
     public const BRANDING_VERSION = 'source-qr-v1';
 
-    public static function create(string $pageGuid,float $x,float $y,float $w,float $h,?string $title=null,string $visibility='PRIVATE'): array
+    public static function create(string $pageGuid,float $x,float $y,float $w,float $h,?string $title=null,string $visibility='PRIVATE',bool $editorial=false): array
     {
         foreach([$x,$y,$w,$h] as $v){
             if($v<0||$v>1)throw new \InvalidArgumentException('Clip coordinates must be normalized');
         }
         if($w<.02||$h<.02||$x+$w>1.00001||$y+$h>1.00001)throw new \InvalidArgumentException('Invalid clipping area');
 
-        $visibility=strtoupper(trim($visibility));
+        $visibility=$editorial?'PRIVATE':strtoupper(trim($visibility));
         if(!in_array($visibility,['PRIVATE','PUBLIC'],true))$visibility='PRIVATE';
         $title=trim((string)$title);
         if($title==='')$title='News clipping';
@@ -44,7 +44,7 @@ final class ClipService
         self::crop($src,$dst,$x,$y,$w,$h,(int)$page['width'],(int)$page['height']);
 
         $u=Auth::user();
-        $expiresAt=date('Y-m-d H:i:s',time()+self::EXPIRY_DAYS*86400);
+        $expiresAt=$editorial?null:date('Y-m-d H:i:s',time()+self::EXPIRY_DAYS*86400);
         Store::exec(
             'INSERT INTO ep_clips(clip_guid,tenant_guid,platform_user_guid,page_guid,clip_slug,title,visibility,x,y,width,height,storage_path,expires_at,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,NOW(6),NOW(6))',
             [Uuid::toBinary($clipGuid),TenantData::tenantBin(),$u?Uuid::toBinary($u['user_guid']):null,Uuid::toBinary($pageGuid),$slug,$title,$visibility,$x,$y,$w,$h,str_replace($root.'/storage/','',$dst),$expiresAt]
@@ -55,8 +55,11 @@ final class ClipService
             try{self::ensureBranded($clip);}catch(\Throwable $e){Audit::log('clip.branding.failed','clip',$clipGuid,'FAILED',['message'=>$e->getMessage()]);}
         }
 
-        Audit::log('clip.created','clip',$clipGuid,'SUCCESS',['page_guid'=>$pageGuid,'visibility'=>$visibility,'expires_in_days'=>self::EXPIRY_DAYS]);
-        PlatformClient::instance()->usage(RequestContext::tenantGuid(),'EPAPER.CLIPPING',1);
+        Audit::log($editorial?'clip.manual_created':'clip.created','clip',$clipGuid,'SUCCESS',[
+            'page_guid'=>$pageGuid,'visibility'=>$visibility,'source'=>$editorial?'MANUAL_EDITORIAL':'READER',
+            'expires_in_days'=>$editorial?null:self::EXPIRY_DAYS,
+        ]);
+        if(!$editorial)PlatformClient::instance()->usage(RequestContext::tenantGuid(),'EPAPER.CLIPPING',1);
         return[
             'clip_guid'=>$clipGuid,
             'slug'=>$slug,
@@ -64,6 +67,16 @@ final class ClipService
             'expires_at'=>$expiresAt,
             'visibility'=>$visibility,
         ];
+    }
+
+    /** Private durable editorial clips, authorized independently of reader subscriptions. */
+    public static function createEditorial(string $pageGuid,float $x,float $y,float $w,float $h,?string $title=null): array
+    {
+        $role=strtoupper((string)(Auth::currentMembership()['role_key']??''));
+        if(!in_array($role,['OWNER','ADMIN','PUBLISHER_ADMIN','EDITOR'],true)){
+            throw new \RuntimeException('Editorial clipping permission required');
+        }
+        return self::create($pageGuid,$x,$y,$w,$h,$title,'PRIVATE',true);
     }
 
     private static function crop(string $src,string $dst,float $x,float $y,float $w,float $h,int $pageW,int $pageH): void

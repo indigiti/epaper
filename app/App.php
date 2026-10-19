@@ -713,6 +713,7 @@ final class App
     {
         Auth::requireAdmin();if($method==='POST')Http::verifyCsrf();
         if($path==='/admin/system/testing'||$path==='/admin/system/testing.json'||$path==='/admin/system/testing/run')StagingAcceptanceController::dispatch($path,$method);
+        if($path==='/admin/manual-clipping'||str_starts_with($path,'/admin/manual-clipping/'))\EpaperSaas\Controllers\AdminManualClippingController::dispatch($path,$method);
         if($path==='/admin/ai-clipping'&&$method==='GET')AdminAiClippingController::index();
         if($path==='/admin/ai-clipping/action'&&$method==='POST')AdminAiClippingController::action();
         if(preg_match('#^/admin/editions/([0-9a-f-]{36})/(trash|delete|cancel|recover|process-immediately)$#i',$path,$m)&&$method==='POST')$this->adminEditionRecovery($m[1],$m[2]);
@@ -760,7 +761,8 @@ final class App
             .'<p>Manage editions, editorial decisions and publishing priorities in one clear workspace.</p>'
             .'<div class="studio-hero-actions">'
             .($canCreate?'<a class="studio-button studio-button-primary" href="/admin/editions?create=1">'.View::icon('plus').'Create edition</a>':'')
-            .($canCreate&&$aiEnabled?'<a class="studio-button studio-button-soft" href="/admin/ai-review">'.View::icon('clip').'Review AI clippings</a>':'')
+            .($canCreate?'<a class="studio-button studio-button-soft" href="/admin/manual-clipping">'.View::icon('clip').'Manual clipping</a>':'')
+            .($canCreate&&$aiEnabled?'<a class="studio-button studio-button-soft" href="/admin/ai-review">'.View::icon('scan-text').'Review AI clippings</a>':'')
             .'<a class="studio-button studio-button-soft" href="/" target="_blank" rel="noopener">'.View::icon('external').'View website</a>'
             .'</div></div><div class="studio-hero-aside" aria-label="Workspace focus">'
             .'<span class="studio-hero-kicker">TODAY’S FOCUS</span>'
