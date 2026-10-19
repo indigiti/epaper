@@ -713,6 +713,7 @@ final class App
     private function runAdmin(string $path,string $method): never
     {
         Auth::requireAdmin();if($method==='POST')Http::verifyCsrf();
+        \EpaperSaas\Services\AdminRoutePolicy::enforce($path);
         if($path==='/admin/system/testing'||$path==='/admin/system/testing.json'||$path==='/admin/system/testing/run')StagingAcceptanceController::dispatch($path,$method);
         if($path==='/admin/manual-clipping'||str_starts_with($path,'/admin/manual-clipping/'))\EpaperSaas\Controllers\AdminManualClippingController::dispatch($path,$method);
         if($path==='/admin/ai-clipping'&&$method==='GET')AdminAiClippingController::index();
