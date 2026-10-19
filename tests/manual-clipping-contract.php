@@ -110,7 +110,7 @@ if(str_contains($ui,'EpaperSaasCoreUuid')||
 if(!str_contains($js,'data-manual-final-action') ||
    !str_contains($js,"e.submitter?.value==='private'"))
  throw new RuntimeException('Private manual clipping submit action can be lost');
-foreach(['Use as reader outline','manual-existing-mark','manual-mark-row',
+foreach(['title="Convert private clip to reader outline"','manual-existing-mark','manual-mark-row',
  'Save article outline','manual-legacy-clip'] as $tok)
  if(!str_contains($ui,$tok))throw new RuntimeException('Clip marking editor missing '.$tok);
 foreach(['ManualClipMarking::add','ManualClipMarking::change','ManualClipMarking::importPrivateClip',
