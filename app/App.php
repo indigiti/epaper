@@ -423,19 +423,39 @@ final class App
     {
         $publication=(string)($edition['publication_guid']??'');if(!Uuid::isValid($publication))return'';$city=(string)($edition['city_guid']??'');$language=(string)($edition['language_guid']??'');$activeSlug=(string)($edition['slug']??'');$date=(string)($edition['edition_date']??date('Y-m-d'));
         $historyLimit=max(30,min(1000,(int)TenantData::effectiveSetting('reader.edition_history_limit','365',$publication,$readerUser)));
-        $rows=PublicReadCache::readerEditionHistory($publication,Uuid::isValid($city)?$city:null,Uuid::isValid($language)?$language:null,$historyLimit);if(count($rows)<2)return'';
+        $rows=\EpaperSaas\Services\ReaderEditionChoices::withCurrent(
+            PublicReadCache::readerEditionHistory($publication,Uuid::isValid($city)?$city:null,Uuid::isValid($language)?$language:null,$historyLimit),
+            $edition
+        );
+        $hasAlternates=count($rows)>1;
+        // Keep the calendar discoverable even if no other matching edition exists.
+        $archiveUrl='/archive?'.http_build_query(['publication'=>$publication,'month'=>substr($date,0,7)],
+            '','&',PHP_QUERY_RFC3986);
         $current=\DateTimeImmutable::createFromFormat('!Y-m-d',$date)?:new \DateTimeImmutable('today');$months=[];foreach($rows as$row){$d=\DateTimeImmutable::createFromFormat('!Y-m-d',(string)$row['edition_date']);if(!$d)continue;$months[$d->format('Y-m')][]=['date'=>$d,'row'=>$row];}
-        $html='<div class="reader-edition-menu-control" data-reader-edition-menu><button class="reader-header-tool reader-edition-trigger" type="button" data-reader-edition-trigger aria-haspopup="dialog" aria-expanded="false" aria-label="Choose back edition" title="Choose edition date">'.View::icon('calendar').'<span class="reader-edition-full-date">'.$this->e($current->format('d M Y')).'</span><span class="reader-edition-short-date">'.$this->e($current->format('d M')).'</span><span class="reader-edition-chevron">'.View::icon('chev-down').'</span></button><div class="reader-edition-menu hidden" data-reader-edition-panel role="dialog" aria-label="Back editions"><div class="reader-edition-menu-head"><div><span class="eyebrow">BACK EDITIONS</span><strong>'.$this->e((string)($edition['publication_name']??'Edition')).'</strong></div><a href="/archive">Full archive</a></div><div class="reader-edition-menu-scroll">';
+        $html='<div class="reader-edition-menu-control" data-reader-edition-menu><button class="reader-header-tool reader-edition-trigger" type="button" data-reader-edition-trigger aria-haspopup="dialog" aria-expanded="false" aria-label="Choose back edition" title="Choose edition date">'.View::icon('calendar').'<span class="reader-edition-full-date">'.$this->e($current->format('d M Y')).'</span><span class="reader-edition-short-date">'.$this->e($current->format('d M')).'</span><span class="reader-edition-chevron">'.View::icon('chev-down').'</span></button><div class="reader-edition-menu hidden" data-reader-edition-panel role="dialog" aria-label="Back editions"><div class="reader-edition-menu-head"><div><span class="eyebrow">BACK EDITIONS</span><strong>'.$this->e((string)($edition['publication_name']??'Edition')).'</strong></div><a href="'.$this->e($archiveUrl).'">Publication archive</a></div><div class="reader-edition-menu-scroll">';
         $first=true;foreach($months as$ym=>$items){$month=$items[0]['date'];$hasActive=false;foreach($items as$item)if((string)$item['row']['slug']===$activeSlug){$hasActive=true;break;}$html.='<section class="reader-edition-month'.($hasActive?' active':'').'"><div class="reader-edition-month-label">'.$this->e($month->format('F Y')).'</div><div class="reader-edition-date-list">';foreach($items as$item){$d=$item['date'];$row=$item['row'];$active=(string)$row['slug']===$activeSlug;$html.='<a class="reader-edition-choice'.($active?' active':'').'" href="/edition/'.$this->e((string)$row['slug']).'/page/1"'.($active?' aria-current="date"':'').' title="'.$this->e($d->format('l, d F Y')).'"><time datetime="'.$this->e($d->format('Y-m-d')).'"><strong>'.$this->e($d->format('d')).'</strong><span>'.$this->e($d->format('D')).'</span></time></a>';}$html.='</div></section>';$first=false;}
-        return$html.'</div><div class="reader-edition-menu-foot"><span>Exact publication + city + language</span><a href="/archive">Older editions →</a></div></div></div>';
+        if(!$hasAlternates){
+            $html.='<p class="reader-edition-empty">No other published dates found for this edition variant. '
+                .'Browse the publication archive for more editions.</p>';
+        }
+        return$html.'</div><div class="reader-edition-menu-foot"><span>Exact publication + city + language</span>'
+            .'<a href="'.$this->e($archiveUrl).'">Browse archive →</a></div></div></div>';
     }
 
     private function readerEditionStrip(array $edition): string
     {
         $publication=(string)($edition['publication_guid']??'');if(!Uuid::isValid($publication))return'';$city=(string)($edition['city_guid']??'');$language=(string)($edition['language_guid']??'');$date=(string)($edition['edition_date']??date('Y-m-d'));
-        $rows=PublicReadCache::readerEditionCalendar($date,$publication,Uuid::isValid($city)?$city:null,Uuid::isValid($language)?$language:null,45);if(count($rows)<2)return'';
+        $rows=\EpaperSaas\Services\ReaderEditionChoices::withCurrent(
+            PublicReadCache::readerEditionCalendar($date,$publication,Uuid::isValid($city)?$city:null,Uuid::isValid($language)?$language:null,45),
+            $edition,true
+        );
+        $hasAlternates=count($rows)>1;
+        $archiveUrl='/archive?'.http_build_query(['publication'=>$publication,'month'=>substr($date,0,7)],
+            '','&',PHP_QUERY_RFC3986);
         $activeSlug=(string)($edition['slug']??'');$labelDate=\DateTimeImmutable::createFromFormat('!Y-m-d',$date)?:new \DateTimeImmutable('today');$html='<div class="reader-edition-switcher" data-reader-edition-switcher><div class="reader-edition-switcher-inner"><button class="reader-edition-scroll" type="button" data-edition-strip-scroll="-1" aria-label="Earlier editions">'.View::icon('chev-left').'</button><div class="reader-edition-context"><span>EDITION</span><strong>'.$this->e(strtoupper($labelDate->format('M Y'))).'</strong></div><nav class="reader-edition-dates" data-edition-date-rail aria-label="Switch edition date">';
         foreach($rows as$row){$d=\DateTimeImmutable::createFromFormat('!Y-m-d',(string)$row['edition_date']);if(!$d)continue;$active=(string)$row['slug']===$activeSlug;$html.='<a class="reader-edition-date'.($active?' active':'').'" href="/edition/'.$this->e((string)$row['slug']).'/page/1"'.($active?' aria-current="date"':'').' title="'.$this->e($d->format('l, d F Y')).'"><span>'.$this->e(strtoupper($d->format('D'))).'</span><strong>'.$this->e($d->format('d')).'</strong><small>'.$this->e(strtoupper($d->format('M'))).'</small></a>';}
+        if(!$hasAlternates)$html.='<a class="reader-edition-archive" href="'.$this->e($archiveUrl).'"'
+            .' title="Browse other editions of this publication">Archive →</a>';
         return$html.'</nav><button class="reader-edition-scroll" type="button" data-edition-strip-scroll="1" aria-label="Later editions">'.View::icon('chev-right').'</button></div></div>';
     }
 
