@@ -13,7 +13,7 @@
  const toggle=document.createElement('button');
  toggle.type='button';toggle.className='reader-header-tool reader-editorial-toggle';
  toggle.setAttribute('aria-pressed','true');toggle.setAttribute('aria-label','Hide published article outlines');
- toggle.title='Show / hide published clippings';
+ toggle.title='Show / hide marked articles';
  toggle.textContent='Articles';
  header.insertBefore(toggle,header.firstChild);
  function setEnabled(value){
@@ -22,6 +22,11 @@
    root.querySelectorAll('.reader-editorial-layer').forEach(x=>{x.hidden=!enabled});
  }
  toggle.addEventListener('click',()=>setEnabled(!enabled));
+ function updateCount(guid,count){
+   if(guid!==root.dataset.pageGuid)return;
+   toggle.textContent=count>0?'Articles ('+count+')':'Articles';
+   toggle.title=count>0?count+' marked article '+(count===1?'outline':'outlines'):'No marked articles on this page';
+ }
  const validGuid=s=>typeof s==='string'&&/^[0-9a-f-]{36}$/i.test(s);
  const validClip=c=>c&&typeof c.title==='string'&&
    ['x','y','w','h'].every(k=>Number.isFinite(Number(c[k])))&&
@@ -46,7 +51,9 @@
    surface.dataset.editorialBoundGuid=guid;
    surface.querySelectorAll(':scope > .reader-editorial-layer').forEach(el=>el.remove());
    const list=await clips(guid);
-   if(surface.dataset.editorialBoundGuid!==guid||!surface.isConnected||list.length===0)return;
+   if(surface.dataset.editorialBoundGuid!==guid||!surface.isConnected)return;
+   if(surface===doc)updateCount(guid,list.length);
+   if(list.length===0)return;
    const layer=document.createElement('div');
    layer.className='reader-editorial-layer';
    layer.hidden=!enabled;
