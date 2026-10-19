@@ -63,8 +63,8 @@ if(!str_contains($js,"card.setAttribute('aria-label',hint)") ||
  !str_contains($js,'data-clip-copy') ||
  !str_contains($js,'data-clip-share'))
  throw new RuntimeException('Sharing or asynchronous download state behavior regressed');
-if(!str_contains($view,"$clipCompact=(bool)($opts['clip_ui']??false)") ||
- !str_contains($view,"($reader||$clipCompact)") ||
+if(!str_contains($view,'$clipCompact=(bool)($opts[\'clip_ui\']??false)') ||
+ !str_contains($view,'($reader||$clipCompact)') ||
  !str_contains($view,"Build::asset('/assets/clip-ui-compact.css')"))
  throw new RuntimeException('Compact styles must load only in Reader and clipping views');
 if(!str_contains($reader,"data-clip-modal") ||
