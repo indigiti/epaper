@@ -129,3 +129,56 @@
   .admin-shell .manual-mark-row{align-items:flex-start;flex-wrap:wrap}
   .admin-shell .manual-mark-actions{width:100%;justify-content:flex-start}
 }
+
+/* Icon-only action language for Clip Marking: native hover tooltip + accessible name. */
+.admin-shell .manual-clipping-page .manual-icon-action{
+  display:inline-flex;align-items:center;justify-content:center;
+  flex:0 0 auto;min-width:42px;width:42px;height:42px;min-height:42px;
+  padding:8px;border-radius:11px;vertical-align:middle;line-height:1;
+}
+.admin-shell .manual-clipping-page .manual-icon-action svg,
+.admin-shell .manual-clipping-page .manual-quick-save svg,
+.admin-shell .manual-clipping-page .manual-selection-dismiss svg,
+.admin-shell .manual-clipping-page .manual-overlay-remove-btn svg{
+  display:block;width:19px;height:19px;flex:none;
+}
+.admin-shell .manual-clipping-page :is(.manual-icon-action,.manual-quick-save,.manual-selection-dismiss,.manual-overlay-remove-btn):focus-visible{
+  outline:3px solid var(--console-accent,#3263e9);outline-offset:3px;
+}
+.admin-shell .manual-clipping-page .manual-icon-action[disabled]{opacity:.45;cursor:not-allowed}
+.admin-shell .manual-map-toolbar .manual-icon-action{padding:8px}
+.admin-shell .manual-mark-actions .manual-icon-action{min-height:38px;height:38px;width:38px;min-width:38px}
+.admin-shell .manual-filter-actions .manual-icon-action{height:40px;min-height:40px;width:40px;min-width:40px}
+.admin-shell .manual-quick-save{
+  display:grid;place-items:center;min-width:34px;width:34px;height:34px;
+  padding:7px;border:1px solid #eef2ff;
+}
+.admin-shell .manual-selection-dismiss{
+  position:absolute;top:3px;right:3px;z-index:7;
+  display:grid;place-items:center;width:30px;height:30px;padding:5px;
+  border:1px solid #ccd5e8;border-radius:7px;background:#fff;
+  color:#334155;cursor:pointer;pointer-events:auto;text-shadow:none;box-shadow:0 2px 8px #1113;
+}
+.admin-shell .manual-selection-dismiss:hover{background:#eaf0ff;color:#1556d5}
+.admin-shell .manual-overlay-remove{
+  position:absolute;z-index:7;transform:translate(-100%,0);margin:0!important;
+  width:32px;height:32px;pointer-events:auto;
+}
+.admin-shell .manual-overlay-remove-btn{
+  display:grid;place-items:center;width:32px;height:32px;padding:5px;
+  border:1px solid #fecaca;border-radius:8px;background:#fff;color:#b42318;
+  box-shadow:0 2px 9px #1113;cursor:pointer;pointer-events:auto;
+}
+.admin-shell .manual-overlay-remove-btn:hover{background:#fee2e2;border-color:#dc2626}
+.admin-shell .manual-overlay-remove-btn:active{transform:scale(.95)}
+@media(max-width:560px){
+ .admin-shell .manual-mark-actions .manual-icon-action{width:42px;height:42px;min-width:42px}
+ .admin-shell .manual-overlay-remove,.admin-shell .manual-overlay-remove-btn{width:36px;height:36px}
+}
+
+/* Override generic row child grid styles for horizontal icon groups. */
+.admin-shell .manual-mark-row>.manual-mark-actions{display:flex;align-items:center;justify-content:flex-end;gap:6px;flex-wrap:wrap}
+.admin-shell .manual-actions-legend{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:7px 0 10px}
+.admin-shell .manual-actions-legend span{display:inline-flex;align-items:center;gap:4px;white-space:nowrap;font-size:11px}
+.admin-shell .manual-actions-legend svg{width:13px;height:13px}
+@media(max-width:560px){.admin-shell .manual-mark-row>.manual-mark-actions{justify-content:flex-start}}

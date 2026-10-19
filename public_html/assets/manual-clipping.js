@@ -18,10 +18,17 @@
   const primary=form.querySelector('[data-manual-submit]');
   const privateButton=form.querySelector('[data-manual-save-private]');
   const quick=selection.querySelector('[data-manual-quick-save]');
+  const discard=selection.querySelector('[data-manual-discard]');
   const heading=root.querySelector('[data-manual-form-heading]');
   const label=selection.querySelector('[data-manual-selection-label]');
   const defaultAction=form.dataset.manualPageUrl||form.action;
   const ready=form.dataset.markingReady==='1';
+  // Action labels are accessible while the visible controls remain icon-only.
+  const nameAction=(button,name,tooltip=name)=>{
+    if(!button)return;
+    button.setAttribute('aria-label',name);
+    button.title=tooltip;
+  };
   const clamp=(n,lo=0,hi=1)=>Math.max(lo,Math.min(hi,n));
   const parse=()=>Object.fromEntries(Object.entries(fields).map(([k,input])=>
     [k,input.value.trim()===''?NaN:Number(input.value)]));
@@ -67,9 +74,9 @@
   function resetMode(clear=false){
     editing=null;
     form.action=defaultAction;
-    if(primary)primary.textContent='Save article outline';
+    nameAction(primary,'Save article outline','Save article outline (headline optional)');
     if(privateButton)privateButton.hidden=false;
-    if(quick)quick.textContent='Save outline';
+    nameAction(quick,'Save article outline','Save article outline (headline optional)');
     if(label)label.textContent='New outline';
     if(heading)heading.textContent='New article outline';
     root.querySelectorAll('.manual-existing-mark.is-selected').forEach(el=>el.classList.remove('is-selected'));
@@ -90,9 +97,9 @@
     form.action=defaultAction+'/marks/'+encodeURIComponent(id)+'/update';
     setFields(b);
     if(headline)headline.value=el.dataset.markTitle||'';
-    if(primary)primary.textContent='Update article outline';
+    nameAction(primary,'Update article outline','Update selected article outline');
     if(privateButton)privateButton.hidden=true;
-    if(quick)quick.textContent='Update outline';
+    nameAction(quick,'Update article outline','Update selected article outline');
     if(label)label.textContent='Editing existing outline';
     if(heading)heading.textContent='Edit marked article';
     root.querySelectorAll('.manual-existing-mark.is-selected').forEach(x=>x.classList.remove('is-selected'));
@@ -125,7 +132,7 @@
     return{x:left,y:top,w:right-left,h:bottom-top};
   }
   stage.addEventListener('pointerdown',e=>{
-    if(e.button!==0||pointer!==null||e.target.closest('[data-manual-quick-save]'))return;
+    if(e.button!==0||pointer!==null||e.target.closest('[data-manual-quick-save],[data-manual-discard],[data-manual-remove-overlay]'))return;
     const existing=e.target.closest('[data-manual-open-mark]');
     if(existing){
       editMark(existing);
@@ -169,6 +176,11 @@
     pointer=null;drag=null;redraw();
   });
   root.querySelector('[data-manual-start]')?.addEventListener('click',newMark);
+  discard?.addEventListener('click',e=>{
+    e.stopPropagation();
+    resetMode(true);
+    stage.focus({preventScroll:true});
+  });
   root.querySelectorAll('[data-manual-open-mark]').forEach(el=>{
     if(!el.closest('[data-manual-stage]'))el.addEventListener('click',()=>editMark(el));
   });

@@ -35,7 +35,7 @@ foreach(['clip.manual_created',"'PRIVATE',true",'expiresAt=$editorial?null',
  'if(!$editorial)PlatformClient::instance()->usage'] as $tok)
  if(!str_contains($clip,$tok))throw new RuntimeException('Manual storage contract missing '.$tok);
 if(!str_contains($catalog,"'/admin/manual-clipping'"))throw new RuntimeException('Navigation missing');
-foreach(['data-manual-stage','data-manual-crop-preview','data-manual-form','Create private clip now','Save article outline'] as $tok)
+foreach(['data-manual-stage','data-manual-crop-preview','data-manual-form','title="Create private clipping now"','Save article outline'] as $tok)
  if(!str_contains($ui,$tok))throw new RuntimeException('Editor UI missing '.$tok);
 foreach(['pointerdown','pointermove','pointerup','getContext','data-manual-coord'] as $tok)
  if(!str_contains($js,$tok))throw new RuntimeException('Client selection missing '.$tok);
@@ -110,7 +110,7 @@ if(str_contains($ui,'EpaperSaasCoreUuid')||
 if(!str_contains($js,'data-manual-final-action') ||
    !str_contains($js,"e.submitter?.value==='private'"))
  throw new RuntimeException('Private manual clipping submit action can be lost');
-foreach(['Use as reader outline','manual-existing-mark','manual-mark-row',
+foreach(['title="Convert private clip to reader outline"','manual-existing-mark','manual-mark-row',
  'Save article outline','manual-legacy-clip'] as $tok)
  if(!str_contains($ui,$tok))throw new RuntimeException('Clip marking editor missing '.$tok);
 foreach(['ManualClipMarking::add','ManualClipMarking::change','ManualClipMarking::importPrivateClip',
@@ -177,5 +177,37 @@ if(!str_contains($read('public_html/assets/crud.js'),'form.dataset.confirm'))
  throw new RuntimeException('Removal confirmation hook not connected');
 if(!str_contains($css,'.manual-mark-actions'))
  throw new RuntimeException('Marked article actions not responsive');
+
+// Icon-only editor controls are accessible and removal on existing overlays is a sibling form.
+foreach([
+ 'data-manual-remove-overlay','manual-overlay-remove-btn','data-manual-discard',
+ 'data-manual-quick-save','data-manual-start',
+ 'manual-icon-action','manual-actions-legend',
+ 'aria-label="Save article outline"','title="Create a new article outline"',
+ "View::icon('close')","View::icon('save')","View::icon('trash')",
+ 'data-confirm="Remove this marked article',
+] as $token)
+ if(!str_contains($ui,$token))throw new RuntimeException('Clip Marking overlay/icon control missing: '.$token);
+if(!str_contains($ui,'if($editable){')||!str_contains($ui,'$closeX=')||
+   !str_contains($ui,'$closeY=')||
+   !str_contains($ui,'class="manual-overlay-remove" data-manual-remove-overlay'))
+ throw new RuntimeException('Overlay remove controls must be editor-authorized and independently positioned');
+if(!str_contains($js,"e.target.closest('[data-manual-quick-save],[data-manual-discard],[data-manual-remove-overlay]')") ||
+   !str_contains($js,'discard?.addEventListener') ||
+   !str_contains($js,'nameAction(primary') ||
+   !str_contains($js,'nameAction(quick'))
+ throw new RuntimeException('Overlay remove and icon action interaction is incomplete');
+if(str_contains($js,"primary.textContent='")||str_contains($js,"quick.textContent='"))
+ throw new RuntimeException('Dynamic action labels may not replace icon SVG contents');
+foreach(['.manual-icon-action','.manual-overlay-remove-btn','.manual-selection-dismiss',
+ '.manual-mark-row>.manual-mark-actions',':focus-visible'] as $selector)
+ if(!str_contains($css,$selector))throw new RuntimeException('Accessible overlay icon styling missing: '.$selector);
+if(!str_contains($view,'clip-ui=20261019-icons-v1'))
+ throw new RuntimeException('Clip Marking JS/CSS cache version has not been advanced');
+// Scope: this feature is not changing public Reader or semantic-article headline requirements.
+if(!str_contains($ui,'Headline (optional)')||
+   str_contains($ui,'name="title" maxlength="180" required')||
+   str_contains($js,'!headline?.value.trim()'))
+ throw new RuntimeException('Admin Clip Marking headline must remain optional');
 
 echo "Clip marking and on-demand reader clipping contracts: OK\n";
