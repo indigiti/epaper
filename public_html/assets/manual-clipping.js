@@ -56,7 +56,7 @@
     }else if(preview)preview.hidden=true;
     if(feedback){
       feedback.textContent=ok
-        ?(editing?'Adjust this saved outline and select Update.':'Outline ready. Enter a headline and select Save.')
+        ?(editing?'Adjust this saved outline and select Update.':'Outline ready. Add a headline if desired, or select Save.')
         :'Draw or resize a rectangle at least 2% wide and tall, within the page.';
       feedback.classList.toggle('is-valid',ok);
     }
@@ -199,8 +199,8 @@
   });
   image.addEventListener('load',()=>redraw());
   form.addEventListener('submit',e=>{
-    if(!valid(parse())||!headline?.value.trim()){
-      e.preventDefault();redraw();headline?.focus();return;
+    if(!valid(parse())){
+      e.preventDefault();redraw();stage?.focus();return;
     }
     const requested=e.submitter?.value==='private'&&!editing?'private':'mark';
     let action=form.querySelector('[data-manual-final-action]');

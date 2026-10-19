@@ -119,3 +119,13 @@
 .admin-shell .manual-mark-row>.btn{min-height:35px}
 .admin-shell .manual-form-actions [hidden]{display:none!important}
 @media(max-width:760px){.admin-shell .manual-page-navigation{width:100%}.admin-shell .manual-map-toolbar{align-items:flex-start}.admin-shell .manual-map-toolbar span{flex:1 1 170px}.admin-shell .manual-quick-save{font-size:11px}}
+
+/* Marked-article actions: consistent spacing and deliberate remove affordance. */
+.admin-shell .manual-mark-actions{display:flex;align-items:center;justify-content:flex-end;gap:6px;flex-wrap:wrap}
+.admin-shell .manual-mark-actions form{margin:0}
+.admin-shell .manual-mark-actions .manual-mark-remove{color:var(--console-danger,#b42318);border-color:color-mix(in srgb,currentColor 28%,transparent)}
+.admin-shell .manual-mark-actions .manual-mark-remove:hover{background:color-mix(in srgb,currentColor 7%,transparent)}
+@media(max-width:560px){
+  .admin-shell .manual-mark-row{align-items:flex-start;flex-wrap:wrap}
+  .admin-shell .manual-mark-actions{width:100%;justify-content:flex-start}
+}

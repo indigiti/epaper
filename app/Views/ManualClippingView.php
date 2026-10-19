@@ -122,7 +122,7 @@ final class ManualClippingView
         if(!$ready)$h.='<div class="alert warning">Both preview and high-resolution media are required. Check Processing Center.</div>';
         if(!$schemaReady)$h.='<div class="alert warning" role="alert">Clip Marking storage is not ready. Go to <a href="/admin/system/upgrade">Upgrade Center</a> and use the safe schema repair.</div>';
         $marked=(string)($_GET['mark']??'');
-        if(in_array($marked,['saved','hidden','activated','imported','updated'],true))
+        if(in_array($marked,['saved','hidden','activated','imported','updated','removed'],true))
             $h.='<div class="alert success" role="status">Article marking '.View::e($marked).'.</div>';
         $h.='<div class="manual-editor-grid"><section class="panel manual-canvas-panel">'
           .'<div class="section-head"><h2>Map article outlines</h2></div>'
@@ -173,7 +173,7 @@ final class ManualClippingView
           .' data-manual-form data-manual-page-url="/admin/manual-clipping/'.View::e($guid).'"'
           .' data-marking-ready="'.($schemaReady?'1':'0').'">'
           .'<input type="hidden" name="_csrf" value="'.View::e(Http::csrf()).'">'
-          .'<label>Headline<input name="title" maxlength="180" required placeholder="Article headline"></label>'
+          .'<label>Headline (optional)<input name="title" maxlength="180" placeholder="Leave blank for Untitled article"></label>'
           .'<div class="manual-coords">';
         foreach(['x'=>'Left','y'=>'Top','w'=>'Width','h'=>'Height'] as $key=>$name){
             $h.='<label>'.View::e($name).' (0–1)<input type="number" name="'.$key
@@ -188,7 +188,7 @@ final class ManualClippingView
           .'<button class="btn ghost" type="submit" name="action" value="private" data-manual-save-private disabled>Create private clip now</button></div>'
           .'<p class="manual-map-shortcut">Keyboard: Ctrl/⌘ + S to save, Escape to clear. Use arrow keys to nudge the selection when the newspaper is focused.</p>'
           .'</form></section><section class="panel"><h2>Marked articles</h2>'
-          .'<p class="muted">Only active outlines appear publicly on published editions.</p>'
+          .'<p class="muted">Only active outlines appear publicly on published editions. Hide to disable temporarily, or Remove to delete from this marking list.</p>'
           .'<div class="manual-mark-list">';
         $full=in_array(strtoupper($role),['OWNER','ADMIN','PUBLISHER_ADMIN'],true);
         foreach($marks as $mark){
@@ -199,7 +199,8 @@ final class ManualClippingView
             $h.='<article class="manual-mark-row"><div><strong>'.View::e($mark['title']).'</strong>'
               .'<small>'.($active?'Active outline':'Hidden outline').'</small></div>';
             if($full||$mine){
-                $h.='<button class="btn ghost" type="button" data-manual-open-mark="'.View::e($id).'"'
+                $h.='<div class="manual-mark-actions">'
+                  .'<button class="btn ghost" type="button" data-manual-open-mark="'.View::e($id).'"'
                   .' data-mark-id="'.View::e($id).'" data-mark-title="'.View::e($mark['title']).'"'
                   .' data-mark-x="'.(float)$mark['x'].'" data-mark-y="'.(float)$mark['y'].'"'
                   .' data-mark-w="'.(float)$mark['width'].'" data-mark-h="'.(float)$mark['height'].'">'
@@ -209,6 +210,12 @@ final class ManualClippingView
                  .View::e($id).'/'.$action.'">'
                  .'<input type="hidden" name="_csrf" value="'.View::e(Http::csrf()).'">'
                  .'<button class="btn ghost" type="submit">'.($active?'Hide':'Show').'</button></form>';
+                $h.='<form method="post" action="/admin/manual-clipping/'.View::e($guid).'/marks/'
+                 .View::e($id).'/remove"'
+                 .' data-confirm="Remove this marked article? Its outline will disappear from the Reader. Use Hide instead if you might need it again.">'
+                 .'<input type="hidden" name="_csrf" value="'.View::e(Http::csrf()).'">'
+                 .'<button class="btn ghost manual-mark-remove" type="submit" aria-label="Remove marked article: '
+                 .View::e($mark['title']).'">Remove</button></form></div>';
             }
             $h.='</article>';
         }

@@ -26,6 +26,8 @@ final class AdminManualClippingController
             self::updateMark(strtolower($m[1]),strtolower($m[2]));
         if(preg_match('#^/admin/manual-clipping/([0-9a-f-]{36})/marks/([0-9a-f-]{36})/(activate|hide)$#i',$path,$m)&&$method==='POST')
             self::toggleMark(strtolower($m[1]),strtolower($m[2]),$m[3]);
+        if(preg_match('#^/admin/manual-clipping/([0-9a-f-]{36})/marks/([0-9a-f-]{36})/remove$#i',$path,$m)&&$method==='POST')
+            self::removeMark(strtolower($m[1]),strtolower($m[2]));
         if(preg_match('#^/admin/manual-clipping/([0-9a-f-]{36})/import/([0-9a-z]{18})$#i',$path,$m)&&$method==='POST')
             self::importClip(strtolower($m[1]),strtolower($m[2]));
         if(preg_match('#^/admin/manual-clipping/([0-9a-f-]{36})/preview$#i',$path,$m)&&$method==='GET')
@@ -212,6 +214,17 @@ final class AdminManualClippingController
             Http::redirect('/admin/manual-clipping/'.$pageGuid.'?mark='.($action==='hide'?'hidden':'activated'));
         }catch(\Throwable $e){
             http_response_code(422);self::detail($pageGuid,'Mark status could not be changed: '.$e->getMessage());
+        }
+    }
+
+    private static function removeMark(string $pageGuid,string $markGuid): never
+    {
+        self::limitActions();
+        try{
+            ManualClipMarking::remove($pageGuid,$markGuid);
+            Http::redirect('/admin/manual-clipping/'.$pageGuid.'?mark=removed');
+        }catch(\Throwable $e){
+            http_response_code(422);self::detail($pageGuid,'Marked article could not be removed: '.$e->getMessage());
         }
     }
 

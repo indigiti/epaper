@@ -11,6 +11,19 @@ use EpaperSaas\Core\{Auth,Http,RequestContext,Store,Uuid};
 final class ManualClipMarking
 {
     private const ROLES=['OWNER','ADMIN','PUBLISHER_ADMIN','EDITOR'];
+    private const UNTITLED_ARTICLE='Untitled article';
+
+    /**
+     * Editorial area markings need valid geometry, not a headline.
+     * Keep a non-empty display label because ep_clip_marks.title is NOT NULL.
+     */
+    public static function normalizeTitle(string $title): string
+    {
+        $title=trim($title);
+        if(mb_strlen($title)>180)
+            throw new \InvalidArgumentException('Headline cannot exceed 180 characters');
+        return $title!==''?$title:self::UNTITLED_ARTICLE;
+    }
 
     private static function actor(): array
     {
@@ -27,9 +40,7 @@ final class ManualClipMarking
         [$actor,]=self::actor();
         if(!Uuid::isValid($pageGuid))throw new \InvalidArgumentException('Invalid newspaper page');
         $geometry=ManualClipGeometry::parse($box);
-        $title=trim($title);
-        if($title===''||mb_strlen($title)>180)
-            throw new \InvalidArgumentException('Enter an article headline (maximum 180 characters)');
+        $title=self::normalizeTitle($title);
         $tenant=TenantData::tenantBin();
         $ready=Store::one(
             'SELECT e.status FROM ep_pages p JOIN ep_editions e
@@ -62,22 +73,21 @@ final class ManualClipMarking
         if(!Uuid::isValid($pageGuid)||!Uuid::isValid($markGuid))
             throw new \InvalidArgumentException('Invalid outline');
         $box=ManualClipGeometry::parse($input);
-        $title=trim($title);
-        if($title===''||mb_strlen($title)>180)
-            throw new \InvalidArgumentException('Enter a headline (maximum 180 characters)');
+        $title=self::normalizeTitle($title);
         $tenant=TenantData::tenantBin();
         $row=Store::one(
-            'SELECT platform_user_guid FROM ep_clip_marks
+            'SELECT platform_user_guid,status FROM ep_clip_marks
              WHERE tenant_guid=? AND page_guid=? AND mark_guid=? LIMIT 1',
             [$tenant,Uuid::toBinary($pageGuid),Uuid::toBinary($markGuid)]
         );
-        if(!$row)throw new \RuntimeException('Article outline not found');
+        if(!$row||!in_array((string)$row['status'],['ACTIVE','HIDDEN'],true))
+            throw new \RuntimeException('Article outline not found');
         if($role==='EDITOR'&&
             !hash_equals((string)$row['platform_user_guid'],Uuid::toBinary($actor)))
             throw new \RuntimeException('Editors may edit only their own outlines');
         Store::exec(
             'UPDATE ep_clip_marks SET title=?,x=?,y=?,width=?,height=?,updated_at=NOW(6)
-             WHERE tenant_guid=? AND page_guid=? AND mark_guid=?',
+             WHERE tenant_guid=? AND page_guid=? AND mark_guid=? AND status IN ("ACTIVE","HIDDEN")',
             [$title,$box['x'],$box['y'],$box['w'],$box['h'],
              $tenant,Uuid::toBinary($pageGuid),Uuid::toBinary($markGuid)]
         );
@@ -95,15 +105,46 @@ final class ManualClipMarking
             'SELECT platform_user_guid,status FROM ep_clip_marks WHERE tenant_guid=? AND page_guid=? AND mark_guid=?',
             [$tenant,Uuid::toBinary($pageGuid),Uuid::toBinary($markGuid)]
         );
-        if(!$mark)throw new \RuntimeException('Marking not found');
+        if(!$mark||!in_array((string)$mark['status'],['ACTIVE','HIDDEN'],true))
+            throw new \RuntimeException('Marking not found');
         if($role==='EDITOR'&&
             !hash_equals((string)$mark['platform_user_guid'],Uuid::toBinary($actor)))
             throw new \RuntimeException('Editors may change only their own markings');
         $newStatus=$mode==='hide'?'HIDDEN':'ACTIVE';
         Store::exec('UPDATE ep_clip_marks SET status=?,updated_at=NOW(6)
-                     WHERE tenant_guid=? AND page_guid=? AND mark_guid=?',
+                     WHERE tenant_guid=? AND page_guid=? AND mark_guid=? AND status IN ("ACTIVE","HIDDEN")',
             [$newStatus,$tenant,Uuid::toBinary($pageGuid),Uuid::toBinary($markGuid)]);
         Audit::log('clip_mark.'.$mode,'clip_mark',$markGuid,'SUCCESS',['page_guid'=>$pageGuid]);
+    }
+
+    /**
+     * Soft-remove a marked region so it cannot appear in the editor or Reader.
+     * Preserve the row and audit history; deletion does not touch generated clips.
+     */
+    public static function remove(string $pageGuid,string $markGuid): void
+    {
+        [$actor,$role]=self::actor();
+        if(!Uuid::isValid($pageGuid)||!Uuid::isValid($markGuid))
+            throw new \InvalidArgumentException('Invalid outline');
+        $tenant=TenantData::tenantBin();
+        $mark=Store::one(
+            'SELECT platform_user_guid,status FROM ep_clip_marks
+             WHERE tenant_guid=? AND page_guid=? AND mark_guid=? LIMIT 1',
+            [$tenant,Uuid::toBinary($pageGuid),Uuid::toBinary($markGuid)]
+        );
+        if(!$mark||!in_array((string)$mark['status'],['ACTIVE','HIDDEN'],true))
+            throw new \RuntimeException('Marked article not found');
+        if($role==='EDITOR'&&
+            !hash_equals((string)$mark['platform_user_guid'],Uuid::toBinary($actor)))
+            throw new \RuntimeException('Editors may remove only their own outlines');
+        $changed=Store::exec(
+            'UPDATE ep_clip_marks SET status="DELETED",updated_at=NOW(6)
+             WHERE tenant_guid=? AND page_guid=? AND mark_guid=? AND status IN ("ACTIVE","HIDDEN")',
+            [$tenant,Uuid::toBinary($pageGuid),Uuid::toBinary($markGuid)]
+        );
+        if($changed!==1)throw new \RuntimeException('Marked article was already removed');
+        Audit::log('clip_mark.removed','clip_mark',$markGuid,'SUCCESS',
+            ['page_guid'=>$pageGuid,'no_crop_generated'=>true]);
     }
 
     public static function importPrivateClip(string $pageGuid,string $slug): string
@@ -132,7 +173,7 @@ final class ManualClipMarking
         $tenant=TenantData::tenantBin();
         $rows=Store::all(
             'SELECT mark_guid,platform_user_guid,title,x,y,width,height,status,created_at
-             FROM ep_clip_marks WHERE tenant_guid=? AND page_guid=?
+             FROM ep_clip_marks WHERE tenant_guid=? AND page_guid=? AND status IN ("ACTIVE","HIDDEN")
              ORDER BY created_at DESC LIMIT 120',
             [$tenant,Uuid::toBinary($pageGuid)]
         );
