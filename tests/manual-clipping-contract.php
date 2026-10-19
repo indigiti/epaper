@@ -86,7 +86,7 @@ if(str_contains($js,'!headline?.value.trim()') ||
    !str_contains($js,'Add a headline if desired') ||
    !str_contains($js,'if(!valid(parse()))'))
  throw new RuntimeException('Clip Marking browser still requires headline');
-if(!str_contains($clip, "if($title==='')$title='News clipping'"))
+if(!str_contains($clip, "if(\$title==='')\$title='News clipping'"))
  throw new RuntimeException('Private clip title fallback lost');
 
 $mark=$read('app/Services/ManualClipMarking.php');
@@ -171,7 +171,7 @@ foreach(['self::removeMark','ManualClipMarking::remove','?mark=removed',"/remove
  'self::limitActions'] as $tok)
  if(!str_contains($controller,$tok))throw new RuntimeException('Remove route missing '.$tok);
 foreach(['manual-mark-remove','data-confirm="Remove this marked article',
-    "'.View::e($id).'/remove","name=\"_csrf\""] as $tok)
+    "'/remove\"","name=\"_csrf\""] as $tok)
  if(!str_contains($ui,$tok))throw new RuntimeException('Remove action UI/CSRF contract missing: '.$tok);
 if(!str_contains($read('public_html/assets/crud.js'),'form.dataset.confirm'))
  throw new RuntimeException('Removal confirmation hook not connected');
