@@ -713,6 +713,7 @@ final class App
     private function runAdmin(string $path,string $method): never
     {
         Auth::requireAdmin();if($method==='POST')Http::verifyCsrf();
+        \EpaperSaas\Services\AdminRoutePolicy::enforce($path);
         if($path==='/admin/system/testing'||$path==='/admin/system/testing.json'||$path==='/admin/system/testing/run')StagingAcceptanceController::dispatch($path,$method);
         if($path==='/admin/manual-clipping'||str_starts_with($path,'/admin/manual-clipping/'))\EpaperSaas\Controllers\AdminManualClippingController::dispatch($path,$method);
         if($path==='/admin/ai-clipping'&&$method==='GET')AdminAiClippingController::index();
@@ -727,7 +728,7 @@ final class App
         if($path==='/admin/processing')$this->adminProcessing();if(preg_match('#^/admin/processing/([0-9a-f-]{36})$#i',$path,$m))$this->adminProcessingDetail($m[1]);if($path==='/admin/processing/repair-queue'&&$method==='POST')$this->adminProcessingRepairQueue();
         if($path==='/admin/subscribers')$this->adminSubscribers();if($path==='/admin/plans')$this->adminPlans();if(preg_match('#^/admin/subscribers/([0-9a-f-]{36})/status$#i',$path,$m)&&$method==='POST')$this->adminSubscriberStatus($m[1]);
         if($path==='/admin/system/upgrade')$this->adminSystemUpgrade($method);if($path==='/admin/settings')$this->adminSettings($method);if(preg_match('#^/admin/settings/(appearance|brand|seo|trust|access|reader|processing|clipping)$#',$path,$m))$this->adminSettingsGroup($m[1],$method);
-        if($path==='/admin/access')$this->adminAccess();if($path==='/admin/audit')$this->adminAudit();if($path==='/admin/errors')$this->adminErrors();if($path==='/admin/storage')$this->adminStorage();if($path==='/admin/performance')$this->adminPerformance();if($path==='/admin/performance/cache-action'&&$method==='POST')$this->adminCacheAction();if($path==='/admin/system/health')$this->adminHealth();if($path==='/admin/system/readiness.json')$this->adminReadinessJson();if($path==='/admin/system/recovery')$this->adminRecovery();if($path==='/admin/system/recovery.json')$this->adminRecoveryJson();if($path==='/admin/system/recovery/scheduler-run'&&$method==='POST')$this->adminRecoverySchedulerRun();if($path==='/admin/system/recovery/reconcile'&&$method==='POST')$this->adminRecoveryReconcile();if($path==='/admin/system/recovery/repair-missing'&&$method==='POST')$this->adminRecoveryRepairMissing();if($path==='/admin/system/recovery/redis-baseline'&&$method==='POST')$this->adminRecoveryRedisBaseline();if($path==='/admin/system/release-audit')$this->adminReleaseAudit();
+        if($path==='/admin/access')$this->adminAccess();if($path==='/admin/audit')\EpaperSaas\Controllers\AdminAuditController::index($method);if($path==='/admin/errors')$this->adminErrors();if($path==='/admin/storage')$this->adminStorage();if($path==='/admin/performance')$this->adminPerformance();if($path==='/admin/performance/cache-action'&&$method==='POST')$this->adminCacheAction();if($path==='/admin/system/health')$this->adminHealth();if($path==='/admin/system/readiness.json')$this->adminReadinessJson();if($path==='/admin/system/recovery')$this->adminRecovery();if($path==='/admin/system/recovery.json')$this->adminRecoveryJson();if($path==='/admin/system/recovery/scheduler-run'&&$method==='POST')$this->adminRecoverySchedulerRun();if($path==='/admin/system/recovery/reconcile'&&$method==='POST')$this->adminRecoveryReconcile();if($path==='/admin/system/recovery/repair-missing'&&$method==='POST')$this->adminRecoveryRepairMissing();if($path==='/admin/system/recovery/redis-baseline'&&$method==='POST')$this->adminRecoveryRedisBaseline();if($path==='/admin/system/release-audit')$this->adminReleaseAudit();
         if($path==='/admin/system/infrastructure'&&$method==='GET')$this->adminInfrastructure();if($path==='/admin/system/infrastructure/supervisor'&&$method==='GET')$this->adminSupervisorSetup();if($path==='/admin/system/infrastructure/supervisor.conf'&&$method==='GET')$this->adminSupervisorConfigDownload();if($path==='/admin/system/infrastructure/rabbitmq/save'&&$method==='POST')$this->adminInfrastructureSave();if($path==='/admin/system/infrastructure/media/save'&&$method==='POST')$this->adminInfrastructureMediaSave();if($path==='/admin/system/infrastructure/rabbitmq/test'&&$method==='POST')$this->adminInfrastructureRabbitTest();if($path==='/admin/system/infrastructure/probe'&&$method==='POST')$this->adminInfrastructureProbe();if($path==='/admin/system/infrastructure/probe-status'&&$method==='GET')$this->adminInfrastructureProbeStatus();if($path==='/admin/account')$this->adminAccount();
         http_response_code(404);View::layout('Not Found','<section class="empty-state"><h1>Admin page not found</h1></section>',['brand'=>$this->brandName(),'admin'=>true]);
     }
@@ -836,28 +837,6 @@ final class App
         View::layout('Publishing desk',$html,['brand'=>$this->brandName(),'admin'=>true]);
     }
 
-    private function adminDashboardMetrics(): array
-    {
-        $key='dashboard:v2:'.RequestContext::tenantGuid();
-        $cached=RedisStore::getJson($key);
-        if(is_array($cached))return $cached;
-        $tb=TenantData::tenantBin();
-        $row=Store::one('SELECT
-            (SELECT COUNT(*) FROM ep_editions WHERE tenant_guid=? AND status="PUBLISHED") AS published_editions,
-            (SELECT COUNT(*) FROM ep_publications WHERE tenant_guid=? AND status="ACTIVE") AS publications,
-            (SELECT COUNT(*) FROM ep_processing_jobs WHERE tenant_guid=? AND status IN ("QUEUED","RUNNING")) AS processing,
-            (SELECT COUNT(*) FROM ep_editions WHERE tenant_guid=? AND status="NEEDS_ATTENTION") AS needs_attention,
-            (SELECT COUNT(*) FROM ep_editions WHERE tenant_guid=? AND publish_mode="SCHEDULED" AND scheduled_at IS NOT NULL AND status<>"ARCHIVED") AS scheduled',[$tb,$tb,$tb,$tb,$tb])?:[];
-        $metrics=[
-            'published_editions'=>(int)($row['published_editions']??0),
-            'publications'=>(int)($row['publications']??0),
-            'processing'=>(int)($row['processing']??0),
-            'needs_attention'=>(int)($row['needs_attention']??0),
-            'scheduled'=>(int)($row['scheduled']??0),
-        ];
-        RedisStore::setJson($key,$metrics,RedisStore::ttlWithJitter(10,2));
-        return $metrics;
-    }
     private function requireNavigationEditor(): void
     {
         $m=Auth::currentMembership();$role=strtoupper((string)($m['role_key']??''));
@@ -1672,15 +1651,18 @@ $h.='<section class="panel processing-settings-card processing-recovery-card"><d
         Http::redirect('/admin/plans');
     }
 
-    private function adminAudit(): never
-    {
-        $rows=Store::all('SELECT * FROM ep_audit_events WHERE tenant_guid=? ORDER BY occurred_at DESC LIMIT 200',[TenantData::tenantBin()]);$h='<section class="admin-head"><div><span class="eyebrow">SECURITY</span><h1>Audit</h1></div></section><div class="panel"><div class="table-wrap"><table><thead><tr><th>Time</th><th>Action</th><th>Resource</th><th>Result</th><th>Request</th></tr></thead><tbody>';foreach($rows as$r)$h.='<tr><td>'.$this->e($r['occurred_at']).'</td><td>'.$this->e($r['action']).'</td><td>'.$this->e($r['resource_type']).'</td><td>'.$this->e($r['result']).'</td><td><code>'.$this->e($this->guid($r['request_guid'])).'</code></td></tr>';$h.='</tbody></table></div></div>';View::layout('Audit',$h,['brand'=>$this->brandName(),'admin'=>true]);
-    }
     private function adminErrors(): never
     {
-        $tb=TenantData::tenantBin();$rows=Store::all('SELECT * FROM ep_error_events WHERE tenant_guid=? ORDER BY occurred_at DESC LIMIT 200',[$tb]);$last24=0;$requests=[];$fingerprints=[];foreach($rows as$r){if(strtotime((string)$r['occurred_at'])>=time()-86400)$last24++;$requests[$this->guid($r['request_guid'])]=true;$fp=(string)($r['fingerprint']??'');if($fp!=='')$fingerprints[$fp]=($fingerprints[$fp]??0)+1;}
+        $tb=TenantData::tenantBin();
+        // Keep diagnostics bounded and never load potentially sensitive metadata_json.
+        $rows=Store::all('SELECT error_guid,occurred_at,request_guid,correlation_guid,exception_class,message,fingerprint
+            FROM ep_error_events WHERE tenant_guid=? ORDER BY occurred_at DESC LIMIT 75',[$tb]);
+        $last24=(int)Store::value('SELECT COUNT(*) FROM ep_error_events
+            WHERE tenant_guid=? AND occurred_at >= DATE_SUB(NOW(6),INTERVAL 24 HOUR)',[$tb]);
+        $requests=[];$fingerprints=[];
+        foreach($rows as$r){$requests[$this->guid($r['request_guid'])]=true;$fp=(string)($r['fingerprint']??'');if($fp!=='')$fingerprints[$fp]=($fingerprints[$fp]??0)+1;}
         $jobs=Store::all('SELECT j.job_guid,j.edition_guid,j.job_type,j.status,j.error_message,j.updated_at,e.edition_date,p.name publication_name FROM ep_processing_jobs j LEFT JOIN ep_editions e ON e.tenant_guid=j.tenant_guid AND e.edition_guid=j.edition_guid LEFT JOIN ep_publications p ON p.tenant_guid=e.tenant_guid AND p.publication_guid=e.publication_guid WHERE j.tenant_guid=? AND j.status="FAILED" ORDER BY j.updated_at DESC LIMIT 50',[$tb]);
-        $h='<section class="admin-head"><div><span class="eyebrow">OPERATIONS</span><h1>Error Center</h1><p class="muted">Correlate request failures with processing failures using stable request, correlation, job and edition references.</p></div><div class="page-head-actions"><a class="btn ghost" href="/admin/system/health">Production readiness</a><a class="btn ghost" href="/admin/processing">Processing Center</a></div></section><div class="error-summary"><div class="kpi"><span>Application incidents</span><strong>'.count($rows).'</strong><small>Newest 200 displayed</small></div><div class="kpi"><span>Last 24 hours</span><strong>'.$last24.'</strong><small>Recent request failures</small></div><div class="kpi"><span>Request chains</span><strong>'.count($requests).'</strong><small>Distinct request references</small></div><div class="kpi"><span>Failed processing</span><strong>'.count($jobs).'</strong><small>Newest 50 failed jobs</small></div></div>';
+        $h='<section class="admin-head"><div><span class="eyebrow">OPERATIONS</span><h1>Error Center</h1><p class="muted">Correlate request failures with processing failures using stable request, correlation, job and edition references.</p></div><div class="page-head-actions"><a class="btn ghost" href="/admin/system/health">Production readiness</a><a class="btn ghost" href="/admin/processing">Processing Center</a></div></section><div class="error-summary"><div class="kpi"><span>Application incidents</span><strong>'.count($rows).'</strong><small>Newest 75 displayed</small></div><div class="kpi"><span>Last 24 hours</span><strong>'.$last24.'</strong><small>Recent request failures</small></div><div class="kpi"><span>Request chains</span><strong>'.count($requests).'</strong><small>Distinct request references</small></div><div class="kpi"><span>Failed processing</span><strong>'.count($jobs).'</strong><small>Newest 50 failed jobs</small></div></div>';
         $h.='<section class="panel"><div class="section-head"><div><span class="eyebrow">APPLICATION INCIDENTS</span><h2>Recent request errors</h2><p class="muted">Fingerprint groups repeated exceptions without exposing stack traces to operators.</p></div></div><div class="table-wrap"><table><thead><tr><th>Time</th><th>Error ID</th><th>Message</th><th>Fingerprint</th><th>Request / correlation</th></tr></thead><tbody>';
         foreach($rows as$r){$fp=(string)($r['fingerprint']??'');$req=$this->guid($r['request_guid']);$corr=$this->guid($r['correlation_guid']);$h.='<tr><td>'.$this->e($r['occurred_at']).'</td><td><code>'.$this->e($this->guid($r['error_guid'])).'</code></td><td class="error-message-cell"><strong>'.$this->e($r['exception_class']??'Application error').'</strong><br>'.$this->e($r['message']).'</td><td>'.($fp!==''?'<code>'.$this->e(substr($fp,0,12)).'</code><br><small>'.(int)($fingerprints[$fp]??1).' shown occurrence'.(((int)($fingerprints[$fp]??1))===1?'':'s').'</small>':'—').'</td><td><code>'.$this->e($req).'</code>'.($corr?'<br><small>corr '.$this->e($corr).'</small>':'').'</td></tr>';}
         if(!$rows)$h.='<tr><td colspan="5"><div class="empty-inline">No application errors recorded for this tenant.</div></td></tr>';$h.='</tbody></table></div></section>';

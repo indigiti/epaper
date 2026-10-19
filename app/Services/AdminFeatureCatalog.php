@@ -16,44 +16,40 @@ final class AdminFeatureCatalog
         $operator=in_array($role,['OWNER','ADMIN','PUBLISHER_ADMIN','EDITOR','OPERATOR'],true);
         $full=in_array($role,['OWNER','ADMIN','PUBLISHER_ADMIN'],true);
 
+        // Primary navigation is arranged around work, not internal subsystems.
+        // Every former route remains discoverable; specialist tools live under ADVANCED.
         $groups=['OVERVIEW'=>[
             ['Publishing Desk','/admin','Actions, editions and publishing status','dashboard'],
         ]];
-        if($editor)$groups['PUBLISHING']=[
-            ['Editions','/admin/editions','Upload, reorder, schedule and publish','pages'],
-        ];
         if($editor){
-            $groups['AI & EDITORIAL']=[
-                ['Clip Marking','/admin/manual-clipping','Premark clickable reader clipping regions','scan-text'],
-                ['AI Clipping','/admin/ai-clipping','Feature readiness and setup','scan-text'],
+            $groups['PUBLISHING']=[
+                ['Editions','/admin/editions','Upload, reorder, schedule and publish','newspaper'],
+                ['Clip Marking','/admin/manual-clipping','Mark articles for reader-created clippings','scan-text'],
+                ['Publications','/admin/publications','Brands and newspaper editions','pages'],
             ];
-            if($aiEnabled)$groups['AI & EDITORIAL'][]=['AI Editorial Review','/admin/ai-review','Review and correct clipping candidates','clip'];
-            array_push($groups['AI & EDITORIAL'],
-                ['Articles','/admin/articles','Stories and semantic publishing','pages'],
+            $groups['EDITORIAL']=[
+                ['Articles','/admin/articles','Stories and semantic publishing','newspaper'],
                 ['Highlights','/admin/highlights','Homepage promotions','bookmark'],
+            ];
+            if($aiEnabled)$groups['EDITORIAL'][]=
+                ['AI Editorial Review','/admin/ai-review','Review and correct AI candidates','scan-text'];
+            $groups['DISCOVERY']=[
+                ['Reader Navigation','/admin/navigation','Reader menus and scopes','menu'],
                 ['Topics','/admin/topics','Curated discovery','bookmark'],
                 ['Entities','/admin/entities','People, places and organisations','search'],
-                ['Authors','/admin/authors','Profiles and bylines','user']
-            );
-            $groups['READER & AUDIENCE']=[
-                ['Reader Navigation','/admin/navigation','Reader menus and scopes','menu'],
+                ['Authors','/admin/authors','Profiles and bylines','user'],
             ];
-        }
-        if($full){
-            $groups['READER & AUDIENCE'][]=['Subscribers','/admin/subscribers','Readers and subscriptions','user'];
-            $groups['READER & AUDIENCE'][]=['Plans & Entitlements','/admin/plans','Subscriber capabilities','settings'];
-        }
-        if($editor){
-            $groups['MANAGE']=[
-                ['Publications','/admin/publications','Brands and mastheads','pages'],
+            $groups['SETTINGS']=[
                 ['Master Data','/admin/master-data','Cities, languages and sections','settings'],
             ];
         }
         if($full){
-            $groups['MANAGE'][]=['Publisher Settings','/admin/settings','Brand, SEO, Reader and processing','settings'];
-            $groups['MANAGE'][]=['Roles & Access','/admin/access','Memberships and roles','user'];
-            $groups['MANAGE'][]=['Audit Trail','/admin/audit','Administrative changes','clock'];
-            $groups['MANAGE'][]=['Release Audit','/admin/system/release-audit','Deployment integrity','signal'];
+            $groups['AUDIENCE']=[
+                ['Subscribers','/admin/subscribers','Readers and subscriptions','user'],
+                ['Plans & Entitlements','/admin/plans','Subscriber capabilities','settings'],
+            ];
+            $groups['SETTINGS'][]=['Publisher Settings','/admin/settings','Brand, SEO, Reader and processing','settings'];
+            $groups['SETTINGS'][]=['Roles & Access','/admin/access','Memberships and permissions','user'];
         }
         if($operator){
             $groups['OPERATIONS']=[
@@ -61,15 +57,22 @@ final class AdminFeatureCatalog
                 ['Testing & QA','/admin/system/testing','Readiness and acceptance','activity'],
                 ['System Health','/admin/system/health','Database, cache and services','signal'],
                 ['Error Center','/admin/errors','Incident diagnostics','signal'],
-                ['Performance & Cache','/admin/performance','Speed and delivery','signal'],
             ];
         }
-        if($full)$groups['OPERATIONS'][]=['Storage & Backups','/admin/storage','Storage diagnostics','archive'];
+        if($editor)$groups['ADVANCED']=[
+            ['AI Clipping','/admin/ai-clipping','Feature readiness and setup','scan-text'],
+        ];
+        if($full){
+            $groups['ADVANCED'][]=['Audit Trail','/admin/audit','Administrative changes and security events','clock'];
+            $groups['ADVANCED'][]=['Release Audit','/admin/system/release-audit','Deployment integrity','signal'];
+            $groups['ADVANCED'][]=['Storage & Backups','/admin/storage','Storage diagnostics','archive'];
+        }
+        if($operator)$groups['ADVANCED'][]=['Performance & Cache','/admin/performance','Speed and delivery','signal'];
         if($infra){
-            $groups['OPERATIONS'][]=['Infrastructure','/admin/system/infrastructure','RabbitMQ and service configuration','settings'];
-            $groups['OPERATIONS'][]=['Supervisor Doctor','/admin/system/infrastructure/supervisor','Worker lane diagnostics','activity'];
-            $groups['OPERATIONS'][]=['Web Recovery','/admin/system/recovery','Inspect and repair safely','refresh'];
-            $groups['OPERATIONS'][]=['Upgrade Center','/admin/system/upgrade','Database preflight','settings'];
+            $groups['ADVANCED'][]=['Infrastructure','/admin/system/infrastructure','RabbitMQ and service configuration','settings'];
+            $groups['ADVANCED'][]=['Supervisor Doctor','/admin/system/infrastructure/supervisor','Worker lane diagnostics','activity'];
+            $groups['ADVANCED'][]=['Web Recovery','/admin/system/recovery','Inspect and repair safely','refresh'];
+            $groups['ADVANCED'][]=['Upgrade Center','/admin/system/upgrade','Database preflight','settings'];
         }
         $groups['ACCOUNT']=[['My Account','/admin/account','Publisher profile','user']];
         return array_filter($groups,static fn(array $items):bool=>!empty($items));
