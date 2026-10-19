@@ -22,6 +22,8 @@ final class AdminManualClippingController
     {
         self::allow(); // App::runAdmin also authenticates every route and verifies CSRF on POST.
         if($path==='/admin/manual-clipping'&&$method==='GET')self::index();
+        if(preg_match('#^/admin/manual-clipping/([0-9a-f-]{36})/marks/([0-9a-f-]{36})/update$#i',$path,$m)&&$method==='POST')
+            self::updateMark(strtolower($m[1]),strtolower($m[2]));
         if(preg_match('#^/admin/manual-clipping/([0-9a-f-]{36})/marks/([0-9a-f-]{36})/(activate|hide)$#i',$path,$m)&&$method==='POST')
             self::toggleMark(strtolower($m[1]),strtolower($m[2]),$m[3]);
         if(preg_match('#^/admin/manual-clipping/([0-9a-f-]{36})/import/([0-9a-z]{18})$#i',$path,$m)&&$method==='POST')
@@ -161,12 +163,45 @@ final class AdminManualClippingController
         $marks=[];$schemaReady=true;
         try{$marks=ManualClipMarking::forAdmin($guid);}
         catch(\Throwable){$schemaReady=false;}
+        $tb=TenantData::tenantBin();
+        $assets=' JOIN ep_page_assets prv ON prv.tenant_guid=p.tenant_guid
+                   AND prv.page_guid=p.page_guid AND prv.asset_type="PREVIEW"
+                  JOIN ep_page_assets hi ON hi.tenant_guid=p.tenant_guid
+                   AND hi.page_guid=p.page_guid AND hi.asset_type="HIGHRES"';
+        $prev=Store::one(
+            'SELECT p.page_guid,p.page_number FROM ep_pages p'.$assets.'
+             WHERE p.tenant_guid=? AND p.edition_guid=? AND p.page_number<?
+             ORDER BY p.page_number DESC LIMIT 1',
+            [$tb,$page['edition_guid'],(int)$page['page_number']]
+        );
+        $next=Store::one(
+            'SELECT p.page_guid,p.page_number FROM ep_pages p'.$assets.'
+             WHERE p.tenant_guid=? AND p.edition_guid=? AND p.page_number>?
+             ORDER BY p.page_number ASC LIMIT 1',
+            [$tb,$page['edition_guid'],(int)$page['page_number']]
+        );
         $created=(string)($_GET['created']??'');
         $notice=preg_match('/^[a-f0-9]{18}$/D',$created)?'/c/'.$created:'';
         View::layout('Clip marking · Page '.(int)$page['page_number'],
             ManualClippingView::detail($page,$guid,$clips,$notice,$error,$marks,$schemaReady,
-                $actor,$role),
+                $actor,$role,[
+                    'previous'=>$prev?['guid'=>Uuid::fromBinary($prev['page_guid']),'number'=>(int)$prev['page_number']]:null,
+                    'next'=>$next?['guid'=>Uuid::fromBinary($next['page_guid']),'number'=>(int)$next['page_number']]:null,
+                ]),
             ['brand'=>(string)RequestContext::get('tenant_name','ePaper SaaS'),'admin'=>true]);
+    }
+
+    private static function updateMark(string $pageGuid,string $markGuid): never
+    {
+        self::limitActions();
+        try{
+            ManualClipMarking::update($pageGuid,$markGuid,$_POST,(string)($_POST['title']??''));
+            Http::redirect('/admin/manual-clipping/'.$pageGuid.'?mark=updated');
+        }catch(\InvalidArgumentException $e){
+            http_response_code(422);self::detail($pageGuid,$e->getMessage());
+        }catch(\Throwable $e){
+            http_response_code(422);self::detail($pageGuid,'Outline update failed: '.$e->getMessage());
+        }
     }
 
     private static function toggleMark(string $pageGuid,string $markGuid,string $action): never

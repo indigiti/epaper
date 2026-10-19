@@ -109,4 +109,27 @@ if(!str_contains($flip,'delete el.dataset.editorialBoundGuid') ||
 foreach(["Build::asset('/assets/reader-editorial-clips.css')",
  "Build::asset('/assets/reader-editorial-clips.js')"] as $tok)
  if(!str_contains($view,$tok))throw new RuntimeException('Reader assets missing '.$tok);
+// Area Mapping integration: editable, movable, resizable article coordinates (no eager crop).
+foreach(['function update(string $pageGuid,string $markGuid','ManualClipGeometry::parse($input)',
+  'clip_mark.updated','tenant_guid=? AND page_guid=? AND mark_guid=?',
+  'Editors may edit only their own outlines',"'image_created'=>false"] as $tok)
+ if(!str_contains($mark,$tok))throw new RuntimeException('Existing marking update protection missing: '.$tok);
+foreach(['self::updateMark','ManualClipMarking::update','page_number DESC LIMIT 1',
+  'page_number ASC LIMIT 1','LIMIT 1'] as $tok)
+ if(!str_contains($controller,$tok))
+  throw new RuntimeException('Adjacent-page or edit route missing '.$tok);
+foreach(['data-manual-handle="nw"','data-manual-handle="se"','data-manual-quick-save',
+  'data-manual-start','data-manual-open-mark','data-manual-page-url','tabindex="0"',
+  'manual-page-navigation','Update article outline','Edit marked article'] as $tok)
+ if(!str_contains($ui,$tok)&&!str_contains($js,$tok))
+  throw new RuntimeException('Area mapper editor control missing '.$tok);
+foreach(['pointerdown','pointermove','pointerup','pointercancel','setPointerCapture',
+  "mode:'resize'","mode:'move'","mode:'draw'",'resizeBox','editMark','requestSubmit',
+  'manualFinalAction','manual-open-mark'] as $tok)
+ if(!str_contains($js,$tok)&&!str_contains($ui,$tok))
+  throw new RuntimeException('Area mapper interaction missing '.$tok);
+if(!str_contains($css,'.manual-resize-handle') ||
+   !str_contains($css,'.manual-quick-save') ||
+   !str_contains($css,'.manual-existing-mark.is-editable'))
+ throw new RuntimeException('Area mapper CSS missing');
 echo "Clip marking and on-demand reader clipping contracts: OK\n";

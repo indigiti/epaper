@@ -98,7 +98,7 @@ final class ManualClippingView
         return $h.'</section></section>';
     }
 
-    public static function detail(array $page,string $guid,array $clips,string $saved='',?string $error=null,array $marks=[],bool $schemaReady=true,string $actor='',string $role='EDITOR'): string
+    public static function detail(array $page,string $guid,array $clips,string $saved='',?string $error=null,array $marks=[],bool $schemaReady=true,string $actor='',string $role='EDITOR',array $navigation=[]): string
     {
         $ready=!empty($page['preview_path'])&&!empty($page['highres_path']);
         $h='<section class="manual-clipping-page admin-section" data-manual-clipping>'
@@ -107,37 +107,71 @@ final class ManualClippingView
           .'<h1>Page '.(int)$page['page_number'].'</h1><p>'
           .View::e($page['publication_name']).' · '.View::e($page['edition_date'])
           .' · '.View::e((string)($page['edition_title']??'')).'</p></div>'
-          .'<span class="manual-private-label">'.View::icon('user').' Pre-marked article regions</span></div>';
+          .'<div class="manual-page-navigation" aria-label="Adjacent pages">';
+        foreach(['previous'=>'← Previous','next'=>'Next →'] as $dir=>$label){
+            $dest=$navigation[$dir]??null;
+            $h.=$dest
+              ?'<a class="btn ghost" href="/admin/manual-clipping/'.View::e($dest['guid']).'">'
+                .View::e($label).' · '.(int)$dest['number'].'</a>'
+              :'<span class="manual-nav-disabled" aria-disabled="true">'.View::e($label).'</span>';
+        }
+        $h.='</div></div>';
         if($error!==null)$h.='<div class="alert warning" role="alert">'.View::e($error).'</div>';
         if($saved!=='')$h.='<div class="alert success" role="status">Clipping saved privately. '
           .'<a href="'.View::e($saved).'">Open saved clipping →</a></div>';
         if(!$ready)$h.='<div class="alert warning">Both preview and high-resolution media are required. Check Processing Center.</div>';
         if(!$schemaReady)$h.='<div class="alert warning" role="alert">Clip Marking storage is not ready. Go to <a href="/admin/system/upgrade">Upgrade Center</a> and use the safe schema repair.</div>';
         $marked=(string)($_GET['mark']??'');
-        if(in_array($marked,['saved','hidden','activated','imported'],true))
+        if(in_array($marked,['saved','hidden','activated','imported','updated'],true))
             $h.='<div class="alert success" role="status">Article marking '.View::e($marked).'.</div>';
         $h.='<div class="manual-editor-grid"><section class="panel manual-canvas-panel">'
-          .'<div class="section-head"><h2>Draw an article outline</h2></div>'
-          .'<p class="muted">Drag around an article. Save only the outline; the reader creates its clip on demand.</p>';
+          .'<div class="section-head"><h2>Map article outlines</h2></div>'
+          .'<div class="manual-map-toolbar"><button type="button" class="btn ghost" data-manual-start>'
+          .View::icon('scan').' New area</button>'
+          .'<span>Drag to draw; then move the box or resize using its corners. Select a blue outline to edit.</span>'
+          .'</div>';
         if($ready){
-            $h.='<div class="manual-image-stage" data-manual-stage>'
+            $h.='<div class="manual-image-stage" data-manual-stage tabindex="0" role="group" aria-label="Newspaper article region editor. Draw with pointer or use arrow keys to adjust.">'
               .'<img data-manual-image draggable="false" alt="Newspaper page '.(int)$page['page_number']
               .'" src="/admin/manual-clipping/'.View::e($guid).'/preview">'
-              .'<div class="manual-selection" data-manual-selection hidden>New outline</div>';
+              .'<div class="manual-selection" data-manual-selection hidden>'
+              .'<span class="manual-selection-label" data-manual-selection-label>New outline</span>'
+              .'<span class="manual-resize-handle nw" data-manual-handle="nw" aria-hidden="true"></span>'
+              .'<span class="manual-resize-handle ne" data-manual-handle="ne" aria-hidden="true"></span>'
+              .'<span class="manual-resize-handle sw" data-manual-handle="sw" aria-hidden="true"></span>'
+              .'<span class="manual-resize-handle se" data-manual-handle="se" aria-hidden="true"></span>'
+              .'<button type="button" data-manual-quick-save class="manual-quick-save" disabled>Save outline</button>'
+              .'</div>';
             foreach($marks as $mark){
                 if(strtoupper((string)$mark['status'])!=='ACTIVE')continue;
-                $h.='<div class="manual-existing-mark" title="'.View::e($mark['title']).'"'
-                  .' style="left:'.max(0,min(100,(float)$mark['x']*100)).'%;'
-                  .'top:'.max(0,min(100,(float)$mark['y']*100)).'%;'
-                  .'width:'.max(0,min(100,(float)$mark['width']*100)).'%;'
-                  .'height:'.max(0,min(100,(float)$mark['height']*100)).'%;"></div>';
+                $id=(string)$mark['mark_guid'];
+                $editable=$schemaReady&&
+                    (in_array(strtoupper($role),['OWNER','ADMIN','PUBLISHER_ADMIN'],true)||
+                     ($actor!==''&&Uuid::isValid($actor)&&
+                     hash_equals((string)$mark['platform_user_guid'],Uuid::toBinary($actor))));
+                $tag=$editable?'button':'div';
+                $h.='<'.$tag.($editable?' type="button" data-manual-open-mark="'.$id.'"':'')
+                    .' class="manual-existing-mark'.($editable?' is-editable':'').'"'
+                    .' title="'.View::e($mark['title']).'"'
+                    .' aria-label="'.View::e(($editable?'Edit outline: ':'Outline: ').$mark['title']).'"'
+                    .' data-mark-id="'.View::e($id).'"'
+                    .' data-mark-title="'.View::e($mark['title']).'"'
+                    .' data-mark-x="'.(float)$mark['x'].'" data-mark-y="'.(float)$mark['y'].'"'
+                    .' data-mark-w="'.(float)$mark['width'].'" data-mark-h="'.(float)$mark['height'].'"'
+                    .' style="left:'.max(0,min(100,(float)$mark['x']*100)).'%;'
+                    .'top:'.max(0,min(100,(float)$mark['y']*100)).'%;'
+                    .'width:'.max(0,min(100,(float)$mark['width']*100)).'%;'
+                    .'height:'.max(0,min(100,(float)$mark['height']*100)).'%;"></'.$tag.'>';
             }
             $h.='</div>';
         }else $h.='<div class="manual-empty">Page preview unavailable.</div>';
         $h.='<p class="manual-help">Blue outlines are pre-marked articles. Save geometry without generating an image. '
           .'Outlines become selectable on the reader only after this edition is published.</p></section>'
           .'<aside class="manual-right-column"><section class="panel manual-form-panel">'
-          .'<h2>Article outline</h2><form method="post" action="/admin/manual-clipping/'.View::e($guid).'" data-manual-form data-marking-ready="'.($schemaReady?'1':'0').'">'
+          .'<h2 data-manual-form-heading>New article outline</h2>'
+          .'<form method="post" action="/admin/manual-clipping/'.View::e($guid).'"'
+          .' data-manual-form data-manual-page-url="/admin/manual-clipping/'.View::e($guid).'"'
+          .' data-marking-ready="'.($schemaReady?'1':'0').'">'
           .'<input type="hidden" name="_csrf" value="'.View::e(Http::csrf()).'">'
           .'<label>Headline<input name="title" maxlength="180" required placeholder="Article headline"></label>'
           .'<div class="manual-coords">';
@@ -152,6 +186,7 @@ final class ManualClippingView
           .'<div class="manual-form-actions"><button class="btn ghost" type="button" data-manual-reset>Clear</button>'
           .'<button class="btn primary" type="submit" name="action" value="mark" data-manual-submit disabled>Save article outline</button>'
           .'<button class="btn ghost" type="submit" name="action" value="private" data-manual-save-private disabled>Create private clip now</button></div>'
+          .'<p class="manual-map-shortcut">Keyboard: Ctrl/⌘ + S to save, Escape to clear. Use arrow keys to nudge the selection when the newspaper is focused.</p>'
           .'</form></section><section class="panel"><h2>Marked articles</h2>'
           .'<p class="muted">Only active outlines appear publicly on published editions.</p>'
           .'<div class="manual-mark-list">';
@@ -164,6 +199,11 @@ final class ManualClippingView
             $h.='<article class="manual-mark-row"><div><strong>'.View::e($mark['title']).'</strong>'
               .'<small>'.($active?'Active outline':'Hidden outline').'</small></div>';
             if($full||$mine){
+                $h.='<button class="btn ghost" type="button" data-manual-open-mark="'.View::e($id).'"'
+                  .' data-mark-id="'.View::e($id).'" data-mark-title="'.View::e($mark['title']).'"'
+                  .' data-mark-x="'.(float)$mark['x'].'" data-mark-y="'.(float)$mark['y'].'"'
+                  .' data-mark-w="'.(float)$mark['width'].'" data-mark-h="'.(float)$mark['height'].'">'
+                  .'Edit</button>';
                 $action=$active?'hide':'activate';
                 $h.='<form method="post" action="/admin/manual-clipping/'.View::e($guid).'/marks/'
                  .View::e($id).'/'.$action.'">'

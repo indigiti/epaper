@@ -55,6 +55,36 @@ final class ManualClipMarking
         return $id;
     }
 
+    /** Edit a saved rectangle; publisher admins can correct other editors' work. */
+    public static function update(string $pageGuid,string $markGuid,array $input,string $title): void
+    {
+        [$actor,$role]=self::actor();
+        if(!Uuid::isValid($pageGuid)||!Uuid::isValid($markGuid))
+            throw new \InvalidArgumentException('Invalid outline');
+        $box=ManualClipGeometry::parse($input);
+        $title=trim($title);
+        if($title===''||mb_strlen($title)>180)
+            throw new \InvalidArgumentException('Enter a headline (maximum 180 characters)');
+        $tenant=TenantData::tenantBin();
+        $row=Store::one(
+            'SELECT platform_user_guid FROM ep_clip_marks
+             WHERE tenant_guid=? AND page_guid=? AND mark_guid=? LIMIT 1',
+            [$tenant,Uuid::toBinary($pageGuid),Uuid::toBinary($markGuid)]
+        );
+        if(!$row)throw new \RuntimeException('Article outline not found');
+        if($role==='EDITOR'&&
+            !hash_equals((string)$row['platform_user_guid'],Uuid::toBinary($actor)))
+            throw new \RuntimeException('Editors may edit only their own outlines');
+        Store::exec(
+            'UPDATE ep_clip_marks SET title=?,x=?,y=?,width=?,height=?,updated_at=NOW(6)
+             WHERE tenant_guid=? AND page_guid=? AND mark_guid=?',
+            [$title,$box['x'],$box['y'],$box['w'],$box['h'],
+             $tenant,Uuid::toBinary($pageGuid),Uuid::toBinary($markGuid)]
+        );
+        Audit::log('clip_mark.updated','clip_mark',$markGuid,'SUCCESS',
+            ['page_guid'=>$pageGuid,'image_created'=>false]);
+    }
+
     public static function change(string $pageGuid,string $markGuid,string $mode): void
     {
         [$actor,$role]=self::actor();
