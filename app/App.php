@@ -836,28 +836,6 @@ final class App
         View::layout('Publishing desk',$html,['brand'=>$this->brandName(),'admin'=>true]);
     }
 
-    private function adminDashboardMetrics(): array
-    {
-        $key='dashboard:v2:'.RequestContext::tenantGuid();
-        $cached=RedisStore::getJson($key);
-        if(is_array($cached))return $cached;
-        $tb=TenantData::tenantBin();
-        $row=Store::one('SELECT
-            (SELECT COUNT(*) FROM ep_editions WHERE tenant_guid=? AND status="PUBLISHED") AS published_editions,
-            (SELECT COUNT(*) FROM ep_publications WHERE tenant_guid=? AND status="ACTIVE") AS publications,
-            (SELECT COUNT(*) FROM ep_processing_jobs WHERE tenant_guid=? AND status IN ("QUEUED","RUNNING")) AS processing,
-            (SELECT COUNT(*) FROM ep_editions WHERE tenant_guid=? AND status="NEEDS_ATTENTION") AS needs_attention,
-            (SELECT COUNT(*) FROM ep_editions WHERE tenant_guid=? AND publish_mode="SCHEDULED" AND scheduled_at IS NOT NULL AND status<>"ARCHIVED") AS scheduled',[$tb,$tb,$tb,$tb,$tb])?:[];
-        $metrics=[
-            'published_editions'=>(int)($row['published_editions']??0),
-            'publications'=>(int)($row['publications']??0),
-            'processing'=>(int)($row['processing']??0),
-            'needs_attention'=>(int)($row['needs_attention']??0),
-            'scheduled'=>(int)($row['scheduled']??0),
-        ];
-        RedisStore::setJson($key,$metrics,RedisStore::ttlWithJitter(10,2));
-        return $metrics;
-    }
     private function requireNavigationEditor(): void
     {
         $m=Auth::currentMembership();$role=strtoupper((string)($m['role_key']??''));
