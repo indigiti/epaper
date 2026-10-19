@@ -42,7 +42,7 @@ final class AdminManualClippingController
         if(!Uuid::isValid($guid))return null;
         return Store::one(
             'SELECT p.page_guid,p.edition_guid,p.page_number,p.label,e.title edition_title,
-                    e.edition_date,pub.name publication_name,
+                    e.edition_date,e.slug edition_slug,e.status edition_status,pub.name publication_name,
                     preview.storage_path preview_path,preview.mime_type preview_mime,
                     hires.storage_path highres_path
              FROM ep_pages p

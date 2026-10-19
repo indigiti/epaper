@@ -101,6 +101,12 @@ final class ManualClippingView
     public static function detail(array $page,string $guid,array $clips,string $saved='',?string $error=null,array $marks=[],bool $schemaReady=true,string $actor='',string $role='EDITOR',array $navigation=[]): string
     {
         $ready=!empty($page['preview_path'])&&!empty($page['highres_path']);
+        $readerUrl=strtoupper((string)($page['edition_status']??''))==='PUBLISHED'
+            && trim((string)($page['edition_slug']??''))!==''
+            ?'/edition/'.rawurlencode((string)$page['edition_slug']).'/page/'.max(1,(int)$page['page_number'])
+            :null;
+        $activeMarkCount=count(array_filter($marks,static fn(array $mark):bool=>
+            strtoupper((string)($mark['status']??''))==='ACTIVE'));
         $h='<section class="manual-clipping-page admin-section" data-manual-clipping>'
           .'<div class="manual-titlebar"><div><a href="/admin/manual-clipping?edition='.View::e(Uuid::fromBinary($page['edition_guid'])).'">← Edition collection</a>'
           .'<span class="eyebrow">EDITORIAL CLIP MARKING</span>'
@@ -114,6 +120,9 @@ final class ManualClippingView
               ?'<a class="btn ghost" href="/admin/manual-clipping/'.View::e($dest['guid']).'">'
                 .View::e($label).' · '.(int)$dest['number'].'</a>'
               :'<span class="manual-nav-disabled" aria-disabled="true">'.View::e($label).'</span>';
+        }
+        if($readerUrl!==null){
+            $h.='<a class="btn ghost" href="'.View::e($readerUrl).'" target="_blank" rel="noopener noreferrer">Preview in Reader ↗</a>';
         }
         $h.='</div></div>';
         if($error!==null)$h.='<div class="alert warning" role="alert">'.View::e($error).'</div>';
@@ -189,6 +198,7 @@ final class ManualClippingView
           .'<p class="manual-map-shortcut">Keyboard: Ctrl/⌘ + S to save, Escape to clear. Use arrow keys to nudge the selection when the newspaper is focused.</p>'
           .'</form></section><section class="panel"><h2>Marked articles</h2>'
           .'<p class="muted">Only active outlines appear publicly on published editions.</p>'
+          .'<p class="muted">'.$activeMarkCount.' active article '.($activeMarkCount===1?'outline':'outlines').'</p>'
           .'<div class="manual-mark-list">';
         $full=in_array(strtoupper($role),['OWNER','ADMIN','PUBLISHER_ADMIN'],true);
         foreach($marks as $mark){

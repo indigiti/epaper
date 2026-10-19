@@ -12,3 +12,10 @@
 .reader-shell.clip-active .reader-editorial-marker,.reader-shell .reader-stage.article-pick .reader-editorial-marker{pointer-events:none}
 @media(hover:none){.reader-editorial-marker{background:rgba(37,99,235,.04);border-color:rgba(37,99,235,.78)}}
 @media(prefers-reduced-motion:reduce){.reader-editorial-marker{transition:none}}
+
+/* Clipping region preview before creation. */
+.clip-selected-preview{display:grid;justify-items:start;gap:7px;min-width:0;margin:12px 0;padding:12px;border:1px solid rgba(99,112,136,.22);border-radius:10px;background:rgba(100,116,139,.055)}
+.clip-selected-preview[hidden]{display:none!important}
+.clip-selected-preview strong{font-size:13px;font-weight:650}
+.clip-selected-preview canvas{display:block;max-width:100%;height:auto;border-radius:4px;background:#fff}
+.clip-selected-preview figcaption{font-size:11px;line-height:1.5;opacity:.75}
