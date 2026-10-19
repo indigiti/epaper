@@ -72,4 +72,18 @@ foreach(['--console-sidebar:76px','@media(min-width:1001px)','@media(max-width:1
 foreach(['tenantGuid','userGuid','adminNavRole','localStorage','setCollapsed','data-admin-nav-section',
           'beforeSearch','matchMedia','aria-expanded'] as $token)
  if(!str_contains($sideJs,$token))throw new RuntimeException('Missing scoped sidebar interaction: '.$token);
-echo "Role-aware admin navigation, responsive studio and bounded query contracts: OK\n";
+// Typography must be one scoped, late-loaded admin layer; public Reader remains unchanged.
+$typography=(string)file_get_contents($root.'/public_html/assets/admin-typography.css');
+if(!str_contains($view,"Build::asset('/assets/admin-typography.css')"))
+ throw new RuntimeException('Unified admin typography bundle missing');
+if(strpos($view,"Build::asset('/assets/admin-typography.css')")<=strpos($view,"Build::asset('/assets/admin-sidebar.css')"))
+ throw new RuntimeException('Admin typography must load after the sidebar stylesheet');
+foreach(['--admin-font:','--admin-text-body:14px','--admin-text-navigation:14px',
+  '--admin-text-secondary:12.5px','--admin-heading-section:22px','--admin-heading-page:',
+  '.admin-sidebar-nav .nav-section-mark','.admin-sidebar-nav .nav-group',
+  'border-left:1px solid var(--console-border-strong)',
+  '.app-nav-link.active','@media(min-width:1001px)','@media(max-width:1000px)'] as $token)
+ if(!str_contains($typography,$token))throw new RuntimeException('Unified typography missing: '.$token);
+if(str_contains($typography,'.reader-page')||str_contains($typography,'.account-shell'))
+ throw new RuntimeException('Typography changes must not target public reader/account');
+echo "Role-aware admin navigation, uniform typography, responsive studio and bounded query contracts: OK\n";

@@ -1,0 +1,291 @@
+/* ePaper Admin typography 3.1
+ * The shared, admin-only type scale and Cloudways-inspired navigation hierarchy.
+ * Intentionally loaded after admin-beta, operations, QA, studio and sidebar CSS.
+ * Role authorization, routes, reader and account pages are unchanged.
+ */
+body.admin-shell {
+  --admin-font:Inter,"Segoe UI",ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,Arial,sans-serif;
+  --admin-text-body:14px;
+  --admin-text-navigation:14px;
+  --admin-text-label:13px;
+  --admin-text-secondary:12.5px;
+  --admin-text-caption:12px;
+  --admin-text-button:13.5px;
+  --admin-heading-card:19px;
+  --admin-heading-section:22px;
+  --admin-heading-page:clamp(28px,2.5vw,36px);
+  --admin-line-body:1.55;
+  --admin-line-heading:1.23;
+  --admin-weight-regular:400;
+  --admin-weight-medium:500;
+  --admin-weight-semibold:600;
+  --admin-weight-bold:700;
+  --console-sidebar:268px;
+  font-family:var(--admin-font);
+  font-size:var(--admin-text-body);
+  line-height:var(--admin-line-body);
+  font-weight:var(--admin-weight-regular);
+  font-synthesis:none;
+  -webkit-font-smoothing:antialiased;
+  text-rendering:optimizeLegibility;
+}
+body.admin-shell button,
+body.admin-shell input,
+body.admin-shell select,
+body.admin-shell textarea,
+body.admin-shell table {
+  font-family:inherit;
+  letter-spacing:normal;
+}
+body.admin-shell :where(p,ul,ol,dl,blockquote) {line-height:var(--admin-line-body)}
+body.admin-shell :where(.workspace-main,.app-sidebar) {min-width:0}
+body.admin-shell :where(.workspace-main h1,.qa-page-head h1) {
+  font-size:var(--admin-heading-page);
+  line-height:1.16;
+  font-weight:700;
+  letter-spacing:-.035em;
+}
+body.admin-shell :where(.workspace-main h2,.section-head h2,.qa-section-head h2,.editorial-actions-heading h2) {
+  font-size:var(--admin-heading-section);
+  line-height:var(--admin-line-heading);
+  font-weight:700;
+  letter-spacing:-.025em;
+}
+body.admin-shell :where(.workspace-main h3,.editorial-action-head h3,.qa-card h3) {
+  font-size:var(--admin-heading-card);
+  line-height:1.32;
+  font-weight:650;
+  letter-spacing:-.015em;
+}
+body.admin-shell .admin-head h1,
+body.admin-shell .qa-page-head h1 {font-size:var(--admin-heading-page)}
+body.admin-shell .admin-head p,
+body.admin-shell .qa-page-head p {
+  font-size:var(--admin-text-body);
+  line-height:var(--admin-line-body);
+}
+body.admin-shell .eyebrow,
+body.admin-shell .studio-section-kicker,
+body.admin-shell .studio-eyebrow,
+body.admin-shell .qa-section-head .eyebrow,
+body.admin-shell .nav-group-label {
+  font-size:var(--admin-text-caption);
+  letter-spacing:.075em;
+  font-weight:650;
+}
+body.admin-shell .workspace-main :where(.section-head,.panel) h2,
+body.admin-shell .desk-editions .section-head h2,
+body.admin-shell .desk-bottom .section-head h2,
+body.admin-shell .desk-attention .section-head h2,
+body.admin-shell .qa-section-head h2,
+body.admin-shell .editorial-actions-heading h2 {
+  font-size:var(--admin-heading-section)!important;
+  line-height:1.25;
+  font-weight:700;
+}
+body.admin-shell .workspace-main :where(.section-head,.admin-head,.qa-section-head) p,
+body.admin-shell .qa-panel p,
+body.admin-shell .qa-card-copy p,
+body.admin-shell .editorial-action-description,
+body.admin-shell .desk-alert p {
+  font-size:var(--admin-text-secondary);
+  line-height:var(--admin-line-body);
+}
+body.admin-shell .workspace-main :where(.panel,.record-row,.record-stack,.detail-metric,.qa-panel,.qa-card) {
+  font-size:var(--admin-text-body);
+  line-height:var(--admin-line-body);
+}
+body.admin-shell .workspace-main :where(.muted,small,.hint,.helper-text,.desk-checked),
+body.admin-shell .section-head p,
+body.admin-shell .record-row p,
+body.admin-shell .record-row small,
+body.admin-shell .kpi small {
+  font-size:var(--admin-text-secondary);
+  line-height:1.5;
+}
+body.admin-shell .workspace-main :where(.record-row,.semantic-admin-card,.desk-alert) strong {
+  font-size:var(--admin-text-body);
+  font-weight:var(--admin-weight-semibold);
+  line-height:1.4;
+}
+/* Buttons, inline links and action affordances use a single readable size. */
+body.admin-shell .workspace-main :where(.btn,.text-btn,.record-action,.desk-shortcuts a,.studio-button,.launchpad-quick>a,.launchpad-item>a),
+body.admin-shell .header-actions :where(.btn,.text-link,.console-health-link),
+body.admin-shell :where(.console-create,.console-create-inline,.edition-reprocess-primary) {
+  font-size:var(--admin-text-button)!important;
+  font-weight:var(--admin-weight-semibold);
+  line-height:1.35;
+}
+body.admin-shell .workspace-main .btn,
+body.admin-shell .header-actions .btn {min-height:40px}
+body.admin-shell .workspace-main :where(.status,.pill,.editorial-action-badge,.readiness-badge,.role-pill,.editorial-action-caption),
+body.admin-shell .qa-dashboard :where(.qa-badge,.qa-state,.qa-chip) {
+  font-size:var(--admin-text-caption)!important;
+  font-weight:650;
+  letter-spacing:0;
+  line-height:1.35;
+}
+body.admin-shell .workspace-main :where(label,legend,.form-stack label,.form-grid label,.processing-settings-grid label) {
+  font-size:var(--admin-text-label)!important;
+  line-height:1.45;
+  font-weight:var(--admin-weight-medium);
+}
+body.admin-shell .workspace-main :where(input:not([type=hidden]),select,textarea),
+body.admin-shell .admin-sidebar-search input[type=search] {
+  font-size:var(--admin-text-body)!important;
+  line-height:1.45;
+}
+body.admin-shell .workspace-main :where(input:not([type=hidden]),select) {min-height:41px!important}
+body.admin-shell .workspace-main textarea {line-height:1.6}
+body.admin-shell .workspace-main :where(input,select,textarea)::placeholder,
+body.admin-shell .admin-sidebar-search input::placeholder {color:var(--console-muted);opacity:1}
+/* Tables: headings and data share a clean type hierarchy across editions, QA, processing and settings. */
+body.admin-shell .workspace-main :where(.table-wrap,.editions-table-wrap,.processing-table) th,
+body.admin-shell .editions-table th,
+body.admin-shell .qa-dashboard table th {
+  font-size:var(--admin-text-label)!important;
+  font-weight:650;
+  letter-spacing:0;
+  line-height:1.45;
+}
+body.admin-shell .workspace-main :where(.table-wrap,.editions-table-wrap,.processing-table) td,
+body.admin-shell .editions-table td,
+body.admin-shell .qa-dashboard table td {
+  font-size:var(--admin-text-body)!important;
+  line-height:1.5;
+}
+body.admin-shell .edition-identity strong {font-size:var(--admin-text-body);font-weight:650}
+body.admin-shell .edition-identity :where(small,span),
+body.admin-shell .edition-status-note {font-size:var(--admin-text-secondary);line-height:1.5}
+body.admin-shell .workspace-main :where(.kpi,.desk-metric) span {font-size:var(--admin-text-label)}
+body.admin-shell .workspace-main :where(.kpi,.desk-metric) strong {font-variant-numeric:tabular-nums}
+body.admin-shell .workspace-main .studio-metrics .studio-metric-label {font-size:var(--admin-text-label)}
+body.admin-shell .workspace-main .studio-metrics .desk-metric small {font-size:var(--admin-text-caption)}
+body.admin-shell .studio-hero h1 {font-size:clamp(30px,3vw,42px);line-height:1.13}
+body.admin-shell .studio-hero p {font-size:var(--admin-text-body);line-height:1.55}
+body.admin-shell .studio-hero .studio-eyebrow {color:#dce8ff}
+body.admin-shell .editorial-action-head h3 {font-size:17px;font-weight:650}
+body.admin-shell .editorial-action-list :where(strong,.editorial-action-open) {font-size:var(--admin-text-label)}
+body.admin-shell .editorial-action-list small,
+body.admin-shell .editorial-action-footnote {font-size:var(--admin-text-secondary)}
+body.admin-shell .admin-launchpad .launchpad-head h2 {font-size:var(--admin-heading-section)}
+body.admin-shell .admin-launchpad :where(.launchpad-item-text strong,.launchpad-head p,.launchpad-quick>a) {
+  font-size:var(--admin-text-label)
+}
+body.admin-shell .admin-launchpad .launchpad-item-text small {font-size:var(--admin-text-secondary)}
+body.admin-shell .qa-dashboard :where(.qa-panel h2,.qa-card h2) {font-size:var(--admin-heading-card)}
+body.admin-shell .qa-dashboard .qa-section-head h2 {font-size:var(--admin-heading-section)}
+body.admin-shell .qa-dashboard :where(.qa-panel a,.qa-card a) {font-size:var(--admin-text-label)}
+/* Cloudways-inspired navigation: consistent parent/child sizes, icons, guide rail and selection. */
+body.admin-shell .app-sidebar {padding-inline:12px}
+body.admin-shell .sidebar-context.admin-sidebar-identity {gap:10px;padding-bottom:14px}
+body.admin-shell .admin-sidebar-brand-copy strong {font-size:14px;font-weight:700;letter-spacing:-.015em}
+body.admin-shell .admin-sidebar-brand-copy small {font-size:var(--admin-text-caption)}
+body.admin-shell .admin-sidebar-search input[type=search] {min-height:42px!important;padding-left:35px!important}
+body.admin-shell .admin-sidebar-nav {gap:3px;padding:0 0 12px}
+body.admin-shell .admin-sidebar-nav .nav-section-title {
+  min-height:43px;
+  padding:10px 11px;
+  margin:0;
+  border-radius:9px;
+  color:var(--console-text);
+  font-size:var(--admin-text-navigation);
+  letter-spacing:0;
+  font-weight:var(--admin-weight-medium);
+  line-height:1.35;
+  transition:background .14s ease,color .14s ease;
+}
+body.admin-shell .admin-sidebar-nav .nav-section-title:hover,
+body.admin-shell .admin-sidebar-nav .nav-section[open]>.nav-section-title {
+  background:transparent;
+  color:var(--console-text);
+}
+body.admin-shell .admin-sidebar-nav .nav-section.is-active>.nav-section-title {color:var(--console-accent)}
+body.admin-shell .admin-sidebar-nav .nav-section-label {gap:12px}
+body.admin-shell .admin-sidebar-nav .nav-section-mark {
+  display:inline-grid;
+  place-items:center;
+  flex:0 0 20px;
+  width:20px;height:20px;
+  color:var(--console-muted)
+}
+body.admin-shell .admin-sidebar-nav .nav-section-mark svg,
+body.admin-shell .admin-sidebar-nav .admin-nav-icon svg {width:19px;height:19px;stroke-width:1.75}
+body.admin-shell .admin-sidebar-nav .nav-section.is-active .nav-section-mark {color:var(--console-accent)}
+body.admin-shell .admin-sidebar-nav .nav-section-heading {
+  font-size:var(--admin-text-navigation);
+  line-height:1.4;
+  font-weight:var(--admin-weight-medium);
+  letter-spacing:0;
+  text-transform:none;
+}
+body.admin-shell .admin-sidebar-nav .nav-section-chevron {color:var(--console-muted)}
+body.admin-shell .admin-sidebar-nav .nav-section-chevron svg {width:15px;height:15px}
+body.admin-shell .admin-sidebar-nav .nav-group {
+  margin:0 0 10px 21px;
+  padding:3px 0 3px 14px;
+  border-left:1px solid var(--console-border-strong);
+  gap:3px
+}
+body.admin-shell .admin-sidebar-nav .app-nav-link {
+  gap:12px;
+  min-height:42px;
+  padding:9px 10px!important;
+  border-radius:9px!important;
+  color:var(--console-text)!important;
+  font-size:var(--admin-text-navigation);
+  font-weight:var(--admin-weight-medium);
+  line-height:1.4;
+}
+body.admin-shell .admin-sidebar-nav .app-nav-link .admin-nav-text,
+body.admin-shell .admin-sidebar-nav .app-nav-link>span:last-child {
+  font-size:var(--admin-text-navigation);
+  font-weight:var(--admin-weight-medium);
+  line-height:1.4;
+  letter-spacing:0
+}
+body.admin-shell .admin-sidebar-nav .admin-nav-icon {
+  flex:0 0 20px;
+  width:20px;height:20px
+}
+body.admin-shell .admin-sidebar-nav .app-nav-link:hover {
+  background:var(--console-surface-soft)!important;
+  color:var(--console-accent)!important;
+}
+body.admin-shell .admin-sidebar-nav .app-nav-link.active {
+  background:#f3f2fb!important;
+  color:#4046c4!important;
+  box-shadow:none;
+}
+body.admin-shell.dark .admin-sidebar-nav .app-nav-link.active {
+  background:var(--console-accent-soft)!important;
+  color:var(--console-accent)!important;
+}
+body.admin-shell .admin-sidebar-nav .app-nav-link.active .admin-nav-text {font-weight:650}
+body.admin-shell .admin-sidebar-nav .app-nav-link.active .admin-nav-icon {color:currentColor}
+body.admin-shell .admin-sidebar-account-copy strong {font-size:var(--admin-text-label);font-weight:650}
+body.admin-shell .admin-sidebar-account-copy small {font-size:var(--admin-text-caption)}
+/* Keep the icon-only desktop rail and touch navigation intact. */
+@media(min-width:1001px){
+  body.admin-shell.admin-nav-collapsed {--console-sidebar:76px}
+  body.admin-shell.admin-nav-collapsed .admin-sidebar-nav .nav-section-mark {display:grid}
+  body.admin-shell.admin-nav-collapsed .admin-sidebar-nav .nav-section-title {height:43px}
+}
+@media (max-width:1180px) and (min-width:1001px){
+  body.admin-shell:not(.admin-nav-collapsed) {--console-sidebar:246px}
+}
+@media(max-width:1000px){
+  body.admin-shell .app-sidebar {padding-inline:12px}
+  body.admin-shell .admin-sidebar-nav .nav-section-mark {display:inline-grid}
+}
+@media(max-width:560px){
+  body.admin-shell {--admin-heading-section:20px;--admin-heading-page:28px}
+  body.admin-shell .workspace-main :where(.table-wrap,.editions-table-wrap) td::before {
+    font-size:var(--admin-text-caption);
+    line-height:1.3
+  }
+  body.admin-shell .workspace-main :where(.section-head,.qa-section-head) h2 {font-size:var(--admin-heading-section)!important}
+}
+@media(prefers-reduced-motion:reduce){
+  body.admin-shell .admin-sidebar-nav .nav-section-title {transition:none}
+}
