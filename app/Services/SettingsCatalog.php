@@ -95,6 +95,7 @@ final class SettingsCatalog
                     'reader.theme' => ['Reader theme','select','Newsstand Replica',['Newsstand Replica','Editorial Luxe','Metro Pulse','Heritage Press','Apple Editorial','Default']],
                     'reader.default_fit' => ['Default fit','select','page',['page','width']],
                     'reader.default_view' => ['Default reader view','select','flip',['flip','page','continuous']],
+                    'reader.swipe_animation' => ['Animated swipe effect (Page mode)','select','on',['on','off']],
                     'reader.flip_desktop_spread' => ['Flip: desktop two-page spread','select','on',['on','off']],
                     'reader.flip_tablet_spread' => ['Flip: tablet landscape spread','select','on',['on','off']],
                     'reader.flip_shadow' => ['Flip: realistic paper shadow','select','on',['on','off']],

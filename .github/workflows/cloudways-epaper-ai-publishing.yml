@@ -92,6 +92,7 @@ jobs:
           node --check public_html/assets/reader.js
           node --check public_html/assets/reader-swipe-feedback.js
           php tests/reader-swipe-feedback-contract.php
+          php tests/reader-swipe-setting-contract.php
           php tests/clip-ui-compact-contract.php
           node --check public_html/assets/app.js
           node --check public_html/assets/manual-clipping.js
