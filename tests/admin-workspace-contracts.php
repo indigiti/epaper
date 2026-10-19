@@ -23,6 +23,12 @@ foreach(['/admin/system/infrastructure','/admin/access','/admin/plans','/admin/s
  if(in_array($href,$routes($operator),true))throw new RuntimeException('Operator saw prohibited admin shortcut: '.$href);
 }
 if(in_array('/admin/editions',$routes($operator),true))throw new RuntimeException('Operator received edition creation tools');
+if(!in_array('/admin/audit',$routes($owner),true))throw new RuntimeException('Audit Trail must remain discoverable');
+if(in_array('/admin/audit',$routes($editor),true)||in_array('/admin/audit',$routes($operator),true))
+ throw new RuntimeException('Audit Trail cannot appear in unauthorized navigation');
+if(!in_array('/admin/manual-clipping',$routes($editor),true))throw new RuntimeException('Clip Marking must stay in primary navigation');
+if(!isset($owner['ADVANCED'])||!in_array('/admin/system/recovery',$routes($owner),true))
+ throw new RuntimeException('Advanced recovery tools were removed instead of reorganized');
 if(in_array('/admin/ai-review',$routes($noAi),true))throw new RuntimeException('Disabled AI is still advertised');
 if(!in_array('/admin/ai-clipping',$routes($noAi),true))throw new RuntimeException('Readiness is hidden with AI disabled');
 if(in_array('/admin/ai-clipping',$routes($operator),true))throw new RuntimeException('Operator received editorial AI readiness');
@@ -50,9 +56,9 @@ if(!str_contains($workspace,'data-admin-launchpad') ||
    !str_contains($workspace,'/admin/editions'))
  throw new RuntimeException('Launcher role filtering is inconsistent with sidebar');
 $studioCss=(string)file_get_contents($root.'/public_html/assets/admin-studio.css');
-foreach(['OVERVIEW','PUBLISHING','AI & EDITORIAL','READER & AUDIENCE','MANAGE','OPERATIONS','ACCOUNT'] as $section)
+foreach(['OVERVIEW','PUBLISHING','EDITORIAL','DISCOVERY','AUDIENCE','SETTINGS','OPERATIONS','ADVANCED','ACCOUNT'] as $section)
  if(!isset($owner[$section]))throw new RuntimeException('Missing studio workspace '.$section);
-if(isset($operator['AI & EDITORIAL'])||isset($operator['PUBLISHING']))
+if(isset($operator['EDITORIAL'])||isset($operator['PUBLISHING']))
  throw new RuntimeException('Operator received editor-only studio navigation');
 if(!str_contains($view,"Build::asset('/assets/admin-studio.css')"))
  throw new RuntimeException('Studio stylesheet is not loaded after the admin base');
