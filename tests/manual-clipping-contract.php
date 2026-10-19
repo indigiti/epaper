@@ -68,6 +68,27 @@ if(substr_count($rendered,'class="manual-edition-card active"')!==1 ||
    !str_contains($rendered,'/admin/manual-clipping/'.$pageGuid) ||
    !str_contains($rendered,'Page 1'))
  throw new RuntimeException('Edition page picker rendering contract failed');
+
+// Headline is optional only for editor-created Clip Marking outlines, not semantic articles.
+$markService=\EpaperSaas\Services\ManualClipMarking::class;
+if($markService::normalizeTitle('')!=='Untitled article' ||
+   $markService::normalizeTitle(" \t\n")!=='Untitled article' ||
+   $markService::normalizeTitle('  Sample story  ')!=='Sample story' ||
+   $markService::normalizeTitle(str_repeat('a',180))!==str_repeat('a',180))
+ throw new RuntimeException('Clip Marking optional-headline fallback is incorrect');
+try{$markService::normalizeTitle(str_repeat('b',181));throw new RuntimeException('Overlong headline accepted');}
+catch(\InvalidArgumentException){}
+if(!str_contains($ui,'Headline (optional)') ||
+   !str_contains($ui,'placeholder="Leave blank for Untitled article"') ||
+   str_contains($ui,'name="title" maxlength="180" required'))
+ throw new RuntimeException('Clip Marking view still requires a headline');
+if(str_contains($js,'!headline?.value.trim()') ||
+   !str_contains($js,'Add a headline if desired') ||
+   !str_contains($js,'if(!valid(parse()))'))
+ throw new RuntimeException('Clip Marking browser still requires headline');
+if(!str_contains($clip, "if($title==='')$title='News clipping'"))
+ throw new RuntimeException('Private clip title fallback lost');
+
 $mark=$read('app/Services/ManualClipMarking.php');
 $migration=$read('database/upgrade-v2.0.2.2-clip-marking.sql');
 $schemaDoc=$read('app/Services/SchemaDoctor.php');
@@ -132,4 +153,29 @@ if(!str_contains($css,'.manual-resize-handle') ||
    !str_contains($css,'.manual-quick-save') ||
    !str_contains($css,'.manual-existing-mark.is-editable'))
  throw new RuntimeException('Area mapper CSS missing');
+
+// Remove must be an audited soft delete; never purge stored clips or cross tenant boundaries.
+foreach([
+ 'function remove(string $pageGuid,string $markGuid): void',
+ 'status="DELETED"','clip_mark.removed',
+ 'Editors may remove only their own outlines',
+ 'status IN ("ACTIVE","HIDDEN")',
+ 'AND m.status="ACTIVE"',
+ 'Editors may edit only their own outlines',
+ 'Editors may change only their own markings',
+] as $tok)if(!str_contains($mark,$tok))throw new RuntimeException('Secure removal contract missing: '.$tok);
+if(!str_contains($mark,"FROM ep_clip_marks WHERE tenant_guid=? AND page_guid=? AND status IN") ||
+   str_contains($mark,'DELETE FROM ep_clip_marks'))
+ throw new RuntimeException('Removed marks still listed, or deleted from database');
+foreach(['self::removeMark','ManualClipMarking::remove','?mark=removed',"/remove$#i",
+ 'self::limitActions'] as $tok)
+ if(!str_contains($controller,$tok))throw new RuntimeException('Remove route missing '.$tok);
+foreach(['manual-mark-remove','data-confirm="Remove this marked article',
+    "'.View::e($id).'/remove","name=\"_csrf\""] as $tok)
+ if(!str_contains($ui,$tok))throw new RuntimeException('Remove action UI/CSRF contract missing: '.$tok);
+if(!str_contains($read('public_html/assets/crud.js'),'form.dataset.confirm'))
+ throw new RuntimeException('Removal confirmation hook not connected');
+if(!str_contains($css,'.manual-mark-actions'))
+ throw new RuntimeException('Marked article actions not responsive');
+
 echo "Clip marking and on-demand reader clipping contracts: OK\n";
