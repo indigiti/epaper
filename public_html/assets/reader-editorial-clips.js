@@ -6,22 +6,15 @@
  const root=document.getElementById('reader');
  if(!root)return;
  const doc=root.querySelector('[data-document]');
- const header=root.querySelector('.reader-header-actions');
- if(!doc||!header)return;
+ if(!doc)return;
  const cache=new Map();
+ // Approved Clip Marking outlines appear automatically, without an Articles toolbar control.
+ // Retain the programmatic setter for other Reader components, not for toolbar UI.
  let enabled=true;
- const toggle=document.createElement('button');
- toggle.type='button';toggle.className='reader-header-tool reader-editorial-toggle';
- toggle.setAttribute('aria-pressed','true');toggle.setAttribute('aria-label','Hide published article outlines');
- toggle.title='Show / hide published clippings';
- toggle.textContent='Articles';
- header.insertBefore(toggle,header.firstChild);
  function setEnabled(value){
-   enabled=!!value;toggle.setAttribute('aria-pressed',String(enabled));
-   toggle.setAttribute('aria-label',enabled?'Hide published article outlines':'Show published article outlines');
+   enabled=!!value;
    root.querySelectorAll('.reader-editorial-layer').forEach(x=>{x.hidden=!enabled});
  }
- toggle.addEventListener('click',()=>setEnabled(!enabled));
  const validGuid=s=>typeof s==='string'&&/^[0-9a-f-]{36}$/i.test(s);
  const validClip=c=>c&&typeof c.title==='string'&&
    ['x','y','w','h'].every(k=>Number.isFinite(Number(c[k])))&&
