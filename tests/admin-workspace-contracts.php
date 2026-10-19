@@ -60,4 +60,16 @@ foreach(['studio-hero','studio-content-grid','studio-metrics','studio-section-ki
  if(!str_contains($studioCss,$token))throw new RuntimeException('Missing responsive studio styles: '.$token);
 foreach(['studio-hero','studio-content-grid','EditorialActionView::render','AdminWorkspace::render'] as $token)
  if(!str_contains($app,$token))throw new RuntimeException('Dashboard studio integration missing '.$token);
+$sideCss=(string)file_get_contents($root.'/public_html/assets/admin-sidebar.css');
+$sideJs=(string)file_get_contents($root.'/public_html/assets/admin-sidebar.js');
+foreach(["Build::asset('/assets/admin-sidebar.css')","Build::asset('/assets/admin-sidebar.js')",
+          'data-admin-sidebar-collapse','data-admin-nav-search','data-admin-nav-section',
+          'admin-sidebar-account','aria-current="page"'] as $token)
+ if(!str_contains($view,$token))throw new RuntimeException('Missing collapsible sidebar view: '.$token);
+foreach(['--console-sidebar:76px','@media(min-width:1001px)','@media(max-width:1000px)',
+          '.admin-sidebar-nav','admin-nav-collapsed','admin-sidebar-search-expand'] as $token)
+ if(!str_contains($sideCss,$token))throw new RuntimeException('Missing desktop/mobile sidebar styles: '.$token);
+foreach(['tenantGuid','userGuid','adminNavRole','localStorage','setCollapsed','data-admin-nav-section',
+          'beforeSearch','matchMedia','aria-expanded'] as $token)
+ if(!str_contains($sideJs,$token))throw new RuntimeException('Missing scoped sidebar interaction: '.$token);
 echo "Role-aware admin navigation, responsive studio and bounded query contracts: OK\n";

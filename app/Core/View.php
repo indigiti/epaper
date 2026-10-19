@@ -57,32 +57,66 @@ final class View
         $groups=\EpaperSaas\Services\AdminFeatureCatalog::groups(
             $role,\EpaperSaas\Services\AiCandidatePipeline::enabled(),$canInfra
         );
-        $html='<div class="sidebar-context"><span class="eyebrow">PUBLISHER WORKSPACE</span>'
-            .'<strong>'.self::e(RequestContext::get('tenant_name')?:'ePaper SaaS').'</strong>'
-            .'<span class="role-pill">'.self::e(str_replace('_',' ',$role)).'</span></div>'
-            .'<nav class="app-nav grouped-nav grouped-nav-compact" aria-label="Publisher operations console">';
-        $sectionIcons=['OVERVIEW'=>'dashboard','PUBLISHING'=>'pages','AI & EDITORIAL'=>'clip',
-            'READER & AUDIENCE'=>'user','MANAGE'=>'settings','OPERATIONS'=>'activity','ACCOUNT'=>'user'];
+        $tenant=(string)(RequestContext::get('tenant_name')?:'ePaper SaaS');
+        $user=Auth::user()??[];
+        $displayName=trim((string)($user['display_name']??$user['full_name']??$user['name']??''));
+        $email=trim((string)($user['email']??''));
+        if($displayName==='')$displayName=$email!==''?$email:'My account';
+        $sectionIcons=['OVERVIEW'=>'dashboard','PUBLISHING'=>'newspaper','AI & EDITORIAL'=>'scan-text',
+            'READER & AUDIENCE'=>'user','MANAGE'=>'settings','OPERATIONS'=>'activity'];
+        $html='<div class="sidebar-context admin-sidebar-identity">'
+            .'<span class="admin-sidebar-emblem" aria-hidden="true">'.self::icon('newspaper').'</span>'
+            .'<span class="admin-sidebar-brand-copy"><strong>'.self::e($tenant).'</strong>'
+            .'<small>Publishing Studio</small></span>'
+            .'<button type="button" class="admin-sidebar-collapse" data-admin-sidebar-collapse'
+            .' aria-label="Collapse navigation" aria-expanded="true" aria-controls="admin-side-sections"'
+            .' title="Collapse sidebar">'.self::icon('chev-left').'</button></div>'
+            .'<div class="admin-sidebar-search">'
+            .'<label class="sr-only" for="admin-nav-search">Search publisher modules</label>'
+            .'<span class="admin-sidebar-search-icon" aria-hidden="true">'.self::icon('search').'</span>'
+            .'<input type="search" id="admin-nav-search" data-admin-nav-search'
+            .' placeholder="Search modules" autocomplete="off" spellcheck="false">'
+            .'<kbd aria-hidden="true">/</kbd>'
+            .'<button type="button" class="admin-sidebar-search-expand" data-admin-nav-search-expand'
+            .' aria-label="Expand sidebar and search modules" title="Search modules">'
+            .self::icon('search').'</button></div>'
+            .'<nav id="admin-side-sections" class="app-nav grouped-nav grouped-nav-compact admin-sidebar-nav"'
+            .' aria-label="Publisher administration" data-admin-sidebar-nav data-admin-nav-role="'.self::e($role).'">';
         foreach($groups as $group=>$items){
+            if($group==='ACCOUNT')continue; // Account remains accessible in the pinned sidebar footer.
             $active=false;
             foreach($items as $item){
                 $url=$item[1];
-                if($current===$url || ($url!=='/admin'&&str_starts_with($current,$url.'/'))){$active=true;break;}
+                if($current===$url || ($url!=='/admin'&&str_starts_with($current,$url.'/'))){
+                    $active=true;break;
+                }
             }
-            $html.='<details class="nav-section"'.(($group==='OVERVIEW'||$active)?' open':'').'>'
-                .'<summary class="nav-section-title"><span class="nav-section-label"><span class="nav-section-mark" aria-hidden="true">'.self::icon($sectionIcons[$group]??'pages').'</span>'.self::e($group).'</span>'
-                .'<span class="nav-section-count">'.count($items).'</span></summary>'
+            $html.='<details class="nav-section'.($active?' is-active':'').'"'
+                .' data-admin-nav-section="'.self::e($group).'"'.(($group==='OVERVIEW'||$active)?' open':'').'>'
+                .'<summary class="nav-section-title" title="Open '.self::e(ucwords(strtolower($group))).' navigation">'
+                .'<span class="nav-section-label"><span class="nav-section-mark" aria-hidden="true">'
+                .self::icon($sectionIcons[$group]??'pages').'</span>'
+                .'<span class="nav-section-heading">'.self::e($group).'</span></span>'
+                .'<span class="nav-section-chevron" aria-hidden="true">'.self::icon('chev-down').'</span></summary>'
                 .'<div class="nav-group">';
             foreach($items as [$label,$url,$hint,$icon]){
                 $selected=$current===$url||($url!=='/admin'&&str_starts_with($current,$url.'/'));
                 $html.='<a class="app-nav-link'.($selected?' active':'').'" href="'.self::e($url).'"'
-                    .($selected?' aria-current="page"':'').'>'
+                    .($selected?' aria-current="page"':'')
+                    .' title="'.self::e($label).'">'
                     .'<span class="admin-nav-icon" aria-hidden="true">'.self::icon($icon).'</span>'
-                    .'<span>'.self::e($label).'</span></a>';
+                    .'<span class="admin-nav-text">'.self::e($label).'</span></a>';
             }
             $html.='</div></details>';
         }
-        return $html.'</nav>';
+        $html.='</nav><p class="admin-sidebar-empty" data-admin-sidebar-empty hidden>'
+            .'No matching modules for your role.</p>'
+            .'<a class="admin-sidebar-account" href="/admin/account" title="My account">'
+            .'<span class="admin-sidebar-avatar" aria-hidden="true">'.self::icon('user').'</span>'
+            .'<span class="admin-sidebar-account-copy"><strong>'.self::e($displayName).'</strong>'
+            .'<small>'.self::e($email!==''?$email:str_replace('_',' ',$role)).'</small></span>'
+            .'<span class="admin-sidebar-account-arrow" aria-hidden="true">'.self::icon('chev-right').'</span></a>';
+        return $html;
     }
     private static function accountNav(): string
     {
@@ -229,7 +263,7 @@ final class View
         // Anonymous public pages stay session-free. CSRF state is created lazily only
         // when a public interaction actually performs a state-changing API request.
         $bootCsrf=($workspace||$auth)?Http::csrf():(string)($_SESSION['_csrf']??'');
-        echo '<!doctype html><html lang="'.self::e($lang).'"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="color-scheme" content="light dark"><meta name="theme-color" content="'.self::e($accent).'"><title>'.self::e($title).' · '.self::e($brand).($titleSuffix!==''?' · '.self::e($titleSuffix):'').'</title>'.($seo?'<meta name="description" content="'.self::e($seo).'">':'').'<meta name="robots" content="'.self::e($robots).'"><meta property="og:type" content="'.self::e($ogType).'"><meta property="og:title" content="'.self::e($ogTitle).'">'.($ogDescription!==''?'<meta property="og:description" content="'.self::e($ogDescription).'"><meta name="twitter:description" content="'.self::e($ogDescription).'">':'').($canonicalUrl!==''?'<link rel="canonical" href="'.self::e($canonicalUrl).'"><meta property="og:url" content="'.self::e($canonicalUrl).'">':'').$alternateHtml.$articleMeta.($socialImage?'<meta property="og:image" content="'.self::e($socialImage).'"><meta property="og:image:alt" content="'.self::e($socialImageAlt).'"><meta name="twitter:card" content="summary_large_image"><meta name="twitter:title" content="'.self::e($ogTitle).'"><meta name="twitter:image" content="'.self::e($socialImage).'"><meta name="twitter:image:alt" content="'.self::e($socialImageAlt).'">':'').($favicon?'<link rel="icon" href="'.self::e($favicon).'">':'').($appleTouch?'<link rel="apple-touch-icon" href="'.self::e($appleTouch).'">':'').$jsonLd.'<link rel="manifest" href="/manifest.webmanifest?v='.self::e(Build::version()).'"><link rel="stylesheet" href="'.self::e(Build::asset('/assets/app.css')).'">'.($admin?'<link rel="stylesheet" href="'.self::e(Build::asset('/assets/admin-beta.css')).'"><link rel="stylesheet" href="'.self::e(Build::asset('/assets/admin-operations.css')).'"><link rel="stylesheet" href="'.self::e(Build::asset('/assets/staging-qa.css')).'"><link rel="stylesheet" href="'.self::e(Build::asset('/assets/admin-workspace.css')).'"><link rel="stylesheet" href="'.self::e(Build::asset('/assets/editorial-actions.css')).'"><link rel="stylesheet" href="'.self::e(Build::asset('/assets/admin-studio.css')).'">':'').($account?'<link rel="stylesheet" href="'.self::e(Build::asset('/assets/account-beta.css')).'">':'').($auth?'<link rel="stylesheet" href="'.self::e(Build::asset('/assets/auth-clean-final-v2.css')).'">':'').($reader?'<link rel="stylesheet" href="'.self::e(Build::asset('/assets/reader.css')).'">':'').'</head><body class="'.($admin?'admin-shell':($account?'account-shell':($reader?'reader-page':($auth?'auth-shell':'public-shell')))).' '.self::e($themeClass).' density-'.self::e(preg_replace('/[^a-z0-9_-]+/i','-',strtolower($density))).($adminColorMode==='dark'?' dark':'').($readerHasEditionStrip?' reader-has-edition-switcher':'').'" style="--brand-accent:'.self::e($accent).'" data-theme-name="'.self::e($theme).'" data-admin-color-mode="'.self::e($adminColorMode).'" data-public-color-mode="'.self::e($publicColorMode).'" data-public-theme-switcher="'.($publicThemeSwitcher?'on':'off').'" data-tenant-guid="'.self::e((string)(RequestContext::get('tenant_guid')??'')).'" data-user-guid="'.self::e((string)($user['user_guid']??'guest')).'">';
+        echo '<!doctype html><html lang="'.self::e($lang).'"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="color-scheme" content="light dark"><meta name="theme-color" content="'.self::e($accent).'"><title>'.self::e($title).' · '.self::e($brand).($titleSuffix!==''?' · '.self::e($titleSuffix):'').'</title>'.($seo?'<meta name="description" content="'.self::e($seo).'">':'').'<meta name="robots" content="'.self::e($robots).'"><meta property="og:type" content="'.self::e($ogType).'"><meta property="og:title" content="'.self::e($ogTitle).'">'.($ogDescription!==''?'<meta property="og:description" content="'.self::e($ogDescription).'"><meta name="twitter:description" content="'.self::e($ogDescription).'">':'').($canonicalUrl!==''?'<link rel="canonical" href="'.self::e($canonicalUrl).'"><meta property="og:url" content="'.self::e($canonicalUrl).'">':'').$alternateHtml.$articleMeta.($socialImage?'<meta property="og:image" content="'.self::e($socialImage).'"><meta property="og:image:alt" content="'.self::e($socialImageAlt).'"><meta name="twitter:card" content="summary_large_image"><meta name="twitter:title" content="'.self::e($ogTitle).'"><meta name="twitter:image" content="'.self::e($socialImage).'"><meta name="twitter:image:alt" content="'.self::e($socialImageAlt).'">':'').($favicon?'<link rel="icon" href="'.self::e($favicon).'">':'').($appleTouch?'<link rel="apple-touch-icon" href="'.self::e($appleTouch).'">':'').$jsonLd.'<link rel="manifest" href="/manifest.webmanifest?v='.self::e(Build::version()).'"><link rel="stylesheet" href="'.self::e(Build::asset('/assets/app.css')).'">'.($admin?'<link rel="stylesheet" href="'.self::e(Build::asset('/assets/admin-beta.css')).'"><link rel="stylesheet" href="'.self::e(Build::asset('/assets/admin-operations.css')).'"><link rel="stylesheet" href="'.self::e(Build::asset('/assets/staging-qa.css')).'"><link rel="stylesheet" href="'.self::e(Build::asset('/assets/admin-workspace.css')).'"><link rel="stylesheet" href="'.self::e(Build::asset('/assets/editorial-actions.css')).'"><link rel="stylesheet" href="'.self::e(Build::asset('/assets/admin-studio.css')).'"><link rel="stylesheet" href="'.self::e(Build::asset('/assets/admin-sidebar.css')).'">':'').($account?'<link rel="stylesheet" href="'.self::e(Build::asset('/assets/account-beta.css')).'">':'').($auth?'<link rel="stylesheet" href="'.self::e(Build::asset('/assets/auth-clean-final-v2.css')).'">':'').($reader?'<link rel="stylesheet" href="'.self::e(Build::asset('/assets/reader.css')).'">':'').'</head><body class="'.($admin?'admin-shell':($account?'account-shell':($reader?'reader-page':($auth?'auth-shell':'public-shell')))).' '.self::e($themeClass).' density-'.self::e(preg_replace('/[^a-z0-9_-]+/i','-',strtolower($density))).($adminColorMode==='dark'?' dark':'').($readerHasEditionStrip?' reader-has-edition-switcher':'').'" style="--brand-accent:'.self::e($accent).'" data-theme-name="'.self::e($theme).'" data-admin-color-mode="'.self::e($adminColorMode).'" data-public-color-mode="'.self::e($publicColorMode).'" data-public-theme-switcher="'.($publicThemeSwitcher?'on':'off').'" data-tenant-guid="'.self::e((string)(RequestContext::get('tenant_guid')??'')).'" data-user-guid="'.self::e((string)($user['user_guid']??'guest')).'">';
         echo '<script>(function(){try{var b=document.body;if(!b||b.classList.contains("admin-shell"))return;var allow=b.dataset.publicThemeSwitcher!=="off";var base=b.dataset.publicColorMode||"light";var tenant=b.dataset.tenantGuid||"tenant";var user=b.dataset.userGuid||"guest";var key="epaper.theme."+tenant+"."+user;var legacyUser="epaper.theme."+user;var saved=allow?(localStorage.getItem(key)||localStorage.getItem(legacyUser)||localStorage.getItem("epaper.theme")||""):"";var mode=saved||base;if(mode==="system")mode=matchMedia("(prefers-color-scheme:dark)").matches?"dark":"light";b.classList.toggle("dark",mode==="dark");}catch(e){}})();</script><a class="skip" href="#main">Skip to content</a>';
         if(!$auth)echo '<header class="site-header"><div class="site-header-inner"><a class="brand'.($logo?' brand-with-logo':'').'" href="/" aria-label="'.self::e($brand).' home">'.$mark.$brandText.'</a>'.(!$workspace?$nav:'').'<div class="header-actions">'.($workspace?'<button class="icon-btn app-nav-toggle" type="button" data-app-nav-toggle aria-label="Open navigation">'.self::icon('menu').'</button>':'').($admin?'<a class="console-health-link" href="/admin/system/health">Diagnostics</a><a class="btn primary console-create" href="/admin/editions">'.self::icon('plus').'<span>New edition</span></a><button class="icon-btn command-trigger" type="button" data-command-trigger aria-label="Open command palette" title="Command palette (Ctrl/Cmd+K)">'.self::icon('search').'</button><button class="icon-btn admin-theme-toggle" type="button" data-theme-toggle aria-label="Toggle light and dark mode" title="Toggle appearance"><span class="theme-icon theme-icon-moon">'.self::icon('moon').'</span><span class="theme-icon theme-icon-sun">'.self::icon('sun').'</span></button>':'').$publicThemeButton.$sessionActions.'</div></div></header>';
         if($readerHasEditionStrip)echo $readerEditionStrip;
@@ -240,7 +274,7 @@ final class View
         if($admin)echo self::opsHud();
         if($admin)echo '<div class="command-palette hidden" data-command-palette role="dialog" aria-modal="true" aria-label="Command palette"><div class="command-card"><div class="command-input-wrap">'.self::icon('search').'<input data-command-input placeholder="Search publisher actions…" autocomplete="off"><kbd>Esc</kbd></div><div class="command-results" data-command-results></div></div></div>';
         $scripts='<script src="'.self::e(Build::asset('/assets/app.js')).'" defer></script>';
-        if($admin)$scripts.='<script src="'.self::e(Build::asset('/assets/crud.js')).'" defer></script><script src="'.self::e(Build::asset('/assets/admin-beta.js')).'" defer></script><script src="'.self::e(Build::asset('/assets/admin-workspace.js')).'" defer></script>';
+        if($admin)$scripts.='<script src="'.self::e(Build::asset('/assets/crud.js')).'" defer></script><script src="'.self::e(Build::asset('/assets/admin-beta.js')).'" defer></script><script src="'.self::e(Build::asset('/assets/admin-workspace.js')).'" defer></script><script src="'.self::e(Build::asset('/assets/admin-sidebar.js')).'" defer></script>';
         if($user||$account||$reader)$scripts.='<script src="'.self::e(Build::asset('/assets/offline-vault.js')).'" defer></script>';
         if($reader)$scripts.='<script src="'.self::e(Build::asset('/assets/guest-clipping.js')).'" defer></script><script src="'.self::e(Build::asset('/assets/reader-prefetch.js')).'" defer></script><script src="'.self::e(Build::asset('/assets/reader.js')).'" defer></script><script src="'.self::e(Build::asset('/assets/reader-flip.js')).'" defer></script>';
         echo '<script>window.EpaperSaas={csrf:'.json_encode($bootCsrf).',requestGuid:'.json_encode(Http::requestGuid()).',version:'.json_encode(Build::version()).',tenantGuid:'.json_encode(RequestContext::get('tenant_guid')).',userGuid:'.json_encode($user['user_guid']??null).',adminThemeMode:'.json_encode($adminColorMode).',publicThemeMode:'.json_encode($publicColorMode).',publicThemeSwitcher:'.json_encode($publicThemeSwitcher?'on':'off').',rumSampleRate:'.json_encode((float)Config::get('observability.rum_sample_rate',0.10)).'}</script>'.$scripts.'</body></html>';exit;
