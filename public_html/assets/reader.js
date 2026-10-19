@@ -89,7 +89,52 @@ async function state(n,signal){const shared=window.EpaperReaderPrefetch;if(share
 function decode(src){return new Promise((res,rej)=>{const i=new Image();i.onload=async()=>{try{await i.decode?.()}catch{}res(i)};i.onerror=()=>rej(new Error('Page image failed to load'));i.src=src})}
 async function gotoPage(n,{history='push',method='control'}={}){n=clamp(+n,1,pageCount);if(n===pageNo||pagePending)return;pagePending=true;root.classList.add('is-transitioning');loading.classList.remove('hidden');navAbort?.abort();navAbort=new AbortController();const started=performance.now();try{const d=await state(n,navAbort.signal),preview=d.preview||d.image||d.highres,high=d.highres||d.image||preview,navSrc=qualityMode==='high'?high:preview;await decode(navSrc);setClipMode(false);pageNo=d.page_number;pageCount=d.page_count;pageGuid=d.page_guid;sourceW=d.width;sourceH=d.height;currentPreview=preview;currentHigh=high;root.dataset.pageGuid=pageGuid;root.dataset.pageNumber=pageNo;root.dataset.pageCount=pageCount;root.dataset.sourceWidth=sourceW;root.dataset.sourceHeight=sourceH;root.dataset.previewImage=currentPreview||'';root.dataset.highresImage=currentHigh||'';fallback.src=navSrc;fallback.alt=`Newspaper page ${pageNo}`;clearTiles(true);++tileRequest;resetPan();render(false);$('[data-page-label]').textContent=pageNo;$('[data-page-jump] input').value=pageNo;$$('.reader-thumb').forEach(a=>a.classList.toggle('active',+a.dataset.page===pageNo));const prev=$('[data-reader-prev]'),next=$('[data-reader-next]');prev.href=pageUrl(Math.max(1,pageNo-1));next.href=pageUrl(Math.min(pageCount,pageNo+1));prev.classList.toggle('disabled',pageNo<=1);next.classList.toggle('disabled',pageNo>=pageCount);if(history==='push')window.history.pushState({epaper:true,page:pageNo},'',pageUrl(pageNo));else if(history==='replace')window.history.replaceState({epaper:true,page:pageNo},'',pageUrl(pageNo));root.classList.remove('is-transitioning');root.classList.add('is-entering');setTimeout(()=>root.classList.remove('is-entering'),220);saveProgress();track('page_view',{edition_guid:editionGuid,page_guid:pageGuid,page_number:pageNo,navigation_method:method,transition_ms:Math.round(performance.now()-started),quality_mode:qualityMode});applyQuality();prefetchAdjacent();window.EpdiReaderViews?.pageChanged?.();if(isMobileReader())setPagesOpen(false,{persist:false})}catch(e){if(e.name!=='AbortError'){epaperToast?.('Opening page normally…');location.href=pageUrl(n)}}finally{loading.classList.add('hidden');root.classList.remove('is-transitioning');pagePending=false}}
 root.addEventListener('click',e=>{const a=e.target.closest('a[data-reader-page-link],a[data-reader-prev],a[data-reader-next]');if(!a||a.classList.contains('disabled'))return;const m=a.getAttribute('href')?.match(/\/page\/(\d+)/);if(!m)return;e.preventDefault();gotoPage(+m[1],{method:a.matches('[data-reader-page-link]')?'thumbnail':(+m[1]>pageNo?'next':'previous')})});$('[data-page-jump]').addEventListener('submit',e=>{e.preventDefault();gotoPage(+$('input',e.currentTarget).value,{method:'page-picker'})});history.replaceState({epaper:true,page:pageNo},'',location.href);window.addEventListener('popstate',()=>{const m=location.pathname.match(/\/page\/(\d+)/);if(m&&+m[1]!==pageNo)gotoPage(+m[1],{history:'none',method:'browser-history'})});
-let swipe=null;stage.addEventListener('touchstart',e=>{if(e.touches.length===1&&!clipMode&&!pinch)swipe={x:e.touches[0].clientX,y:e.touches[0].clientY,t:Date.now()};else swipe=null},{passive:true});stage.addEventListener('touchmove',e=>{if(e.touches.length>1)swipe=null},{passive:true});stage.addEventListener('touchend',e=>{if(!swipe||pinch||absScale()>fitPageScale()*1.18){if(e.touches.length===0)swipe=null;return}const t=e.changedTouches[0],dx=t.clientX-swipe.x,dy=t.clientY-swipe.y;if(Date.now()-swipe.t<700&&Math.abs(dx)>70&&Math.abs(dx)>Math.abs(dy)*1.3)gotoPage(pageNo+(dx<0?1:-1),{method:'swipe'});swipe=null},{passive:true});
+// One touch recognizer owns Page-mode swipes. Flip mode has its own page-turn
+// physics and Continuous mode remains scrollable; neither receives a second handler.
+const swipeFx=window.EpdiSwipeFeedback;
+let swipe=null;
+function swipeAllowed(){
+  const mode=window.EpdiReaderViews?.mode?.()||root.dataset.viewMode||root.dataset.defaultView||'page';
+  return mode==='page'&&!clipMode&&!articlePick&&!pinch&&!pagePending&&
+    absScale()<=fitPageScale()*1.18;
+}
+function clearSwipe(){swipe=null;swipeFx?.hide();}
+stage.addEventListener('touchstart',e=>{
+  if(e.touches.length!==1||!swipeAllowed()||
+    e.target.closest('button,a,input,select,textarea,[data-clip-actions],.reader-editorial-marker')){
+    clearSwipe();return;
+  }
+  swipe={x:e.touches[0].clientX,y:e.touches[0].clientY,t:Date.now()};
+},{passive:true});
+stage.addEventListener('touchmove',e=>{
+  if(!swipe)return;
+  if(e.touches.length!==1||!swipeAllowed()){clearSwipe();return;}
+  const dx=e.touches[0].clientX-swipe.x,dy=e.touches[0].clientY-swipe.y;
+  // Normal vertical scrolling, diagonal gestures and pinch never show a swipe.
+  if(Math.abs(dy)>50||Math.abs(dy)>18&&Math.abs(dy)>Math.abs(dx)*.8){
+    clearSwipe();return;
+  }
+  if(Math.abs(dx)>30&&Math.abs(dx)>Math.abs(dy)*1.3){
+    const target=pageNo+(dx<0?1:-1);
+    if(target>=1&&target<=pageCount)swipeFx?.show(dx<0?'left':'right');
+    else swipeFx?.hide();
+  }else swipeFx?.hide();
+},{passive:true});
+stage.addEventListener('touchend',e=>{
+  const gesture=swipe;swipe=null;
+  if(!gesture||!e.changedTouches.length||e.touches.length||!swipeAllowed()){
+    swipeFx?.hide();return;
+  }
+  const t=e.changedTouches[0],dx=t.clientX-gesture.x,dy=t.clientY-gesture.y;
+  const target=pageNo+(dx<0?1:-1);
+  if(Date.now()-gesture.t<700&&Math.abs(dx)>70&&Math.abs(dx)>Math.abs(dy)*1.3&&
+     target>=1&&target<=pageCount){
+    swipeFx?.commit(dx<0?'left':'right');
+    // In-app navigation reuses the existing URL/history, decoded media and caches.
+    void gotoPage(target,{method:'swipe'});
+  }else swipeFx?.hide();
+},{passive:true});
+stage.addEventListener('touchcancel',clearSwipe,{passive:true});
 root.addEventListener('keydown',e=>{activity();if(e.key==='Escape'){closeEditionMenu();if(clipModal&&!clipModal.classList.contains('hidden')){e.preventDefault();closeClipModal();return}if(articlePick){articlePick=false;stage.classList.remove('article-pick');window.EpdiReaderViews?.sync?.();return}if(!articleModal.classList.contains('hidden')){articleModal.classList.add('hidden');speechSynthesis?.cancel?.();return}if(clipMode){e.preventDefault();setClipMode(false);return}setPagesOpen(false);closeQualityMenu();return}if((e.metaKey||e.ctrlKey)&&['+','=','-','0'].includes(e.key)){e.preventDefault();if(e.key==='-')zoomAt(1/1.1);else if(e.key==='0')resetView();else zoomAt(1.1);return}if(e.key==='ArrowLeft'){e.preventDefault();gotoPage(pageNo-1,{method:'keyboard'});return}if(e.key==='ArrowRight'){e.preventDefault();gotoPage(pageNo+1,{method:'keyboard'});return}if(e.key.toLowerCase()==='c'&&clipEnabled){e.preventDefault();setClipMode(!clipMode);return}if(e.key.toLowerCase()==='a'&&articleEnabled){e.preventDefault();articlePick=true;stage.classList.add('article-pick');epaperToast?.('Tap an article area');return}if(e.key.toLowerCase()==='f'){e.preventDefault();$('[data-fullscreen]').click()}});
 $('[data-reader-share]').addEventListener('click',async()=>{const data={title:document.title,url:location.href};try{if(navigator.share)await navigator.share(data);else{await navigator.clipboard.writeText(location.href);epaperToast?.('Link copied')}track('share',{page_guid:pageGuid,edition_guid:editionGuid})}catch{}});
 function track(event,meta={}){epaperApi('/api/v1/analytics/events',{body:{event,meta}}).catch(()=>{})}
