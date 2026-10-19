@@ -1,0 +1,225 @@
+/* Compact clipping controls v1: Reader dialog and public clipping tools only. */
+/* Reader modal: roughly one-quarter of the screenshot's original visual footprint
+   without reducing interactive fields below practical touch dimensions. */
+.reader-page .clip-create-modal{
+  padding:12px;
+  background:rgba(11,18,33,.34);
+  backdrop-filter:blur(11px) saturate(.84);
+}
+.reader-page .clip-create-sheet{
+  width:min(320px,calc(100vw - 24px));
+  max-height:min(88dvh,570px);
+  padding:14px;
+  border-radius:16px;
+  box-shadow:0 18px 52px rgba(6,18,36,.24);
+  scrollbar-width:thin;
+}
+.reader-page .clip-create-head{
+  align-items:center;
+  gap:8px;
+  margin-bottom:8px;
+}
+.reader-page .clip-create-head .eyebrow{
+  font-size:9px;
+  letter-spacing:.12em;
+}
+.reader-page .clip-create-head h2{
+  margin:1px 0 0;
+  font-size:19px;
+  line-height:1.18;
+  letter-spacing:-.02em;
+}
+.reader-page [data-clip-modal-close]{
+  min-width:40px;
+  min-height:40px;
+  padding:8px;
+}
+.reader-page .clip-create-form{
+  gap:8px;
+}
+.reader-page .clip-create-form>p{
+  margin:0;
+  font-size:11px;
+  line-height:1.4;
+  color:var(--text-2,#6e6e73);
+}
+.reader-page .clip-create-form label{
+  gap:3px;
+  font-size:11px;
+  font-weight:700;
+}
+.reader-page .clip-create-form input,
+.reader-page .clip-create-form select{
+  min-height:42px;
+  height:42px;
+  border-radius:9px;
+  padding:0 10px;
+  font-size:13px;
+}
+.reader-page .clip-expiry-note{
+  display:flex;
+  flex-wrap:wrap;
+  align-items:baseline;
+  column-gap:5px;
+  row-gap:2px;
+  padding:8px 9px;
+  border-radius:9px;
+  border-color:color-mix(in srgb,var(--accent,#2563eb) 17%,var(--border,#dfe1e5));
+  background:color-mix(in srgb,var(--accent,#2563eb) 3%,var(--surface-2,#f8f8fa));
+}
+.reader-page .clip-expiry-note strong{font-size:10px;white-space:nowrap}
+.reader-page .clip-expiry-note span{font-size:10px;line-height:1.4}
+.reader-page .guest-free-clip-note{padding:8px 9px;font-size:11px;line-height:1.4}
+.reader-page .clip-create-submit{
+  min-height:42px;
+  margin:0;
+  width:100%;
+  justify-self:stretch;
+  border-radius:10px;
+  font-size:12px;
+}
+.reader-page .clip-create-progress{
+  padding:11px;
+  gap:7px;
+  border-radius:11px;
+}
+.reader-page .clip-progress-icon{width:33px;height:33px;border-radius:10px}
+.reader-page .clip-create-success{padding:4px 0}
+.reader-page .clip-create-success>strong{font-size:16px}
+.reader-page .clip-create-success p{font-size:11px}
+@media(max-width:600px){
+  .reader-page .clip-create-modal{align-items:center;padding:10px}
+  .reader-page .clip-create-sheet{
+    width:min(320px,calc(100vw - 20px));
+    max-height:calc(100dvh - 20px);
+    padding:13px;
+    border-radius:16px;
+  }
+}
+@media(max-height:420px){
+  .reader-page .clip-create-sheet{max-height:calc(100dvh - 12px);padding:10px}
+  .reader-page .clip-create-form{gap:5px}
+}
+
+/* Share and download: one horizontally scrollable line of medium-sized icons.
+   Names are in accessible labels and tooltips instead of visible miniature cards. */
+.clip-showcase .clip-icon-rail{
+  display:flex;
+  flex-wrap:nowrap;
+  align-items:center;
+  gap:9px;
+  min-width:0;
+  padding:4px 2px 9px;
+  overflow-x:auto;
+  overflow-y:hidden;
+  overscroll-behavior-x:contain;
+  scroll-snap-type:x proximity;
+  scrollbar-width:thin;
+  scrollbar-color:color-mix(in srgb,var(--accent,#2563eb) 38%,var(--border,#dfe1e5)) transparent;
+}
+.clip-showcase .clip-icon-rail::-webkit-scrollbar{height:4px}
+.clip-showcase .clip-icon-rail::-webkit-scrollbar-thumb{
+  border-radius:99px;
+  background:color-mix(in srgb,var(--accent,#2563eb) 38%,var(--border,#dfe1e5));
+}
+.clip-showcase .clip-icon-rail>a,
+.clip-showcase .clip-icon-rail>button{
+  --clip-icon-tint:var(--accent,#2563eb);
+  position:relative;
+  box-sizing:border-box;
+  width:54px;
+  min-width:54px;
+  max-width:54px;
+  height:56px;
+  min-height:56px;
+  flex:0 0 54px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:5px;
+  margin:0;
+  border:1px solid color-mix(in srgb,var(--clip-icon-tint) 22%,var(--border,#dfe1e5));
+  border-radius:13px;
+  color:var(--clip-icon-tint);
+  background:color-mix(in srgb,var(--clip-icon-tint) 5%,var(--surface,#fff));
+  text-decoration:none;
+  cursor:pointer;
+  scroll-snap-align:start;
+  transition:background .16s ease,border-color .16s ease,transform .16s ease,box-shadow .16s ease;
+}
+.clip-showcase .clip-icon-rail>a:hover,
+.clip-showcase .clip-icon-rail>button:hover{
+  transform:translateY(-2px);
+  border-color:color-mix(in srgb,var(--clip-icon-tint) 46%,var(--border,#dfe1e5));
+  background:color-mix(in srgb,var(--clip-icon-tint) 12%,var(--surface,#fff));
+  box-shadow:0 5px 13px rgba(15,23,42,.09);
+}
+.clip-showcase .clip-icon-rail>a:focus-visible,
+.clip-showcase .clip-icon-rail>button:focus-visible{
+  outline:2px solid var(--clip-icon-tint);
+  outline-offset:2px;
+}
+.clip-showcase .clip-icon-rail .share-icon,
+.clip-showcase .clip-icon-rail .clip-format-icon{
+  width:38px;height:38px;min-width:38px;
+  display:grid;place-items:center;
+  padding:0;border-radius:11px;
+  color:var(--clip-icon-tint);
+  background:color-mix(in srgb,var(--clip-icon-tint) 10%,var(--surface,#fff));
+  font-size:13px;font-weight:850;
+  letter-spacing:-.03em;
+}
+.clip-showcase .clip-icon-rail .share-icon .ui-icon,
+.clip-showcase .clip-icon-rail .clip-format-icon .ui-icon{width:21px;height:21px}
+.clip-showcase .clip-icon-rail .share-icon.whatsapp{--clip-icon-tint:#128c49;color:#128c49}
+.clip-showcase .clip-icon-rail [data-clip-share="whatsapp"]{--clip-icon-tint:#128c49}
+.clip-showcase .clip-icon-rail [data-clip-share="facebook"]{--clip-icon-tint:#1877f2}
+.clip-showcase .clip-icon-rail [data-clip-share="x"]{--clip-icon-tint:#252932}
+.clip-showcase .clip-icon-rail [data-clip-share="telegram"]{--clip-icon-tint:#209ace}
+.clip-showcase .clip-icon-rail [data-clip-copy]{--clip-icon-tint:#6556c5}
+.clip-showcase .clip-icon-rail [data-clip-share="x"] .share-icon{background:#252932;color:#fff}
+.clip-showcase .clip-icon-rail [data-clip-format="pdf"]{--clip-icon-tint:#c33f43}
+.clip-showcase .clip-icon-rail [data-clip-format^="instagram"]{--clip-icon-tint:#bb3f91}
+.clip-showcase .clip-icon-rail [data-clip-format="facebook"]{--clip-icon-tint:#1877f2}
+.clip-showcase .clip-icon-rail [data-clip-format="x"]{--clip-icon-tint:#252932}
+.clip-showcase .clip-icon-rail [data-clip-format="whatsapp"]{--clip-icon-tint:#128c49}
+.clip-showcase .clip-icon-rail [data-clip-format="webp"]{--clip-icon-tint:#2380ab}
+.clip-showcase .clip-icon-rail [data-clip-format="avif"]{--clip-icon-tint:#705dc1}
+.clip-showcase .clip-icon-rail .clip-format-download{
+  position:absolute;
+  top:3px;right:3px;
+  width:12px;height:12px;
+  display:grid;place-items:center;
+  color:var(--clip-icon-tint);
+  opacity:.7;
+}
+.clip-showcase .clip-icon-rail .clip-format-download .ui-icon{width:11px;height:11px}
+.clip-showcase .clip-icon-rail .clip-format-card.preparing,
+.clip-showcase .clip-icon-rail .clip-format-card.unsupported{
+  pointer-events:auto;cursor:not-allowed;
+}
+.clip-showcase .clip-icon-rail .clip-format-card.preparing{opacity:.7}
+.clip-showcase .clip-icon-rail .clip-format-card.unsupported{opacity:.45}
+.clip-showcase .clip-icon-rail .clip-format-card.preparing:hover,
+.clip-showcase .clip-icon-rail .clip-format-card.unsupported:hover{
+  transform:none;box-shadow:none;
+}
+.clip-showcase .clip-sr-only{
+  position:absolute!important;
+  width:1px!important;height:1px!important;
+  overflow:hidden!important;
+  padding:0!important;margin:-1px!important;
+  clip:rect(0,0,0,0)!important;
+  white-space:nowrap!important;border:0!important;
+}
+.clip-showcase .clip-download-section .clip-section-title small{font-size:10px}
+@media(max-width:640px){
+  .clip-showcase .clip-icon-rail{gap:8px;margin-right:-3px;padding-bottom:10px}
+  .clip-showcase .clip-icon-rail>a,.clip-showcase .clip-icon-rail>button{
+    flex-basis:54px;min-width:54px;max-width:54px;width:54px;height:56px;min-height:56px
+  }
+}
+@media(prefers-reduced-motion:reduce){
+  .clip-showcase .clip-icon-rail>a,.clip-showcase .clip-icon-rail>button{transition:none}
+  .clip-showcase .clip-icon-rail>a:hover,.clip-showcase .clip-icon-rail>button:hover{transform:none}
+}
