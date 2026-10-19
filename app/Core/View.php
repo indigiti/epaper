@@ -62,8 +62,9 @@ final class View
         $displayName=trim((string)($user['display_name']??$user['full_name']??$user['name']??''));
         $email=trim((string)($user['email']??''));
         if($displayName==='')$displayName=$email!==''?$email:'My account';
-        $sectionIcons=['OVERVIEW'=>'dashboard','PUBLISHING'=>'newspaper','AI & EDITORIAL'=>'scan-text',
-            'READER & AUDIENCE'=>'user','MANAGE'=>'settings','OPERATIONS'=>'activity'];
+        $sectionIcons=['OVERVIEW'=>'dashboard','PUBLISHING'=>'newspaper','EDITORIAL'=>'scan-text',
+            'DISCOVERY'=>'search','AUDIENCE'=>'user','SETTINGS'=>'settings',
+            'OPERATIONS'=>'activity','ADVANCED'=>'archive'];
         $html='<div class="sidebar-context admin-sidebar-identity">'
             .'<span class="admin-sidebar-emblem" aria-hidden="true">'.self::icon('newspaper').'</span>'
             .'<span class="admin-sidebar-brand-copy"><strong>'.self::e($tenant).'</strong>'
@@ -103,7 +104,8 @@ final class View
                 $selected=$current===$url||($url!=='/admin'&&str_starts_with($current,$url.'/'));
                 $html.='<a class="app-nav-link'.($selected?' active':'').'" href="'.self::e($url).'"'
                     .($selected?' aria-current="page"':'')
-                    .' title="'.self::e($label).'">'
+                    .' data-admin-search-terms="'.self::e($group.' '.$label.' '.$hint).'"'
+                    .' title="'.self::e($hint).'">'
                     .'<span class="admin-nav-icon" aria-hidden="true">'.self::icon($icon).'</span>'
                     .'<span class="admin-nav-text">'.self::e($label).'</span></a>';
             }
