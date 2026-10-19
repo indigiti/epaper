@@ -27,7 +27,7 @@ final class ManualClippingView
           .'<div class="manual-titlebar"><div>'
           .'<span class="eyebrow">EDITORIAL WORKSPACE</span><h1>Clip Marking</h1>'
           .'<p>Choose an edition, then pre-mark article areas. Readers can generate a clip when they choose an outline.</p></div>'
-          .'<a class="btn ghost" href="/admin/editions">All editions →</a></div>'
+          .'<a class="btn ghost manual-icon-action" href="/admin/editions" title="Manage all editions" aria-label="Manage all editions">'.View::icon('newspaper').'</a></div>'
           .'<section class="panel manual-browser-panel"><div class="section-head">'
           .'<div><h2>Edition collections</h2><p class="muted">Organized by publication and edition date, rather than individual pages.</p></div></div>'
           .'<form method="get" action="/admin/manual-clipping" class="manual-edition-filters" aria-label="Filter editions">'
@@ -86,12 +86,12 @@ final class ManualClippingView
             $h.='<nav class="manual-pagination" aria-label="Edition collection pagination">';
             if($pageNo>1){
                 $prev=$queryPrefix.http_build_query($params+['p'=>$pageNo-1],'','&',PHP_QUERY_RFC3986);
-                $h.='<a class="btn ghost" href="'.View::e($prev).'">← Newer editions</a>';
+                $h.='<a class="btn ghost manual-icon-action" href="'.View::e($prev).'" title="Newer edition collections" aria-label="Newer edition collections">'.View::icon('chev-left').'</a>';
             }
             $h.='<span>Collection page '.$pageNo.'</span>';
             if(!empty($filters['has_next'])){
                 $next=$queryPrefix.http_build_query($params+['p'=>$pageNo+1],'','&',PHP_QUERY_RFC3986);
-                $h.='<a class="btn ghost" href="'.View::e($next).'">Older editions →</a>';
+                $h.='<a class="btn ghost manual-icon-action" href="'.View::e($next).'" title="Older edition collections" aria-label="Older edition collections">'.View::icon('chev-right').'</a>';
             }
             $h.='</nav>';
         }
@@ -108,12 +108,15 @@ final class ManualClippingView
           .View::e($page['publication_name']).' · '.View::e($page['edition_date'])
           .' · '.View::e((string)($page['edition_title']??'')).'</p></div>'
           .'<div class="manual-page-navigation" aria-label="Adjacent pages">';
-        foreach(['previous'=>'← Previous','next'=>'Next →'] as $dir=>$label){
+        foreach(['previous'=>'Previous page','next'=>'Next page'] as $dir=>$label){
             $dest=$navigation[$dir]??null;
+            $icon=View::icon($dir==='previous'?'chev-left':'chev-right');
+            $title=$label.($dest?' '.(int)$dest['number']:' unavailable');
             $h.=$dest
-              ?'<a class="btn ghost" href="/admin/manual-clipping/'.View::e($dest['guid']).'">'
-                .View::e($label).' · '.(int)$dest['number'].'</a>'
-              :'<span class="manual-nav-disabled" aria-disabled="true">'.View::e($label).'</span>';
+              ?'<a class="btn ghost manual-icon-action" href="/admin/manual-clipping/'.View::e($dest['guid']).'"'
+                .' title="'.View::e($title).'" aria-label="'.View::e($title).'">'.$icon.'</a>'
+              :'<span class="manual-nav-disabled manual-icon-action" title="'.View::e($title).'" aria-label="'.View::e($title).'">'
+                 .$icon.'</span>';
         }
         $h.='</div></div>';
         if($error!==null)$h.='<div class="alert warning" role="alert">'.View::e($error).'</div>';
