@@ -178,4 +178,36 @@ if(!str_contains($read('public_html/assets/crud.js'),'form.dataset.confirm'))
 if(!str_contains($css,'.manual-mark-actions'))
  throw new RuntimeException('Marked article actions not responsive');
 
+// Icon-only editor controls are accessible and removal on existing overlays is a sibling form.
+foreach([
+ 'data-manual-remove-overlay','manual-overlay-remove-btn','data-manual-discard',
+ 'data-manual-quick-save','data-manual-start',
+ 'manual-icon-action','manual-actions-legend',
+ 'aria-label="Save article outline"','title="Create a new article outline"',
+ "View::icon('close')","View::icon('save')","View::icon('trash')",
+ 'data-confirm="Remove this marked article',
+] as $token)
+ if(!str_contains($ui,$token))throw new RuntimeException('Clip Marking overlay/icon control missing: '.$token);
+if(!str_contains($ui,'if($editable){')||!str_contains($ui,'$closeX=')||
+   !str_contains($ui,'$closeY=')||
+   !str_contains($ui,'class="manual-overlay-remove" data-manual-remove-overlay'))
+ throw new RuntimeException('Overlay remove controls must be editor-authorized and independently positioned');
+if(!str_contains($js,"e.target.closest('[data-manual-quick-save],[data-manual-discard],[data-manual-remove-overlay]')") ||
+   !str_contains($js,'discard?.addEventListener') ||
+   !str_contains($js,'nameAction(primary') ||
+   !str_contains($js,'nameAction(quick'))
+ throw new RuntimeException('Overlay remove and icon action interaction is incomplete');
+if(str_contains($js,"primary.textContent='")||str_contains($js,"quick.textContent='"))
+ throw new RuntimeException('Dynamic action labels may not replace icon SVG contents');
+foreach(['.manual-icon-action','.manual-overlay-remove-btn','.manual-selection-dismiss',
+ '.manual-mark-row>.manual-mark-actions',':focus-visible'] as $selector)
+ if(!str_contains($css,$selector))throw new RuntimeException('Accessible overlay icon styling missing: '.$selector);
+if(!str_contains($view,'clip-ui=20261019-icons-v1'))
+ throw new RuntimeException('Clip Marking JS/CSS cache version has not been advanced');
+// Scope: this feature is not changing public Reader or semantic-article headline requirements.
+if(!str_contains($ui,'Headline (optional)')||
+   str_contains($ui,'name="title" maxlength="180" required')||
+   str_contains($js,'!headline?.value.trim()'))
+ throw new RuntimeException('Admin Clip Marking headline must remain optional');
+
 echo "Clip marking and on-demand reader clipping contracts: OK\n";
