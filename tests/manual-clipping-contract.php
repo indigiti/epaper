@@ -82,6 +82,13 @@ foreach(['upgrade-v2.0.2.2-clip-marking.sql','CLIP_MARK_TABLE'] as $tok)
 foreach(['e.status="PUBLISHED"','m.status="ACTIVE"','m.tenant_guid=?','m.page_guid=?',
  'LIMIT 80','no_crop_generated','ManualClipGeometry::parse','hash_equals','Audit::log'] as $tok)
  if(!str_contains($mark,$tok))throw new RuntimeException('Marking security contract missing '.$tok);
+if(str_contains($ui,'EpaperSaasCoreUuid')||
+   !str_contains($ui,'Uuid::isValid($actor)')||
+   !str_contains($ui,'Uuid::toBinary($actor)'))
+ throw new RuntimeException('Clip marking editor incorrectly resolves actor UUID');
+if(!str_contains($js,'data-manual-final-action') ||
+   !str_contains($js,"e.submitter?.value==='private'"))
+ throw new RuntimeException('Private manual clipping submit action can be lost');
 foreach(['Use as reader outline','manual-existing-mark','manual-mark-row',
  'Save article outline','manual-legacy-clip'] as $tok)
  if(!str_contains($ui,$tok))throw new RuntimeException('Clip marking editor missing '.$tok);

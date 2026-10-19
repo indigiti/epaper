@@ -159,8 +159,8 @@ final class ManualClippingView
         foreach($marks as $mark){
             $active=strtoupper((string)$mark['status'])==='ACTIVE';
             $id=(string)$mark['mark_guid'];
-            $mine=$actor!==''&&EpaperSaasCoreUuid::isValid($actor)&&
-                hash_equals((string)$mark['platform_user_guid'],EpaperSaasCoreUuid::toBinary($actor));
+            $mine=$actor!==''&&Uuid::isValid($actor)&&
+                hash_equals((string)$mark['platform_user_guid'],Uuid::toBinary($actor));
             $h.='<article class="manual-mark-row"><div><strong>'.View::e($mark['title']).'</strong>'
               .'<small>'.($active?'Active outline':'Hidden outline').'</small></div>';
             if($full||$mine){

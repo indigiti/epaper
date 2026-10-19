@@ -65,6 +65,16 @@
   img.addEventListener('load',()=>repaint());
   form.addEventListener('submit',e=>{
     if(!valid(values())){e.preventDefault();repaint();return}
+    // Disabling submit buttons before native form serialization drops their name/value.
+    // Preserve the requested action explicitly so "Create private clip" never becomes "Save outline".
+    const requested=e.submitter?.value==='private'?'private':'mark';
+    let action=form.querySelector('[data-manual-final-action]');
+    if(!action){
+      action=document.createElement('input');
+      action.type='hidden';action.name='action';action.dataset.manualFinalAction='';
+      form.append(action);
+    }
+    action.value=requested;
     if(submit)submit.disabled=true;
     if(privateButton)privateButton.disabled=true;
   });
