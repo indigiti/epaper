@@ -175,3 +175,10 @@
  .admin-shell .manual-mark-actions .manual-icon-action{width:42px;height:42px;min-width:42px}
  .admin-shell .manual-overlay-remove,.admin-shell .manual-overlay-remove-btn{width:36px;height:36px}
 }
+
+/* Override generic row child grid styles for horizontal icon groups. */
+.admin-shell .manual-mark-row>.manual-mark-actions{display:flex;align-items:center;justify-content:flex-end;gap:6px;flex-wrap:wrap}
+.admin-shell .manual-actions-legend{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:7px 0 10px}
+.admin-shell .manual-actions-legend span{display:inline-flex;align-items:center;gap:4px;white-space:nowrap;font-size:11px}
+.admin-shell .manual-actions-legend svg{width:13px;height:13px}
+@media(max-width:560px){.admin-shell .manual-mark-row>.manual-mark-actions{justify-content:flex-start}}
