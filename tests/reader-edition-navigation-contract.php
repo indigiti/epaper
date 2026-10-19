@@ -36,7 +36,7 @@ if(substr_count($app,'ReaderEditionChoices::withCurrent(')!==2 ||
     !str_contains($app,'reader-edition-archive'))
     throw new RuntimeException('Reader dropdown/strip back-edition fallback missing');
 if(!str_contains($app,"'reader.edition_date_switcher','on'")||
-   !str_contains($app,"if(!$editionSwitcherEnabled)\$editionNavigation='off'"))
+   !str_contains($app,"if(!\$editionSwitcherEnabled)\$editionNavigation='off'"))
     throw new RuntimeException('Publisher edition navigation permissions changed');
 if(!str_contains($app,"'publication'=>\$publication,'month'=>substr(\$date,0,7)"))
     throw new RuntimeException('Fallback must navigate to this publication and edition month');
