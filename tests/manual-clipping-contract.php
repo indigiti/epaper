@@ -35,7 +35,7 @@ foreach(['clip.manual_created',"'PRIVATE',true",'expiresAt=$editorial?null',
  'if(!$editorial)PlatformClient::instance()->usage'] as $tok)
  if(!str_contains($clip,$tok))throw new RuntimeException('Manual storage contract missing '.$tok);
 if(!str_contains($catalog,"'/admin/manual-clipping'"))throw new RuntimeException('Navigation missing');
-foreach(['data-manual-stage','data-manual-crop-preview','data-manual-form','Create private clip now','Save article outline'] as $tok)
+foreach(['data-manual-stage','data-manual-crop-preview','data-manual-form','title="Create private clipping now"','Save article outline'] as $tok)
  if(!str_contains($ui,$tok))throw new RuntimeException('Editor UI missing '.$tok);
 foreach(['pointerdown','pointermove','pointerup','getContext','data-manual-coord'] as $tok)
  if(!str_contains($js,$tok))throw new RuntimeException('Client selection missing '.$tok);
