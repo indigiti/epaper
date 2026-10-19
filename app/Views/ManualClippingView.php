@@ -173,7 +173,7 @@ final class ManualClippingView
           .' data-manual-form data-manual-page-url="/admin/manual-clipping/'.View::e($guid).'"'
           .' data-marking-ready="'.($schemaReady?'1':'0').'">'
           .'<input type="hidden" name="_csrf" value="'.View::e(Http::csrf()).'">'
-          .'<label>Headline<input name="title" maxlength="180" required placeholder="Article headline"></label>'
+          .'<label>Headline (optional)<input name="title" maxlength="180" placeholder="Leave blank for Untitled article"></label>'
           .'<div class="manual-coords">';
         foreach(['x'=>'Left','y'=>'Top','w'=>'Width','h'=>'Height'] as $key=>$name){
             $h.='<label>'.View::e($name).' (0–1)<input type="number" name="'.$key
