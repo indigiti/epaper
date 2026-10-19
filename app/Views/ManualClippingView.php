@@ -168,6 +168,7 @@ final class ManualClippingView
                     $closeX=max(0,min(100,((float)$mark['x']+(float)$mark['width'])*100));
                     $closeY=max(0,min(100,(float)$mark['y']*100));
                     $h.='<form class="manual-overlay-remove" data-manual-remove-overlay method="post"'
+                       .' style="left:'.$closeX.'%;top:'.$closeY.'%;"'
                        .' action="/admin/manual-clipping/'.View::e($guid).'/marks/'.View::e($id).'/remove"'
                        .' data-confirm="Remove this marked article? The Reader outline will disappear. Existing clips stay saved.">'
                        .'<input type="hidden" name="_csrf" value="'.View::e(Http::csrf()).'">'
@@ -175,10 +176,7 @@ final class ManualClippingView
                        .' title="Remove marked article: '.View::e($mark['title']).'"'
                        .' aria-label="Remove marked article: '.View::e($mark['title']).'">'
                        .View::icon('close').'</button></form>';
-                    // Position is measured in newspaper-page coordinates; clamp near page edges.
-                    $h=str_replace('class="manual-overlay-remove" data-manual-remove-overlay',
-                        'class="manual-overlay-remove" data-manual-remove-overlay'
-                        .' style="left:'.$closeX.'%;top:'.$closeY.'%;"',$h);
+                    // Coordinates are attached only to the corresponding overlay.
                 }
             }
             $h.='</div>';
