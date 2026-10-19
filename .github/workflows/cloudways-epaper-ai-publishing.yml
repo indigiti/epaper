@@ -86,6 +86,8 @@ jobs:
           php -l app/Views/ManualClippingView.php
           php -l app/Services/SchemaDoctor.php
           php tests/manual-clipping-contract.php
+          php -l app/Services/ReaderEditionChoices.php
+          php tests/reader-edition-navigation-contract.php
           node --check public_html/assets/reader-editorial-clips.js
           node --check public_html/assets/reader.js
           node --check public_html/assets/manual-clipping.js

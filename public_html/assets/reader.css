@@ -125,3 +125,16 @@ body.dark .reader-edition-menu{background:rgba(33,33,36,.985);border-color:#3d3d
 @media(max-width:900px){.reader-edition-menu-control{position:static}.reader-edition-menu{right:8px;top:48px;width:min(390px,calc(100vw - 16px));max-height:min(72dvh,560px)}.reader-edition-trigger{width:40px;max-width:40px;padding:0;justify-content:center}.reader-edition-trigger>span{position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip:rect(0,0,0,0)!important;white-space:nowrap!important;border:0!important}}
 @media(max-width:540px){.reader-edition-menu{left:7px;right:7px;top:46px;width:auto;max-height:min(68dvh,520px)}.reader-edition-menu-head{padding:10px 12px}.reader-edition-date-list{gap:4px}.reader-edition-choice{min-height:44px}.reader-edition-menu-foot span{display:none}}
 @media(prefers-reduced-motion:reduce){.reader-edition-choice{transition:none!important}}
+
+/* Edition-date navigation must remain actionable when only the current date is indexed. */
+.reader-edition-empty{margin:8px 6px 12px;padding:12px 13px;border:1px dashed #d5dbe7;border-radius:10px;
+  color:#626c7d;background:rgba(148,163,184,.07);font-size:12px;line-height:1.6}
+.reader-edition-archive{display:inline-flex;align-items:center;justify-content:center;min-width:100px;
+  min-height:34px;padding:6px 10px;white-space:nowrap;border:1px solid var(--border,#dfe1e5);
+  border-radius:8px;background:var(--surface-2,#f8f8fa);font-size:11px;font-weight:700;color:var(--accent,#2563eb)}
+.reader-edition-archive:hover,.reader-edition-archive:focus-visible{outline:2px solid var(--accent,#2563eb);
+  outline-offset:1px;text-decoration:none}
+.reader-edition-dates:has(.reader-edition-archive){grid-auto-columns:max-content}
+.reader-edition-dates:has(.reader-edition-archive) .reader-edition-date{width:58px;min-width:58px}
+body.dark .reader-edition-empty{border-color:#45495a;background:#24262d;color:#c4c6ce}
+@media(max-width:900px){.reader-edition-archive{min-width:90px}}
