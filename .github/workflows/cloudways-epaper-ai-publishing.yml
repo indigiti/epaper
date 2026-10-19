@@ -69,6 +69,9 @@ jobs:
           php tests/ai-review-static.php
           php tests/admin-acceptance-static.php
           php tests/admin-workspace-contracts.php
+          php -l app/Controllers/AdminAuditController.php
+          php tests/admin-audit-contract.php
+          node --check public_html/assets/admin-sidebar.js
           php tests/upgrade-center-contract.php
           php -l app/Controllers/AdminManualClippingController.php
           php -l app/Views/ManualClippingView.php
