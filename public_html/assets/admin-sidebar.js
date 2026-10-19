@@ -13,7 +13,7 @@
   const groups=[...nav.querySelectorAll('[data-admin-nav-section]')];
   const scope=[body.dataset.tenantGuid||'tenant',body.dataset.userGuid||'user',nav.dataset.adminNavRole||'role'].join(':');
   const widthKey='epdi:admin:sidebar-width:v1:'+scope;
-  const groupsKey='epdi:admin:sidebar-groups:v1:'+scope;
+  const groupsKey='epdi:admin:sidebar-groups:v2:'+scope;
   const desktop=()=>window.matchMedia('(min-width:1001px)').matches;
   const read=(key)=>{
     try{return JSON.parse(window.localStorage.getItem(key)||'null');}catch{return null;}
@@ -73,7 +73,7 @@
       const links=[...group.querySelectorAll('.app-nav-link')];
       let count=0;
       for(const link of links){
-        const matches=!q||link.textContent.toLocaleLowerCase().includes(q);
+        const matches=!q||(link.dataset.adminSearchTerms||link.textContent).toLocaleLowerCase().includes(q);
         link.hidden=!matches;
         if(matches)count++;
       }
