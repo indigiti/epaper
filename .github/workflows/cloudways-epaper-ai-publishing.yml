@@ -90,6 +90,8 @@ jobs:
           php tests/reader-edition-navigation-contract.php
           node --check public_html/assets/reader-editorial-clips.js
           node --check public_html/assets/reader.js
+          node --check public_html/assets/reader-swipe-feedback.js
+          php tests/reader-swipe-feedback-contract.php
           node --check public_html/assets/manual-clipping.js
           node --check public_html/assets/manual-clipping.js
           php tests/editorial-action-center.php
