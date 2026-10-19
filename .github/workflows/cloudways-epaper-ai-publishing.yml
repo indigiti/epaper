@@ -73,6 +73,8 @@ jobs:
           php tests/admin-audit-contract.php
           php -l app/Services/AdminRoutePolicy.php
           php tests/admin-route-policy.php
+          php tests/admin-query-bounds.php
+          php -l app/Services/SemanticNews.php
           node --check public_html/assets/admin-sidebar.js
           php tests/upgrade-center-contract.php
           php -l app/Controllers/AdminManualClippingController.php
