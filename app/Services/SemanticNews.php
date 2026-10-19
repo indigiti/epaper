@@ -63,9 +63,16 @@ final class SemanticNews
         return is_array($rows)?$rows:[];
     }
 
+    /**
+     * Bounded newsroom list projection: article bodies are LONGTEXT and belong
+     * only in the single-article edit query, never the listing result.
+     */
     public static function adminArticles(int $limit=150): array
     {
-        return TenantData::toGuidRows(Store::all('SELECT a.*,p.name publication_name,l.name language_name,e.edition_date,pg.page_number,(SELECT GROUP_CONCAT(au.name ORDER BY aa.sort_order SEPARATOR ", ") FROM ep_article_authors aa JOIN ep_authors au ON au.tenant_guid=aa.tenant_guid AND au.author_guid=aa.author_guid WHERE aa.tenant_guid=a.tenant_guid AND aa.article_guid=a.article_guid) author_names FROM ep_articles a JOIN ep_publications p ON p.tenant_guid=a.tenant_guid AND p.publication_guid=a.publication_guid LEFT JOIN ep_languages l ON l.tenant_guid=a.tenant_guid AND l.language_guid=a.language_guid LEFT JOIN ep_editions e ON e.tenant_guid=a.tenant_guid AND e.edition_guid=a.edition_guid LEFT JOIN ep_pages pg ON pg.tenant_guid=a.tenant_guid AND pg.page_guid=a.page_guid WHERE a.tenant_guid=? ORDER BY COALESCE(a.published_at,a.created_at) DESC LIMIT '.max(1,min(300,$limit)),[TenantData::tenantBin()]),['article_guid','publication_guid','city_guid','language_guid','section_guid','edition_guid','page_guid','created_by_user_guid','updated_by_user_guid']);
+        return TenantData::toGuidRows(Store::all('SELECT a.article_guid,a.publication_guid,a.city_guid,a.language_guid,a.section_guid,
+            a.edition_guid,a.page_guid,a.created_by_user_guid,a.updated_by_user_guid,
+            a.title,a.slug,a.status,a.published_at,a.created_at,
+            p.name publication_name,l.name language_name,e.edition_date,pg.page_number,(SELECT GROUP_CONCAT(au.name ORDER BY aa.sort_order SEPARATOR ", ") FROM ep_article_authors aa JOIN ep_authors au ON au.tenant_guid=aa.tenant_guid AND au.author_guid=aa.author_guid WHERE aa.tenant_guid=a.tenant_guid AND aa.article_guid=a.article_guid) author_names FROM ep_articles a JOIN ep_publications p ON p.tenant_guid=a.tenant_guid AND p.publication_guid=a.publication_guid LEFT JOIN ep_languages l ON l.tenant_guid=a.tenant_guid AND l.language_guid=a.language_guid LEFT JOIN ep_editions e ON e.tenant_guid=a.tenant_guid AND e.edition_guid=a.edition_guid LEFT JOIN ep_pages pg ON pg.tenant_guid=a.tenant_guid AND pg.page_guid=a.page_guid WHERE a.tenant_guid=? ORDER BY COALESCE(a.published_at,a.created_at) DESC LIMIT '.max(1,min(300,$limit)),[TenantData::tenantBin()]),['article_guid','publication_guid','city_guid','language_guid','section_guid','edition_guid','page_guid','created_by_user_guid','updated_by_user_guid']);
     }
 
     public static function adminAuthors(): array{return TenantData::toGuidRows(Store::all('SELECT * FROM ep_authors WHERE tenant_guid=? ORDER BY status DESC,name',[TenantData::tenantBin()]),['author_guid']);}
