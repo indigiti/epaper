@@ -10,7 +10,7 @@ final class ClipService
     public const BRANDING_SETTING_COMPAT = 'clipping.watermark';
     public const BRANDING_VERSION = 'source-qr-v1';
 
-    public static function create(string $pageGuid,float $x,float $y,float $w,float $h,?string $title=null,string $visibility='PRIVATE',bool $editorial=false): array
+    public static function create(string $pageGuid,float $x,float $y,float $w,float $h,?string $title=null,string $visibility='PRIVATE',bool $editorial=false,?string $markGuid=null): array
     {
         foreach([$x,$y,$w,$h] as $v){
             if($v<0||$v>1)throw new \InvalidArgumentException('Clip coordinates must be normalized');
@@ -22,6 +22,12 @@ final class ClipService
         $title=trim((string)$title);
         if($title==='')$title='News clipping';
         if(mb_strlen($title)>180)$title=mb_substr($title,0,180);
+
+        if($markGuid!==null&&$markGuid!==''){
+            // Validate *before* any crop cache read or database mutation.
+            ManualClipMarking::validateClipSource($pageGuid,$markGuid,
+                ['x'=>$x,'y'=>$y,'w'=>$w,'h'=>$h]);
+        }else $markGuid=null;
 
         $page=Store::one(
             'SELECT p.page_guid,p.width,p.height,p.page_number,e.edition_date,e.slug edition_slug,pub.name publication_name FROM ep_pages p JOIN ep_editions e ON e.tenant_guid=p.tenant_guid AND e.edition_guid=p.edition_guid JOIN ep_publications pub ON pub.tenant_guid=e.tenant_guid AND pub.publication_guid=e.publication_guid WHERE p.tenant_guid=? AND p.page_guid=?',
@@ -41,14 +47,43 @@ final class ClipService
         @mkdir($dir,0775,true);
         $dst=$dir.'/'.$clipGuid.'.webp';
 
-        self::crop($src,$dst,$x,$y,$w,$h,(int)$page['width'],(int)$page['height']);
-
+        // Cache only immutable crop pixels: no title, reader ID, private link,
+        // access token, expiry, branding or personally identifiable metadata.
+        $cache=ClipCropCache::materialize($src,$dst,RequestContext::tenantGuid(),$pageGuid,
+            ['x'=>$x,'y'=>$y,'w'=>$w,'h'=>$h],
+            static function(string $target)use($src,$x,$y,$w,$h,$page):void{
+                self::crop($src,$target,$x,$y,$w,$h,(int)$page['width'],(int)$page['height']);
+            });
         $u=Auth::user();
         $expiresAt=$editorial?null:date('Y-m-d H:i:s',time()+self::EXPIRY_DAYS*86400);
-        Store::exec(
-            'INSERT INTO ep_clips(clip_guid,tenant_guid,platform_user_guid,page_guid,clip_slug,title,visibility,x,y,width,height,storage_path,expires_at,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,NOW(6),NOW(6))',
-            [Uuid::toBinary($clipGuid),TenantData::tenantBin(),$u?Uuid::toBinary($u['user_guid']):null,Uuid::toBinary($pageGuid),$slug,$title,$visibility,$x,$y,$w,$h,str_replace($root.'/storage/','',$dst),$expiresAt]
-        );
+        $base=[
+            Uuid::toBinary($clipGuid),TenantData::tenantBin(),
+            $u?Uuid::toBinary($u['user_guid']):null,Uuid::toBinary($pageGuid)
+        ];
+        $values=[
+            $slug,$title,$visibility,$x,$y,$w,$h,
+            str_replace($root.'/storage/','',$dst),$expiresAt
+        ];
+        try{
+            if($markGuid!==null&&SchemaDoctor::clipReuseReady()){
+                Store::exec(
+                    'INSERT INTO ep_clips(clip_guid,tenant_guid,platform_user_guid,page_guid,mark_guid,clip_slug,title,visibility,x,y,width,height,storage_path,expires_at,created_at,updated_at)
+                     VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,NOW(6),NOW(6))',
+                    [...$base,Uuid::toBinary($markGuid),...$values]
+                );
+            }else{
+                // Backwards-compatible while the web Upgrade Center has not
+                // applied the additive mark_guid migration.
+                Store::exec(
+                    'INSERT INTO ep_clips(clip_guid,tenant_guid,platform_user_guid,page_guid,clip_slug,title,visibility,x,y,width,height,storage_path,expires_at,created_at,updated_at)
+                     VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,NOW(6),NOW(6))',
+                    [...$base,...$values]
+                );
+            }
+        }catch(\Throwable $e){
+            @unlink($dst); // The shared immutable crop survives for other readers.
+            throw $e;
+        }
 
         $clip=self::bySlug($slug);
         if($clip){
@@ -58,6 +93,7 @@ final class ClipService
         Audit::log($editorial?'clip.manual_created':'clip.created','clip',$clipGuid,'SUCCESS',[
             'page_guid'=>$pageGuid,'visibility'=>$visibility,'source'=>$editorial?'MANUAL_EDITORIAL':'READER',
             'expires_in_days'=>$editorial?null:self::EXPIRY_DAYS,
+            'mark_guid'=>$markGuid,'crop_cache_hit'=>$cache['hit'],
         ]);
         if(!$editorial)PlatformClient::instance()->usage(RequestContext::tenantGuid(),'EPAPER.CLIPPING',1);
         return[
@@ -103,7 +139,7 @@ final class ClipService
         return TenantData::guidRow(Store::one(
             'SELECT c.*,p.page_number,e.edition_date,e.title edition_title,e.slug edition_slug,pub.name publication_name FROM ep_clips c JOIN ep_pages p ON p.tenant_guid=c.tenant_guid AND p.page_guid=c.page_guid JOIN ep_editions e ON e.tenant_guid=p.tenant_guid AND e.edition_guid=p.edition_guid JOIN ep_publications pub ON pub.tenant_guid=e.tenant_guid AND pub.publication_guid=e.publication_guid WHERE c.tenant_guid=? AND c.clip_slug=? LIMIT 1',
             [TenantData::tenantBin(),$slug]
-        ),['clip_guid','tenant_guid','platform_user_guid','page_guid']);
+        ),['clip_guid','tenant_guid','platform_user_guid','page_guid','mark_guid']);
     }
 
     public static function canView(array $clip): bool
