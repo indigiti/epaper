@@ -385,6 +385,7 @@ CREATE TABLE IF NOT EXISTS ep_clips (
  tenant_guid BINARY(16) NOT NULL,
  platform_user_guid BINARY(16) NULL,
  page_guid BINARY(16) NOT NULL,
+ mark_guid BINARY(16) NULL,
  clip_slug VARCHAR(64) NOT NULL,
  title VARCHAR(255) NULL,
  visibility VARCHAR(32) NOT NULL DEFAULT 'UNLISTED',
@@ -399,7 +400,8 @@ CREATE TABLE IF NOT EXISTS ep_clips (
  updated_at DATETIME(6) NOT NULL,
  PRIMARY KEY(clip_guid),
  UNIQUE KEY uk_clip_slug(tenant_guid,clip_slug),
- KEY ix_clip_user(tenant_guid,platform_user_guid,created_at)
+ KEY ix_clip_user(tenant_guid,platform_user_guid,created_at),
+ KEY ix_clip_mark(tenant_guid,page_guid,mark_guid,created_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS ep_history (
