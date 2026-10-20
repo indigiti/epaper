@@ -37,7 +37,7 @@ final class OfficialClipService
         AND m.updated_at=o.mark_updated_at
         AND p.version=o.page_version
         AND a.asset_guid=o.asset_guid
-        AND (a.checksum_sha256 <=> o.asset_checksum)
+        AND (CAST(a.checksum_sha256 AS BINARY) <=> CAST(o.asset_checksum AS BINARY))
     ';
 
     public static function urlsForPage(string $pageGuid): array
