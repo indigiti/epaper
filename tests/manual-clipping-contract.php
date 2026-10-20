@@ -136,7 +136,7 @@ if(!str_contains($overlay,"let enabled=true;") ||
    !str_contains($overlay,"layer.hidden=!enabled") ||
    !str_contains($overlay,'window.EpdiEditorialClips={attach,showPage:syncDocument,scan:scanOtherViews,setEnabled}'))
  throw new RuntimeException('Approved editorial outlines must still display and remain operable');
-if(!str_contains($view,'editorial-ui=no-toolbar-20261019'))
+if(!str_contains($view,'editorial-ui=clip-cache-mark-20261020'))
  throw new RuntimeException('Reader editorial JS needs targeted cache bust after toolbar removal');
 foreach(["Build::asset('/assets/reader-editorial-clips.css')",
  "Build::asset('/assets/reader-editorial-clips.js')"] as $tok)
