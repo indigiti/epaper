@@ -125,8 +125,23 @@ final class OfficialClipService
                        Uuid::toBinary($clip['clip_guid']),$mark['asset_guid'],$mark['checksum_sha256'],
                        $mark['page_version'],$mark['updated_at'],Uuid::toBinary($actor)
                   ]);
+            // Shared formats are generated once by the approving publisher, so
+            // anonymous readers never trigger expensive image transformations.
+            $official=ClipService::bySlug($clip['slug']);
+            $prepared=0;$failed=[];
+            if($official&&self::mayView($official)){
+                foreach(ClipService::formats() as $format=>$definition){
+                    try{
+                        $out=ClipService::prepareFormat($official,$format);
+                        if(!empty($out['ready']))$prepared++;
+                    }catch(\Throwable $e){
+                        $failed[]=$format;
+                    }
+                }
+            }
             Audit::log('clip.official_approved','clip_mark',$markGuid,'SUCCESS',
-                ['page_guid'=>$pageGuid,'clip_guid'=>$clip['clip_guid'],'official_url'=>$clip['url']]);
+                ['page_guid'=>$pageGuid,'clip_guid'=>$clip['clip_guid'],'official_url'=>$clip['url'],
+                 'formats_ready'=>$prepared,'formats_failed'=>$failed]);
             return $clip['url'];
         }finally{
             try{Store::value('SELECT RELEASE_LOCK(?)',[$lockName]);}catch(\Throwable){}
