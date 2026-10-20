@@ -53,6 +53,7 @@
         ?c.official_url:null;
       if(official){
         button.dataset.officialClip='1';
+        button.dataset.clipLabel=('Official clipping · '+title).slice(0,100);
         button.title='Open publisher-approved clipping';
       }
       button.setAttribute('aria-label',(official?'Open official clipping: ':'Create clipping: ')+title);
