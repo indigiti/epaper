@@ -54,7 +54,7 @@ foreach([
 foreach([
  'OfficialClipService::urlsForPage($pageGuid)',
  "'official_url'=>\$official[\$markGuid]??null",
- "'official_url']=\$official[\$r['mark_guid']]??null",
+ "['official_url']=\$official[\$r['mark_guid']]??null",
  'm.status="ACTIVE"',
 ] as $token)if(!str_contains($marks,$token))
  throw new RuntimeException('Official link not properly scoped to active reader marks: '.$token);
