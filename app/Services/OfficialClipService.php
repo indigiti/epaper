@@ -85,8 +85,8 @@ final class OfficialClipService
     public static function approve(string $pageGuid,string $markGuid): string
     {
         $actor=self::authorize();
-        if(!SchemaDoctor::officialReady())throw new \RuntimeException(
-            'Publisher clipping schema needs repair in Upgrade Center');
+        if(!SchemaDoctor::officialReady()||!SchemaDoctor::clipReuseReady())
+            throw new \RuntimeException('Publisher clipping schema needs repair in Upgrade Center');
         if(!Uuid::isValid($pageGuid)||!Uuid::isValid($markGuid))
             throw new \InvalidArgumentException('Invalid article outline');
 
@@ -154,10 +154,17 @@ final class OfficialClipService
         if(!SchemaDoctor::officialReady())throw new \RuntimeException('Official clipping schema unavailable');
         if(!Uuid::isValid($pageGuid)||!Uuid::isValid($markGuid))
             throw new \InvalidArgumentException('Invalid article outline');
-        $changed=Store::exec('UPDATE ep_official_clips SET status="REVOKED",updated_at=NOW(6)
-            WHERE tenant_guid=? AND page_guid=? AND mark_guid=? AND status="ACTIVE"',
-            [TenantData::tenantBin(),Uuid::toBinary($pageGuid),Uuid::toBinary($markGuid)]);
-        if($changed<1)throw new \RuntimeException('No active official clipping was found');
-        Audit::log('clip.official_withdrawn','clip_mark',$markGuid,'SUCCESS',['page_guid'=>$pageGuid]);
+        $lockName='epdi:official:'.substr(hash('sha256',RequestContext::tenantGuid().':'.$markGuid),0,32);
+        if((int)Store::value('SELECT GET_LOCK(?,10)',[$lockName])!==1)
+            throw new \RuntimeException('Another approval is processing this article');
+        try{
+            $changed=Store::exec('UPDATE ep_official_clips SET status="REVOKED",updated_at=NOW(6)
+                WHERE tenant_guid=? AND page_guid=? AND mark_guid=? AND status="ACTIVE"',
+                [TenantData::tenantBin(),Uuid::toBinary($pageGuid),Uuid::toBinary($markGuid)]);
+            if($changed<1)throw new \RuntimeException('No active official clipping was found');
+            Audit::log('clip.official_withdrawn','clip_mark',$markGuid,'SUCCESS',['page_guid'=>$pageGuid]);
+        }finally{
+            try{Store::value('SELECT RELEASE_LOCK(?)',[$lockName]);}catch(\Throwable){}
+        }
     }
 }
