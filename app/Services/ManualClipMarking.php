@@ -177,8 +177,10 @@ final class ManualClipMarking
              ORDER BY created_at DESC LIMIT 120',
             [$tenant,Uuid::toBinary($pageGuid)]
         );
+        $official=OfficialClipService::urlsForPage($pageGuid);
         foreach($rows as &$r){
             $r['mark_guid']=Uuid::fromBinary($r['mark_guid']);
+            $r['official_url']=$official[$r['mark_guid']]??null;
         }unset($r);
         return $rows;
     }
@@ -198,11 +200,14 @@ final class ManualClipMarking
             [$tenant,Uuid::toBinary($pageGuid)]
         );
         $out=[];
+        $official=OfficialClipService::urlsForPage($pageGuid);
         foreach($rows as $r){
+            $markGuid=Uuid::fromBinary($r['mark_guid']);
             $x=(float)$r['x'];$y=(float)$r['y'];$w=(float)$r['width'];$h=(float)$r['height'];
             if($x<0||$y<0||$w<.02||$h<.02||$x+$w>1.00001||$y+$h>1.00001)continue;
-            $out[]=['mark_guid'=>Uuid::fromBinary($r['mark_guid']),
-                'title'=>(string)$r['title'],'x'=>$x,'y'=>$y,'w'=>$w,'h'=>$h];
+            $out[]=['mark_guid'=>$markGuid,
+                'title'=>(string)$r['title'],'x'=>$x,'y'=>$y,'w'=>$w,'h'=>$h,
+                'official_url'=>$official[$markGuid]??null];
         }
         return $out;
     }

@@ -99,6 +99,9 @@ jobs:
           php -l app/Services/SchemaDoctor.php
           php tests/clip-crop-cache.php
           php tests/clip-reuse-contract.php
+          php -l app/Services/OfficialClipService.php
+          php tests/official-clip-contract.php
+          node --check public_html/assets/reader-editorial-clips.js
           node --check public_html/assets/app.js
           node --check public_html/assets/manual-clipping.js
           node --check public_html/assets/manual-clipping.js
@@ -115,3 +118,10 @@ jobs:
           EPDI_AI_TEST_DB_USER: root
           EPDI_AI_TEST_DB_PASSWORD: epdi_ci_only_password
         run: php tests/ai-review-mariadb.php
+      - name: Official clipping MariaDB access controls (disposable)
+        env:
+          EPDI_OFFICIAL_CI: '1'
+          EPDI_AI_TEST_DB_HOST: 127.0.0.1
+          EPDI_AI_TEST_DB_USER: root
+          EPDI_AI_TEST_DB_PASSWORD: epdi_ci_only_password
+        run: php tests/official-clip-mariadb.php

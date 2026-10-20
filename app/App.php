@@ -514,7 +514,7 @@ final class App
     }
     private function publicClipImage(string $slug): never
     {
-        $c=$this->clipOr404($slug);if(strtoupper((string)$c['visibility'])==='PRIVATE')Http::privateNoStore();$full=ClipService::previewPath($c);if(!is_file($full))$this->notFound('Clip image unavailable');header('Content-Type: image/webp');header('Content-Length: '.filesize($full));header('Content-Disposition: inline; filename="epaper-clip-'.$this->e($slug).'.webp"');header('Cache-Control: '.(strtoupper((string)$c['visibility'])==='PRIVATE'?'private, no-store':'public, max-age=3600'));readfile($full);exit;
+        $c=$this->clipOr404($slug);if(in_array(strtoupper((string)$c['visibility']),['PRIVATE','OFFICIAL'],true))Http::privateNoStore();$full=ClipService::previewPath($c);if(!is_file($full))$this->notFound('Clip image unavailable');header('Content-Type: image/webp');header('Content-Length: '.filesize($full));header('Content-Disposition: inline; filename="epaper-clip-'.$this->e($slug).'.webp"');header('Cache-Control: '.(in_array(strtoupper((string)$c['visibility']),['PRIVATE','OFFICIAL'],true)?'private, no-store':'public, max-age=3600'));readfile($full);exit;
     }
     private function clipDownload(string $slug,string $format): never
     {

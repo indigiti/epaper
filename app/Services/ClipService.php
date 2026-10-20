@@ -10,15 +10,22 @@ final class ClipService
     public const BRANDING_SETTING_COMPAT = 'clipping.watermark';
     public const BRANDING_VERSION = 'source-qr-v1';
 
-    public static function create(string $pageGuid,float $x,float $y,float $w,float $h,?string $title=null,string $visibility='PRIVATE',bool $editorial=false,?string $markGuid=null): array
+    public static function create(string $pageGuid,float $x,float $y,float $w,float $h,?string $title=null,string $visibility='PRIVATE',bool $editorial=false,?string $markGuid=null,bool $official=false): array
     {
         foreach([$x,$y,$w,$h] as $v){
             if($v<0||$v>1)throw new \InvalidArgumentException('Clip coordinates must be normalized');
         }
         if($w<.02||$h<.02||$x+$w>1.00001||$y+$h>1.00001)throw new \InvalidArgumentException('Invalid clipping area');
 
-        $visibility=$editorial?'PRIVATE':strtoupper(trim($visibility));
-        if(!in_array($visibility,['PRIVATE','PUBLIC'],true))$visibility='PRIVATE';
+        if($official){
+            $role=strtoupper((string)(Auth::currentMembership()['role_key']??''));
+            if(!in_array($role,['OWNER','ADMIN','PUBLISHER_ADMIN'],true)||
+               $markGuid===null||!SchemaDoctor::officialReady())
+                throw new \RuntimeException('Publisher approval is required for official clipping');
+            $editorial=true; // Durable, publisher-managed; never consumes a reader's quota.
+        }
+        $visibility=$official?'OFFICIAL':($editorial?'PRIVATE':strtoupper(trim($visibility)));
+        if(!in_array($visibility,['PRIVATE','PUBLIC','OFFICIAL'],true))$visibility='PRIVATE';
         $title=trim((string)$title);
         if($title==='')$title='News clipping';
         if(mb_strlen($title)>180)$title=mb_substr($title,0,180);
@@ -90,8 +97,8 @@ final class ClipService
             try{self::ensureBranded($clip);}catch(\Throwable $e){Audit::log('clip.branding.failed','clip',$clipGuid,'FAILED',['message'=>$e->getMessage()]);}
         }
 
-        Audit::log($editorial?'clip.manual_created':'clip.created','clip',$clipGuid,'SUCCESS',[
-            'page_guid'=>$pageGuid,'visibility'=>$visibility,'source'=>$editorial?'MANUAL_EDITORIAL':'READER',
+        Audit::log($official?'clip.official_created':($editorial?'clip.manual_created':'clip.created'),'clip',$clipGuid,'SUCCESS',[
+            'page_guid'=>$pageGuid,'visibility'=>$visibility,'source'=>$official?'PUBLISHER_OFFICIAL':($editorial?'MANUAL_EDITORIAL':'READER'),
             'expires_in_days'=>$editorial?null:self::EXPIRY_DAYS,
             'mark_guid'=>$markGuid,'crop_cache_hit'=>$cache['hit'],
         ]);
@@ -113,6 +120,12 @@ final class ClipService
             throw new \RuntimeException('Editorial clipping permission required');
         }
         return self::create($pageGuid,$x,$y,$w,$h,$title,'PRIVATE',true);
+    }
+
+    public static function createOfficial(
+        string $pageGuid,string $markGuid,float $x,float $y,float $w,float $h,string $title
+    ): array {
+        return self::create($pageGuid,$x,$y,$w,$h,$title,'OFFICIAL',true,$markGuid,true);
     }
 
     private static function crop(string $src,string $dst,float $x,float $y,float $w,float $h,int $pageW,int $pageH): void
@@ -146,6 +159,7 @@ final class ClipService
     {
         if(!empty($clip['expires_at'])&&strtotime((string)$clip['expires_at'])<time())return false;
         $visibility=strtoupper((string)($clip['visibility']??'PRIVATE'));
+        if($visibility==='OFFICIAL')return OfficialClipService::mayView($clip);
         if(in_array($visibility,['PUBLIC','UNLISTED'],true))return true; // UNLISTED kept for legacy clips only.
         $u=Auth::user();
         return $u&&!empty($clip['platform_user_guid'])&&hash_equals(strtolower((string)$clip['platform_user_guid']),strtolower((string)$u['user_guid']));
@@ -153,6 +167,11 @@ final class ClipService
 
     public static function canManage(array $clip): bool
     {
+        if(strtoupper((string)($clip['visibility']??''))==='OFFICIAL'){
+            $role=strtoupper((string)(Auth::currentMembership()['role_key']??''));
+            return in_array($role,['OWNER','ADMIN','PUBLISHER_ADMIN'],true)
+                && OfficialClipService::mayView($clip);
+        }
         $u=Auth::user();
         return $u&&!empty($clip['platform_user_guid'])&&hash_equals(strtolower((string)$clip['platform_user_guid']),strtolower((string)$u['user_guid']));
     }

@@ -33,7 +33,7 @@ foreach([
    throw new RuntimeException('Reader clip creation lost cache, quota, expiry or mark verification: '.$token);
 foreach([
  'm.mark_guid,m.title,m.x,m.y,m.width,m.height',
- "['mark_guid'=>Uuid::fromBinary(",
+ "['mark_guid'=>\$markGuid",
  'function validateClipSource(',
  'm.status="ACTIVE" AND e.status="PUBLISHED"',
  "m.tenant_guid=? AND m.page_guid=? AND m.mark_guid=?",

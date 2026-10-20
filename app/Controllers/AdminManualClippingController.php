@@ -3,7 +3,7 @@ declare(strict_types=1);
 namespace EpaperSaas\Controllers;
 
 use EpaperSaas\Core\{Auth,Http,RateLimiter,RequestContext,Store,Uuid,View};
-use EpaperSaas\Services\{Audit,ClipService,ManualClipGeometry,ManualClipMarking,TenantData};
+use EpaperSaas\Services\{Audit,ClipService,ManualClipGeometry,ManualClipMarking,OfficialClipService,TenantData};
 use EpaperSaas\Views\ManualClippingView;
 
 /** Authenticated publisher-only page selection, preview, and clip creation. */
@@ -28,6 +28,8 @@ final class AdminManualClippingController
             self::toggleMark(strtolower($m[1]),strtolower($m[2]),$m[3]);
         if(preg_match('#^/admin/manual-clipping/([0-9a-f-]{36})/marks/([0-9a-f-]{36})/remove$#i',$path,$m)&&$method==='POST')
             self::removeMark(strtolower($m[1]),strtolower($m[2]));
+        if(preg_match('#^/admin/manual-clipping/([0-9a-f-]{36})/marks/([0-9a-f-]{36})/(publish-official|withdraw-official)$#i',$path,$m)&&$method==='POST')
+            self::officialMark(strtolower($m[1]),strtolower($m[2]),$m[3]);
         if(preg_match('#^/admin/manual-clipping/([0-9a-f-]{36})/import/([0-9a-z]{18})$#i',$path,$m)&&$method==='POST')
             self::importClip(strtolower($m[1]),strtolower($m[2]));
         if(preg_match('#^/admin/manual-clipping/([0-9a-f-]{36})/preview$#i',$path,$m)&&$method==='GET')
@@ -225,6 +227,21 @@ final class AdminManualClippingController
             Http::redirect('/admin/manual-clipping/'.$pageGuid.'?mark=removed');
         }catch(\Throwable $e){
             http_response_code(422);self::detail($pageGuid,'Marked article could not be removed: '.$e->getMessage());
+        }
+    }
+
+    private static function officialMark(string $pageGuid,string $markGuid,string $action): never
+    {
+        self::limitActions();
+        try{
+            if($action==='publish-official')
+                OfficialClipService::approve($pageGuid,$markGuid);
+            else OfficialClipService::withdraw($pageGuid,$markGuid);
+            Http::redirect('/admin/manual-clipping/'.$pageGuid.'?mark='.
+                ($action==='publish-official'?'official-published':'official-withdrawn'));
+        }catch(\Throwable $e){
+            http_response_code(422);
+            self::detail($pageGuid,'Official clipping action failed: '.$e->getMessage());
         }
     }
 

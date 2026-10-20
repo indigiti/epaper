@@ -182,3 +182,22 @@
 .admin-shell .manual-actions-legend span{display:inline-flex;align-items:center;gap:4px;white-space:nowrap;font-size:11px}
 .admin-shell .manual-actions-legend svg{width:13px;height:13px}
 @media(max-width:560px){.admin-shell .manual-mark-row>.manual-mark-actions{justify-content:flex-start}}
+
+/* Publisher-approved reusable clipping controls, scoped to Clip Marking only. */
+.admin-shell .manual-clipping-page .manual-official-actions{
+  display:flex;gap:6px;align-items:center;margin-left:auto;flex-wrap:wrap
+}
+.admin-shell .manual-clipping-page .manual-official-actions form{margin:0}
+.admin-shell .manual-clipping-page .manual-official-link{
+  color:#16734b;border-color:rgba(22,115,75,.3);background:rgba(22,115,75,.06)
+}
+.admin-shell .manual-clipping-page .manual-official-approve{
+  color:#16734b;border-color:rgba(22,115,75,.3);background:rgba(22,115,75,.06)
+}
+.admin-shell .manual-clipping-page .manual-official-link:hover,
+.admin-shell .manual-clipping-page .manual-official-approve:hover{
+  background:rgba(22,115,75,.15)
+}
+@media(max-width:560px){
+ .admin-shell .manual-clipping-page .manual-official-actions{margin-left:0}
+}
