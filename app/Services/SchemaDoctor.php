@@ -11,7 +11,7 @@ use EpaperSaas\Core\{Build,Config,Database,RedisStore,RequestContext,Store};
  */
 final class SchemaDoctor
 {
-    private const CACHE_KEY = 'schema:doctor:v2:2022-clip-repair';
+    private const CACHE_KEY = 'schema:doctor:v2:2023-clip-reuse';
 
     private const ALPHA2_TABLES = [
         'ep_navigation_scopes',
@@ -180,6 +180,7 @@ final class SchemaDoctor
             foreach(self::FLEX17_TABLES as$table)if(!self::tableExists($table)){$pending[]='v2.0.1.7 flexible reader identity schema';break;}
             foreach(self::TRUST18_TABLES as$table)if(!self::tableExists($table)){$pending[]='v2.0.1.8 trusted app / desktop login schema';break;}
             if(!self::tableExists(self::CLIP_MARK_TABLE))$pending[]='v2.0.2.2 clip marking schema';
+            if(!self::clipReuseReady())$pending[]='v2.0.2.3 clipping mark reference';
         } catch (\Throwable $e) {
             $status=['ok'=>false,'pending'=>['database preflight unavailable'],'error'=>$e->getMessage(),'checked_at'=>gmdate('c')];
             RedisStore::setJson(self::CACHE_KEY,$status,30);
@@ -251,6 +252,10 @@ final class SchemaDoctor
         $checks[]=self::check('migration:clip-marking:table','v2.0.2.2 clip marking table',
             $clipMarksReady,$clipMarksReady?'Present':'Missing pre-marking table',true);
 
+        $clipReuseReady=self::clipReuseReady();
+        $checks[]=self::check('migration:clip-reuse:mark','v2.0.2.3 clip mark reference',
+            $clipReuseReady,$clipReuseReady?'Present':'Missing nullable clip mark reference or index',true);
+
         $redisEnabled=RedisStore::enabled();
         if($redisEnabled){
             try{$ping=RedisStore::client()?->ping();$ok=$ping!==false&&$ping!==null;$detail=$ok?'Connected':'No response';}
@@ -281,6 +286,30 @@ final class SchemaDoctor
      * so two Upgrade Center submissions cannot race to create the table.
      * Existing marks and clipping images are never deleted or rewritten.
      */
+    /**
+     * Nullable mark association is additive. Older clips remain valid while the
+     * schema update is applied from the authenticated Upgrade Center.
+     */
+    public static function clipReuseReady(): bool
+    {
+        return self::tableExists('ep_clips') &&
+            in_array('mark_guid',self::columnNames('ep_clips'),true) &&
+            self::hasEquivalentIndex('ep_clips',['tenant_guid','page_guid','mark_guid','created_at']);
+    }
+
+    private static function repairClipReuse(\PDO $pdo,array &$actions): void
+    {
+        if(!self::tableExists('ep_clips'))return;
+        if(!in_array('mark_guid',self::columnNames('ep_clips'),true)){
+            $pdo->exec('ALTER TABLE ep_clips ADD COLUMN mark_guid BINARY(16) NULL AFTER page_guid');
+            $actions[]='Added optional article-mark reference to clipping records';
+        }
+        if(!self::hasEquivalentIndex('ep_clips',['tenant_guid','page_guid','mark_guid','created_at'])){
+            $pdo->exec('ALTER TABLE ep_clips ADD INDEX ix_clip_mark (tenant_guid,page_guid,mark_guid,created_at)');
+            $actions[]='Indexed clipping records by original article mark';
+        }
+    }
+
     public static function repairClipMarking(?string $actorGuid=null): array
     {
         $before=self::report(true);
@@ -303,7 +332,8 @@ final class SchemaDoctor
             }
             if(!self::tableExists(self::CLIP_MARK_TABLE))
                 throw new \RuntimeException('Clip Marking table still missing after repair');
-            if(!$actions)$actions[]='Clip Marking table already present; no database changes needed';
+            self::repairClipReuse($pdo,$actions);
+            if(!$actions)$actions[]='Clip Marking and clipping reuse schema already present; no changes needed';
 
             if(self::tableExists('ep_system_state')){
                 $payload=json_encode([
@@ -428,6 +458,7 @@ final class SchemaDoctor
             if(!self::tableExists(self::CLIP_MARK_TABLE))
                 self::applyMigrationFile($pdo,'upgrade-v2.0.2.2-clip-marking.sql',$actions,
                     'Created clip marking geometry table');
+            self::repairClipReuse($pdo,$actions);
 
             // Record the migration status in the existing application state table when available.
             if(self::tableExists('ep_system_state')){
