@@ -167,7 +167,11 @@ final class ClipService
 
     public static function canManage(array $clip): bool
     {
-        if(strtoupper((string)($clip['visibility']??''))==='OFFICIAL')return false;
+        if(strtoupper((string)($clip['visibility']??''))==='OFFICIAL'){
+            $role=strtoupper((string)(Auth::currentMembership()['role_key']??''));
+            return in_array($role,['OWNER','ADMIN','PUBLISHER_ADMIN'],true)
+                && OfficialClipService::mayView($clip);
+        }
         $u=Auth::user();
         return $u&&!empty($clip['platform_user_guid'])&&hash_equals(strtolower((string)$clip['platform_user_guid']),strtolower((string)$u['user_guid']));
     }
