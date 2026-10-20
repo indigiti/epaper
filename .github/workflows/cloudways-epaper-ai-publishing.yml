@@ -118,3 +118,10 @@ jobs:
           EPDI_AI_TEST_DB_USER: root
           EPDI_AI_TEST_DB_PASSWORD: epdi_ci_only_password
         run: php tests/ai-review-mariadb.php
+      - name: Official clipping MariaDB access controls (disposable)
+        env:
+          EPDI_OFFICIAL_CI: '1'
+          EPDI_AI_TEST_DB_HOST: 127.0.0.1
+          EPDI_AI_TEST_DB_USER: root
+          EPDI_AI_TEST_DB_PASSWORD: epdi_ci_only_password
+        run: php tests/official-clip-mariadb.php
