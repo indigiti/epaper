@@ -139,7 +139,7 @@ final class ClipService
         return TenantData::guidRow(Store::one(
             'SELECT c.*,p.page_number,e.edition_date,e.title edition_title,e.slug edition_slug,pub.name publication_name FROM ep_clips c JOIN ep_pages p ON p.tenant_guid=c.tenant_guid AND p.page_guid=c.page_guid JOIN ep_editions e ON e.tenant_guid=p.tenant_guid AND e.edition_guid=p.edition_guid JOIN ep_publications pub ON pub.tenant_guid=e.tenant_guid AND pub.publication_guid=e.publication_guid WHERE c.tenant_guid=? AND c.clip_slug=? LIMIT 1',
             [TenantData::tenantBin(),$slug]
-        ),['clip_guid','tenant_guid','platform_user_guid','page_guid']);
+        ),['clip_guid','tenant_guid','platform_user_guid','page_guid','mark_guid']);
     }
 
     public static function canView(array $clip): bool
