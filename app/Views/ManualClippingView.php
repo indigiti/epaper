@@ -125,7 +125,7 @@ final class ManualClippingView
         if(!$ready)$h.='<div class="alert warning">Both preview and high-resolution media are required. Check Processing Center.</div>';
         if(!$schemaReady)$h.='<div class="alert warning" role="alert">Clip Marking storage is not ready. Go to <a href="/admin/system/upgrade">Upgrade Center</a> and use the safe schema repair.</div>';
         $marked=(string)($_GET['mark']??'');
-        if(in_array($marked,['saved','hidden','activated','imported','updated','removed'],true))
+        if(in_array($marked,['saved','hidden','activated','imported','updated','removed','official-published','official-withdrawn'],true))
             $h.='<div class="alert success" role="status">Article marking '.View::e($marked).'.</div>';
         $h.='<div class="manual-editor-grid"><section class="panel manual-canvas-panel">'
           .'<div class="section-head"><h2>Map article outlines</h2></div>'
@@ -207,7 +207,7 @@ final class ManualClippingView
           .'<button class="btn ghost manual-icon-action" type="submit" name="action" value="private" data-manual-save-private title="Create private clipping now" aria-label="Create private clipping now" disabled>'.View::icon('clip').'</button></div>'
           .'<p class="manual-map-shortcut">Keyboard: Ctrl/⌘ + S to save, Escape to clear. Use arrow keys to nudge the selection when the newspaper is focused.</p>'
           .'</form></section><section class="panel"><h2>Marked articles</h2>'
-          .'<p class="muted">Only active outlines appear in the published Reader. Hover or focus on an icon for its action; Remove is confirmed.</p>'
+          .'<p class="muted">Publisher administrators can approve or withdraw a reusable official clipping. Readers open approved clips directly without creating their own.</p>'
           .'<p class="manual-actions-legend" aria-label="Article action icon reference">'
           .'<span>'.View::icon('edit').' Edit</span><span>'.View::icon('power').' Hide</span>'
           .'<span>'.View::icon('eye').' Show</span><span>'.View::icon('trash').' Remove</span></p>'
@@ -218,8 +218,34 @@ final class ManualClippingView
             $id=(string)$mark['mark_guid'];
             $mine=$actor!==''&&Uuid::isValid($actor)&&
                 hash_equals((string)$mark['platform_user_guid'],Uuid::toBinary($actor));
+            $officialUrl=(string)($mark['official_url']??'');
             $h.='<article class="manual-mark-row"><div><strong>'.View::e($mark['title']).'</strong>'
-              .'<small>'.($active?'Active outline':'Hidden outline').'</small></div>';
+              .'<small>'.($officialUrl!==''?'Official clipping published':($active?'Active outline':'Hidden outline')).'</small></div>';
+            if($officialUrl!==''||($full&&$active&&$schemaReady)){
+                $h.='<div class="manual-official-actions">';
+                if($officialUrl!==''){
+                    $h.='<a class="btn ghost manual-icon-action manual-official-link" href="'
+                        .View::e($officialUrl).'" target="_blank" rel="noopener"'
+                        .' title="Open publisher-approved clipping" aria-label="Open official clipping: '
+                        .View::e($mark['title']).'">'.View::icon('link').'</a>';
+                }
+                if($full&&$officialUrl!==''&&$schemaReady){
+                    $h.='<form method="post" action="/admin/manual-clipping/'.View::e($guid)
+                       .'/marks/'.View::e($id).'/withdraw-official"'
+                       .' data-confirm="Withdraw this publisher-approved clipping? Its public URL will stop working. Personal reader clippings remain available.">'
+                       .'<input type="hidden" name="_csrf" value="'.View::e(Http::csrf()).'">'
+                       .'<button type="submit" class="btn ghost manual-icon-action" title="Withdraw official clipping" aria-label="Withdraw official clipping: '
+                       .View::e($mark['title']).'">'.View::icon('power').'</button></form>';
+                }elseif($full&&$active&&$schemaReady){
+                    $h.='<form method="post" action="/admin/manual-clipping/'.View::e($guid)
+                       .'/marks/'.View::e($id).'/publish-official"'
+                       .' data-confirm="Publish an official clipping available to every reader? This creates a reusable public image.">'
+                       .'<input type="hidden" name="_csrf" value="'.View::e(Http::csrf()).'">'
+                       .'<button type="submit" class="btn ghost manual-icon-action manual-official-approve" title="Publish reusable official clipping" aria-label="Publish official clipping: '
+                       .View::e($mark['title']).'">'.View::icon('check').'</button></form>';
+                }
+                $h.='</div>';
+            }
             if($full||$mine){
                 $h.='<div class="manual-mark-actions">'
                   .'<button class="btn ghost manual-icon-action" type="button" title="Edit marked article" aria-label="Edit marked article: '.View::e($mark['title']).'" data-manual-open-mark="'.View::e($id).'"'
