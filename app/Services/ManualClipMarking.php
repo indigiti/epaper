@@ -188,7 +188,7 @@ final class ManualClipMarking
         if(!Uuid::isValid($pageGuid))return [];
         $tenant=TenantData::tenantBin();
         $rows=Store::all(
-            'SELECT m.title,m.x,m.y,m.width,m.height
+            'SELECT m.mark_guid,m.title,m.x,m.y,m.width,m.height
              FROM ep_clip_marks m
              JOIN ep_pages p ON p.tenant_guid=m.tenant_guid AND p.page_guid=m.page_guid
              JOIN ep_editions e ON e.tenant_guid=p.tenant_guid AND e.edition_guid=p.edition_guid
@@ -201,9 +201,33 @@ final class ManualClipMarking
         foreach($rows as $r){
             $x=(float)$r['x'];$y=(float)$r['y'];$w=(float)$r['width'];$h=(float)$r['height'];
             if($x<0||$y<0||$w<.02||$h<.02||$x+$w>1.00001||$y+$h>1.00001)continue;
-            $out[]=['title'=>(string)$r['title'],'x'=>$x,'y'=>$y,'w'=>$w,'h'=>$h];
+            $out[]=['mark_guid'=>Uuid::fromBinary($r['mark_guid']),
+                'title'=>(string)$r['title'],'x'=>$x,'y'=>$y,'w'=>$w,'h'=>$h];
         }
         return $out;
+    }
+
+    /**
+     * Never trust a Reader-supplied mark GUID without checking tenant, publication
+     * state, page ownership and the exact saved geometry on the server.
+     */
+    public static function validateClipSource(string $pageGuid,string $markGuid,array $geometry): void
+    {
+        if(!Uuid::isValid($pageGuid)||!Uuid::isValid($markGuid))
+            throw new \InvalidArgumentException('Invalid article marking');
+        $mark=Store::one(
+            'SELECT m.x,m.y,m.width,m.height FROM ep_clip_marks m
+             JOIN ep_pages p ON p.tenant_guid=m.tenant_guid AND p.page_guid=m.page_guid
+             JOIN ep_editions e ON e.tenant_guid=p.tenant_guid AND e.edition_guid=p.edition_guid
+             WHERE m.tenant_guid=? AND m.page_guid=? AND m.mark_guid=?
+               AND m.status="ACTIVE" AND e.status="PUBLISHED" LIMIT 1',
+            [TenantData::tenantBin(),Uuid::toBinary($pageGuid),Uuid::toBinary($markGuid)]
+        );
+        if(!$mark)throw new \InvalidArgumentException('This article marking is no longer available');
+        foreach(['x'=>'x','y'=>'y','w'=>'width','h'=>'height'] as $input=>$column){
+            if(abs((float)$mark[$column]-(float)($geometry[$input]??-1))>0.00000015)
+                throw new \InvalidArgumentException('Article marking coordinates have changed. Reload this page.');
+        }
     }
 
     public static function respond(string $pageGuid): never
