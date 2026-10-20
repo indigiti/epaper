@@ -16,7 +16,7 @@
    root.querySelectorAll('.reader-editorial-layer').forEach(x=>{x.hidden=!enabled});
  }
  const validGuid=s=>typeof s==='string'&&/^[0-9a-f-]{36}$/i.test(s);
- const validClip=c=>c&&typeof c.title==='string'&&
+ const validClip=c=>c&&typeof c.title==='string'&&validGuid(c.mark_guid)&&
    ['x','y','w','h'].every(k=>Number.isFinite(Number(c[k])))&&
    Number(c.x)>=0&&Number(c.y)>=0&&Number(c.w)>=.02&&Number(c.h)>=.02&&
    Number(c.x)+Number(c.w)<=1.00001&&Number(c.y)+Number(c.h)<=1.00001;
