@@ -23,7 +23,7 @@ foreach([
  'm.updated_at=o.mark_updated_at',
  'p.version=o.page_version',
  'a.asset_guid=o.asset_guid',
- '(a.checksum_sha256 <=> o.asset_checksum)',
+ '(CAST(a.checksum_sha256 AS BINARY) <=> CAST(o.asset_checksum AS BINARY))',
  'o.tenant_guid=? AND o.mark_guid=? AND o.page_guid=? AND o.clip_guid=?',
  'GET_LOCK(?,10)','RELEASE_LOCK(?)',
  'status="REVOKED"',
