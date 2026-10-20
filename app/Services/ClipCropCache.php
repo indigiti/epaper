@@ -53,7 +53,7 @@ final class ClipCropCache
             return ['hit'=>false,'mode'=>'uncached'];
         }
         $cache=$shard.'/'.$key.'.webp';
-        $lock=@fopen($shard.'/'.$key.'.lock','c');
+        $lock=@fopen($shard.'/.crop.lock','c');
         if(!$lock){
             $render($destination);
             return ['hit'=>false,'mode'=>'uncached'];
@@ -82,6 +82,11 @@ final class ClipCropCache
                 $mode='copy';
             }else $mode='link';
             @touch($cache); // Enforce sliding cache retention independent of clip expiry.
+            // Incremental, bounded stale-cache cleanup. Never deletes reader clip
+            // paths; disabled/erroring housekeeping does not block clip creation.
+            if(random_int(1,48)===1){
+                try{self::prune($tenant,160);}catch(\Throwable){}
+            }
             return ['hit'=>$hit,'mode'=>$mode];
         }finally{
             @flock($lock,LOCK_UN);
@@ -105,7 +110,7 @@ final class ClipCropCache
                 if(++$checked>$limit)return $removed;
                 if(!$item->isFile()||!preg_match('/^[a-f0-9]{64}\.webp$/D',$item->getFilename()))continue;
                 if($item->getMTime()>time()-self::RETAIN_SECONDS)continue;
-                $lockFile=substr($item->getPathname(),0,-5).'.lock';
+                $lockFile=$shard->getPathname().'/.crop.lock';
                 $lock=@fopen($lockFile,'c');
                 if(!$lock)continue;
                 try{
