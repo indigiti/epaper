@@ -93,6 +93,12 @@ jobs:
           node --check public_html/assets/reader-swipe-feedback.js
           php tests/reader-swipe-feedback-contract.php
           php tests/clip-ui-compact-contract.php
+          php -l app/Services/ClipCropCache.php
+          php -l app/Services/ClipService.php
+          php -l app/Services/ManualClipMarking.php
+          php -l app/Services/SchemaDoctor.php
+          php tests/clip-crop-cache.php
+          php tests/clip-reuse-contract.php
           node --check public_html/assets/app.js
           node --check public_html/assets/manual-clipping.js
           node --check public_html/assets/manual-clipping.js
