@@ -99,6 +99,9 @@ jobs:
           php -l app/Services/SchemaDoctor.php
           php tests/clip-crop-cache.php
           php tests/clip-reuse-contract.php
+          php -l app/Services/OfficialClipService.php
+          php tests/official-clip-contract.php
+          node --check public_html/assets/reader-editorial-clips.js
           node --check public_html/assets/app.js
           node --check public_html/assets/manual-clipping.js
           node --check public_html/assets/manual-clipping.js
