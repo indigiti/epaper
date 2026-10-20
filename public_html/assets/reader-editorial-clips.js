@@ -49,7 +49,13 @@
       button.className='reader-editorial-marker';
       const title=String(c.title||'Open newspaper clipping');
       button.dataset.clipLabel=title.slice(0,100);
-      button.setAttribute('aria-label','Create clipping: '+title);
+      const official=typeof c.official_url==='string'&&/^\/c\/[a-f0-9]{18}$/i.test(c.official_url)
+        ?c.official_url:null;
+      if(official){
+        button.dataset.officialClip='1';
+        button.title='Open publisher-approved clipping';
+      }
+      button.setAttribute('aria-label',(official?'Open official clipping: ':'Create clipping: ')+title);
       Object.assign(button.style,{
         left:(100*Number(c.x))+'%',top:(100*Number(c.y))+'%',
         width:(100*Number(c.w))+'%',height:(100*Number(c.h))+'%'
@@ -58,6 +64,7 @@
       button.addEventListener('pointerup',e=>e.stopPropagation());
       button.addEventListener('click',e=>{
         e.preventDefault();e.stopPropagation();
+        if(official){window.location.assign(official);return;}
         window.EpdiReader?.createFromEditorialMarker?.(c,guid,pageNumber||Number(root.dataset.pageNumber));
       });
       layer.appendChild(button);
