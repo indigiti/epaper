@@ -196,6 +196,7 @@ jobs:
           node --check public_html/assets/vendor/vanta.halo.0.5.24.min.js
           node --check public_html/assets/vendor/three.r134.min.js
           node tests/home-halo-browser.mjs
+          node tests/home-halo-real-browser.mjs
           node tests/admin-design-browser.mjs
           node tests/reader-hub-browser.mjs
       - name: Preserve Reader Hub desktop/mobile preview screenshots
