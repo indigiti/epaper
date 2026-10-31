@@ -1,77 +1,141 @@
 /*
- * Homepage HALO progressive enhancement. Fallback is intentional CSS:
- * the front page, headline and all links remain visible without WebGL.
- * Not loaded by Reader, Account, Authentication or Admin.
+ * HALO transparent hero treatment. Vanta's shader renders an opaque canvas:
+ * the canvas is composited as a masked, semi-transparent decorative layer,
+ * while the actual hero keeps its native page background and text colors.
+ * The static fallback uses a faint radial glow; no dark rectangle is drawn.
+ * Strictly scoped to the homepage and never loaded by Reader/Admin/Auth.
  */
 body.public-shell .has-vanta-halo{
-  position:relative;isolation:isolate;overflow:hidden;
-  background:linear-gradient(118deg,#0e213b 0%,#1e4269 64%,#19495c 100%);
-  color:#f8fbff
+  position:relative;
+  isolation:isolate;
+  overflow:hidden;
+  background:transparent!important;
+  color:var(--text)!important;
 }
 body.public-shell .has-vanta-halo .epdi-halo-layer{
-  position:absolute!important;inset:0;z-index:0;
-  display:block;width:100%;height:100%;overflow:hidden;
-  pointer-events:none;opacity:.90
+  position:absolute!important;
+  inset:0;
+  z-index:0;
+  display:block;
+  width:100%;
+  height:100%;
+  overflow:hidden;
+  pointer-events:none!important;
+  opacity:.43;
+  mix-blend-mode:multiply;
+  -webkit-mask-image:radial-gradient(ellipse 68% 112% at 63% 52%, #000 14%, transparent 96%);
+  mask-image:radial-gradient(ellipse 68% 112% at 63% 52%, #000 14%, transparent 96%);
 }
 body.public-shell .has-vanta-halo .epdi-halo-layer canvas{
-  display:block;pointer-events:none!important;max-width:none!important
+  display:block;
+  max-width:none!important;
+  pointer-events:none!important;
 }
-body.public-shell .has-vanta-halo:before{
-  content:"";position:absolute;inset:0;z-index:1;pointer-events:none;
-  background:linear-gradient(90deg,rgba(5,15,29,.85) 0%,rgba(5,15,29,.58) 45%,rgba(5,15,29,.13) 85%)
+body.public-shell .has-vanta-halo::before{
+  content:"";
+  position:absolute;
+  inset:0;
+  z-index:0;
+  pointer-events:none;
+  background:radial-gradient(ellipse 58% 86% at 63% 51%,
+    rgba(67,137,209,.11) 0%,
+    rgba(89,193,187,.065) 42%,
+    transparent 88%);
 }
+/* Text and edition cover always sit above decorative imagery. */
 body.public-shell .has-vanta-halo.newsstand-hero{
-  border:1px solid rgba(111,176,215,.22);border-radius:22px;
-  padding:clamp(26px,4vw,60px);
-  box-shadow:0 18px 58px rgba(12,37,67,.12)
+  border:0;
+  border-bottom:1px solid var(--border);
+  border-radius:0;
+  padding:clamp(34px,5vw,72px) clamp(0px,2vw,28px);
+  box-shadow:none;
 }
 body.public-shell .has-vanta-halo.newsstand-hero .newsstand-hero-copy,
 body.public-shell .has-vanta-halo.newsstand-hero .newsstand-hero-cover{
-  position:relative;z-index:2
+  position:relative;
+  z-index:2;
 }
-body.public-shell .has-vanta-halo.newsstand-hero .newsstand-hero-copy:before{display:none}
+body.public-shell .has-vanta-halo.newsstand-hero .newsstand-hero-copy::before{
+  display:none;
+}
 body.public-shell .has-vanta-halo.newsstand-hero h1,
 body.public-shell .has-vanta-halo.newsstand-hero .eyebrow,
-body.public-shell .has-vanta-halo.newsstand-hero .newsstand-date{color:#fff!important}
+body.public-shell .has-vanta-halo.newsstand-hero .newsstand-date,
+body.public-shell .has-vanta-halo.newsstand-hero .empty-state h1{
+  color:var(--text)!important;
+}
 body.public-shell .has-vanta-halo.newsstand-hero .newsstand-tagline,
-body.public-shell .has-vanta-halo.newsstand-hero .edition-meta-line{color:#d5e4f3!important}
-body.public-shell .has-vanta-halo.newsstand-hero .btn.ghost{
-  color:#fff;border-color:rgba(255,255,255,.45);background:rgba(255,255,255,.10)
+body.public-shell .has-vanta-halo.newsstand-hero .edition-meta-line,
+body.public-shell .has-vanta-halo.newsstand-hero .empty-state p{
+  color:var(--text-2)!important;
 }
-body.public-shell .has-vanta-halo.newsstand-hero .btn.ghost:hover{background:rgba(255,255,255,.20)}
-body.public-shell .has-vanta-halo.newsstand-hero .empty-state,
-body.public-shell .has-vanta-halo.newsstand-hero .empty-state h1,
-body.public-shell .has-vanta-halo.newsstand-hero .empty-state p{color:#f7fbff}
 body.public-shell .has-vanta-halo.newsstand-hero .btn.primary{
-  color:#112b49;background:#fff;border-color:#fff
+  background:var(--accent)!important;
+  border-color:var(--accent)!important;
+  color:#fff!important;
 }
+body.public-shell .has-vanta-halo.newsstand-hero .btn.ghost{
+  background:transparent!important;
+  border-color:var(--border)!important;
+  color:var(--text)!important;
+}
+body.public-shell .has-vanta-halo.newsstand-hero .btn.ghost:hover{
+  background:var(--surface-2)!important;
+}
+body.public-shell .has-vanta-halo.newsstand-hero .empty-state{
+  position:relative;
+  z-index:2;
+  background:var(--surface);
+  border-color:var(--border);
+}
+/* Both modern visual hero designs use the same accessible light treatment. */
 body.public-shell .has-vanta-halo.fth-hero{
+  border:1px solid var(--border);
+  border-radius:16px;
   min-height:380px;
-  background:linear-gradient(118deg,#10243b,#214c70 64%,#164b59)
+  background:transparent!important;
+  box-shadow:none;
 }
-body.public-shell .has-vanta-halo.fth-magazine-hero{background:linear-gradient(115deg,#211d4c,#3f3d78,#184c65)}
-body.public-shell .has-vanta-halo.fth-hero .fth-hero-backdrop{opacity:0;pointer-events:none}
+body.public-shell .has-vanta-halo.fth-hero .fth-hero-backdrop,
 body.public-shell .has-vanta-halo.fth-hero .fth-hero-overlay{
-  position:absolute;inset:0;z-index:1;pointer-events:none;
-  background:linear-gradient(90deg,rgba(5,14,30,.78),rgba(5,14,30,.48) 68%,rgba(5,14,30,.18))
+  display:none!important;
 }
 body.public-shell .has-vanta-halo.fth-hero .fth-hero-body{
-  position:relative;z-index:2;color:#fff
+  position:relative;
+  z-index:2;
+  color:var(--text)!important;
 }
 body.public-shell .has-vanta-halo.fth-hero .fth-hero-body h1,
 body.public-shell .has-vanta-halo.fth-hero .fth-hero-body p,
-body.public-shell .has-vanta-halo.fth-hero .fth-kicker{color:#fff}
+body.public-shell .has-vanta-halo.fth-hero .fth-kicker{
+  color:var(--text)!important;
+}
+body.public-shell .has-vanta-halo.fth-hero .fth-hero-body p{
+  color:var(--text-2)!important;
+}
+/* Preserve usable contrast for the site-wide dark-mode preference as well. */
+body.public-shell.dark .has-vanta-halo .epdi-halo-layer{
+  mix-blend-mode:screen;
+  opacity:.17;
+}
+body.public-shell.dark .has-vanta-halo::before{
+  background:radial-gradient(ellipse 58% 86% at 63% 51%,
+    rgba(64,138,208,.11),rgba(68,164,161,.07) 46%,transparent 88%);
+}
 @media(max-width:899px){
-  /* Same static premium visual, no extra JS dependencies or WebGL work. */
+  /* Static transparent treatment: no WebGL script fetches on mobile. */
   body.public-shell .has-vanta-halo.newsstand-hero{
-    padding:25px 18px;border-radius:14px;
+    padding:28px 0 34px;
+    border-radius:0;
   }
-  body.public-shell .has-vanta-halo:before{
-    background:linear-gradient(100deg,rgba(5,15,29,.76),rgba(5,15,29,.48))
-  }
-  body.public-shell .has-vanta-halo .epdi-halo-layer{display:none}
+  body.public-shell .has-vanta-halo .epdi-halo-layer{display:none!important}
+}
+@media(max-width:480px){
+  body.public-shell .has-vanta-halo.newsstand-hero{padding:22px 0 28px}
 }
 @media(prefers-reduced-motion:reduce){
   body.public-shell .has-vanta-halo .epdi-halo-layer,
-  body.public-shell .has-vanta-halo .epdi-halo-layer canvas{display:none!important}
+  body.public-shell .has-vanta-halo .epdi-halo-layer canvas{
+    display:none!important
+  }
 }
