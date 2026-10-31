@@ -76,8 +76,9 @@
           backgroundColor:color(v.backgroundColor),
           size:v.size*3,spacing:v.dotSpacing,showLines:v.showLines};
       case 'RINGS':
-        return {...base,backgroundColor:color(v.backgroundColor),
-          color:color(v.baseColor)};
+        // Vanta RINGS uses an internal fixed ring palette; only its
+        // background and overall overlay transparency can be customized.
+        return {...base,backgroundColor:color(v.backgroundColor)};
       case 'CLOUDS':
         return {...base,
           // Clouds' shader is relatively costly; keep it capped below 1x DPR.
