@@ -153,3 +153,36 @@ jobs:
           name: epaper-public-browser-smoke
           path: qa-artifacts/
           retention-days: 7
+
+  frontend-themes:
+    name: Five frontend themes (Cloudways layout)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: mbstring
+      - name: PHP syntax and Cloudways theme contracts
+        run: |
+          php -l app/App.php
+          php -l app/Core/View.php
+          php -l app/Services/ThemeCatalog.php
+          php -l app/Services/FrontendHomeLayouts.php
+          php -l app/Services/SettingsCatalog.php
+          php tests/frontend-cloudways-contract.php
+          php tests/frontend-layouts.php --fixtures
+      - name: Generate desktop and mobile browser previews
+        run: |
+          npm install --no-save --no-package-lock playwright@1.56.1
+          npx playwright install --with-deps chromium
+          node tests/frontend-home-browser.mjs
+      - name: Preserve desktop and mobile theme review screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cw-epaper-five-frontend-previews
+          path: tests/frontend-layout-screenshots/*.png
+          if-no-files-found: warn
+          retention-days: 14
