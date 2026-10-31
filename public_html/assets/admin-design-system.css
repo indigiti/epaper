@@ -137,44 +137,55 @@ body.admin-shell .admin-sidebar-search input[type=search]{
 }
 body.admin-shell .admin-sidebar-search input::placeholder{color:var(--studio-muted)}
 body.admin-shell .admin-sidebar-nav{
-  display:flex!important;gap:7px;flex:1 1 auto;min-height:0;
+  display:flex!important;flex-direction:column;align-items:stretch!important;
+  width:100%;gap:7px;flex:1 1 auto;min-height:0;
   overflow-y:auto!important;overflow-x:hidden!important;
   padding:0 2px 12px 0;scrollbar-width:thin;scrollbar-color:var(--studio-border) transparent
 }
 body.admin-shell .admin-sidebar-nav .nav-section{
-  display:block;min-width:0;margin:0;padding:0;
+  display:block;align-self:stretch;box-sizing:border-box;
+  width:100%;max-width:100%;min-width:0;margin:0;padding:0;
 }
 body.admin-shell .admin-sidebar-nav .nav-section-title{
-  display:flex;gap:9px;align-items:center;justify-content:space-between;
-  height:31px;min-height:31px;padding:5px 8px;margin:0 0 3px;
+  display:grid;grid-template-columns:minmax(0,1fr) 16px;
+  width:100%;min-width:0;box-sizing:border-box;gap:8px;align-items:center;
+  height:34px;min-height:34px;padding:6px 10px;margin:0 0 3px;
   color:var(--studio-muted);font-size:10px;font-weight:780;
   line-height:1.2;letter-spacing:.085em;text-transform:uppercase;
-  border-radius:8px;
+  border-radius:9px;
 }
 body.admin-shell .admin-sidebar-nav .nav-section-title:hover,
 body.admin-shell .admin-sidebar-nav .nav-section[open]>.nav-section-title{
   color:var(--studio-text);background:var(--studio-surface-soft)
 }
-body.admin-shell .admin-sidebar-nav .nav-section-label{gap:8px;min-width:0}
+body.admin-shell .admin-sidebar-nav .nav-section-label{
+  display:grid;grid-template-columns:18px minmax(0,1fr);
+  gap:11px;align-items:center;min-width:0
+}
 body.admin-shell .admin-sidebar-nav .nav-section-mark{
-  display:inline-grid;place-items:center;flex:0 0 16px;width:16px;height:16px;
+  display:grid;place-items:center;width:18px;height:18px;
   color:var(--studio-muted)
 }
 body.admin-shell .admin-sidebar-nav .nav-section-mark svg{width:15px;height:15px;stroke-width:1.8}
 body.admin-shell .admin-sidebar-nav .nav-section-heading{
-  color:inherit;font-size:10px;font-weight:780;letter-spacing:.08em;text-transform:uppercase
+  min-width:0;color:inherit;font-size:10px;font-weight:780;
+  letter-spacing:.08em;text-transform:uppercase;overflow-wrap:anywhere
 }
 body.admin-shell .admin-sidebar-nav .nav-section.is-active>.nav-section-title{
   color:var(--studio-primary)
 }
 body.admin-shell .admin-sidebar-nav .nav-section-chevron svg{width:14px;height:14px}
 body.admin-shell .admin-sidebar-nav .nav-group{
-  display:flex;flex-direction:column;gap:3px;margin:0 0 6px 7px;
-  padding:3px 0 4px 10px;border-left:1px solid var(--studio-border)
+  display:flex;flex-direction:column;align-items:stretch;box-sizing:border-box;
+  width:calc(100% - 18px);min-width:0;gap:3px;
+  margin:2px 0 9px 18px;
+  padding:2px 0 4px 10px;border-left:1px solid var(--studio-border)
 }
 body.admin-shell .admin-sidebar-nav .app-nav-link{
-  position:relative;display:flex!important;align-items:center;gap:10px!important;
-  min-height:38px;padding:9px 10px!important;margin:0;
+  position:relative;display:grid!important;
+  grid-template-columns:18px minmax(0,1fr);align-items:center;gap:10px!important;
+  width:100%;box-sizing:border-box;min-width:0;
+  min-height:39px;padding:9px 10px!important;margin:0;
   color:var(--studio-text)!important;font-size:13px;line-height:1.32;
   border-radius:9px!important;box-shadow:none!important;text-decoration:none;
   transform:none!important;transition:background .12s,color .12s
@@ -194,7 +205,8 @@ body.admin-shell .admin-sidebar-nav .admin-nav-icon svg{width:18px;height:18px;s
 body.admin-shell .admin-sidebar-nav .app-nav-link.active .admin-nav-icon{color:var(--studio-primary)}
 body.admin-shell .admin-sidebar-nav .app-nav-link .admin-nav-text,
 body.admin-shell .admin-sidebar-nav .app-nav-link>span:last-child{
-  min-width:0;font-size:13px;font-weight:520;line-height:1.3;letter-spacing:0
+  min-width:0;font-size:13px;font-weight:520;line-height:1.3;
+  letter-spacing:0;white-space:normal;overflow-wrap:anywhere
 }
 body.admin-shell .admin-sidebar-nav .app-nav-link.active .admin-nav-text{font-weight:750}
 body.admin-shell .admin-sidebar-account{border-top:1px solid var(--studio-border);padding:13px 3px 2px;margin-top:4px}
@@ -291,7 +303,13 @@ body.admin-shell .admin-sidebar-nav .nav-section-chevron{transition:transform .1
   body.admin-shell.admin-nav-collapsed .app-sidebar{padding-inline:10px}
   body.admin-shell.admin-nav-collapsed .admin-sidebar-identity{flex-direction:column;gap:10px;align-items:center}
   body.admin-shell.admin-nav-collapsed .admin-sidebar-search-expand{display:grid}
-  body.admin-shell.admin-nav-collapsed .admin-sidebar-nav .nav-section-title{height:43px;min-height:43px;justify-content:center;padding:8px}
+  body.admin-shell.admin-nav-collapsed .admin-sidebar-nav .nav-section-title{
+    display:flex;align-items:center;justify-content:center;
+    width:100%;height:43px;min-height:43px;padding:8px
+  }
+  body.admin-shell.admin-nav-collapsed .admin-sidebar-nav .nav-section-label{
+    display:flex;align-items:center;justify-content:center;gap:0;width:100%
+  }
   body.admin-shell.admin-nav-collapsed .admin-sidebar-nav .nav-section-mark{display:grid}
   body.admin-shell.admin-nav-collapsed .admin-sidebar-nav .nav-section-mark svg{width:18px;height:18px}
   body.admin-shell.admin-nav-collapsed .admin-sidebar-nav .nav-section-heading,
