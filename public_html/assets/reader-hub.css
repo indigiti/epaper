@@ -41,7 +41,8 @@ body.account-shell .app-sidebar{
   box-sizing:border-box;
   width:min(calc(100% - 40px),1260px);
   margin:18px auto 0;padding:7px 9px;
-  overflow:visible;
+  overflow:visible;transform:none!important;
+  left:auto;right:auto;bottom:auto;height:auto;
   border:1px solid var(--rh-line);border-radius:14px;
   background:var(--rh-card);box-shadow:0 4px 22px rgba(26,43,66,.04)
 }
@@ -55,7 +56,8 @@ body.account-shell .reader-nav-tabs{
 }
 body.account-shell .reader-nav-tabs::-webkit-scrollbar{display:none}
 body.account-shell .reader-account-nav .app-nav-link{
-  display:inline-flex;align-items:center;justify-content:center;gap:8px;
+  display:inline-flex!important;flex-direction:row!important;
+  align-items:center;justify-content:center;gap:8px;
   min-height:42px;padding:10px 13px;border-radius:9px;white-space:nowrap;
   color:var(--rh-muted);font-size:13px;font-weight:660;text-decoration:none;
   transition:background-color .15s,color .15s;
@@ -86,7 +88,8 @@ body.account-shell .reader-more-menu{
   border-radius:13px;box-shadow:0 18px 50px rgba(14,36,60,.18)
 }
 body.account-shell .reader-account-nav .reader-more-menu .app-nav-link{
-  display:flex;justify-content:flex-start;width:100%;font-size:13px;
+  display:flex!important;flex-direction:row!important;
+  justify-content:flex-start;width:100%;font-size:13px;
 }
 body.account-shell .reader-more-menu .reader-signout{border-top:1px solid var(--rh-line);border-radius:0;margin-top:5px}
 body.account-shell .reader-mobile-dock{display:none}
@@ -136,6 +139,7 @@ body.account-shell .rh-alert-link{color:var(--rh-accent);background:var(--rh-acc
 body.account-shell .rh-quiet-link .ui-icon,
 body.account-shell .rh-alert-link .ui-icon,
 body.account-shell .rh-install .ui-icon{width:16px;height:16px}
+body.account-shell .rh-install.hidden{display:none!important}
 /* A genuine continuation feature: the front page is the focus, not a statistic. */
 body.account-shell .rh-continue{
   position:relative;isolation:isolate;
