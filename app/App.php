@@ -2,7 +2,7 @@
 namespace EpaperSaas;
 use EpaperSaas\Core\{Auth,Build,Config,Http,RateLimiter,RedisStore,RequestContext,Store,Uuid,View};
 use EpaperSaas\Controllers\{StagingAcceptanceController,AdminAiClippingController};
-use EpaperSaas\Services\{AnalyticsCatalog,Audit,CacheInspector,ClipService,DomainResolver,DirectRecovery,EditionOperations,EditionManifest,EditionPageSequence,EditionRemoval,AiEditorialReview,Entitlements,InfrastructureConfig,Media,DesktopAuth,DeviceAuth,MobileAuth,MobileAuthPendingException,MultiLayerCache,OfflineVault,PlatformClient,Processing,ProcessingRecovery,ProductionReadiness,PublicReadCache,FrontendHomeLayouts,ThemeCatalog,PublishingRuntime,PublishingScheduler,QueueService,RecoveryCenter,RabbitMq,ReaderNavigation,ReaderSession,RuntimeCache,SchemaDoctor,SemanticNews,SeoDiscovery,SettingsCatalog,SupervisorRuntime,TenantData,TrustedAppAuth,PerformanceTelemetry};
+use EpaperSaas\Services\{AnalyticsCatalog,Audit,CacheInspector,ClipService,DomainResolver,DirectRecovery,EditionOperations,EditionManifest,EditionPageSequence,EditionRemoval,AiEditorialReview,Entitlements,InfrastructureConfig,Media,DesktopAuth,DeviceAuth,MobileAuth,MobileAuthPendingException,MultiLayerCache,OfflineVault,PlatformClient,Processing,ProcessingRecovery,ProductionReadiness,PublicReadCache,FrontendHomeLayouts,ThemeCatalog,AppearanceGallery,PublishingRuntime,PublishingScheduler,QueueService,RecoveryCenter,RabbitMq,ReaderNavigation,ReaderSession,RuntimeCache,SchemaDoctor,SemanticNews,SeoDiscovery,SettingsCatalog,SupervisorRuntime,TenantData,TrustedAppAuth,PerformanceTelemetry};
 final class App
 {
     public function run(): never
@@ -829,8 +829,8 @@ final class App
             .'<a class="studio-button studio-button-soft" href="/" target="_blank" rel="noopener">'.View::icon('external').'View website</a>'
             .'</div></div><div class="studio-hero-aside" aria-label="Workspace focus">'
             .'<span class="studio-hero-kicker">TODAY’S FOCUS</span>'
-            .'<a href="/admin/editions?status=NEEDS_ATTENTION"><strong>'.(int)($counts['NEEDS_ATTENTION']??0).'</strong><span>Editions needing attention '.View::icon('chev-right').'</span></a>'
-            .'<a href="/admin/editions?status=READY"><strong>'.(int)($counts['READY']??0).'</strong><span>Ready to publish '.View::icon('chev-right').'</span></a>'
+            .($canCreate?'<a href="/admin/editions?status=NEEDS_ATTENTION">':'<div class="studio-focus-row">').'<strong>'.(int)($counts['NEEDS_ATTENTION']??0).'</strong><span>Editions needing attention '.View::icon('chev-right').'</span>'.($canCreate?'</a>':'</div>')
+            .($canCreate?'<a href="/admin/editions?status=READY">':'<div class="studio-focus-row">').'<strong>'.(int)($counts['READY']??0).'</strong><span>Ready to publish '.View::icon('chev-right').'</span>'.($canCreate?'</a>':'</div>')
             .'</div></section>';
         $html.='<nav class="desk-metrics studio-metrics" aria-label="Publishing overview">';
         foreach([
@@ -839,12 +839,13 @@ final class App
             ['Ready to publish','READY','Review finished editions','success','pages'],
             ['Scheduled','SCHEDULED','Upcoming publications','info','calendar']
         ] as [$label,$state,$detail,$tone,$icon]){
-            $html.='<a class="desk-metric '.$tone.'" href="/admin/editions?status='.$state.'">'
+            $html.=($canCreate?'<a class="desk-metric '.$tone.'" href="/admin/editions?status='.$state.'">':'<div class="desk-metric '.$tone.'">')
                 .'<span class="studio-metric-label">'.View::icon($icon).$this->e($label).'</span>'
                 .'<strong>'.(int)($counts[$state]??0).'</strong>'
-                .'<small>'.$this->e($detail).' <span aria-hidden="true">→</span></small></a>';
+                .'<small>'.$this->e($detail).' <span aria-hidden="true">→</span></small>'.($canCreate?'</a>':'</div>');
         }
         $html.='</nav>';
+        $html.=\EpaperSaas\Services\AdminDashboardVisuals::pipeline($counts,$canCreate);
         $editorial=(new \EpaperSaas\Services\EditorialActionCenter(
             new \EpaperSaas\Repositories\SqlEditorialActionRepository()
         ))->snapshot($tb,$counts,$role,$aiEnabled);
@@ -852,8 +853,8 @@ final class App
         $html.='<div class="studio-content-grid"><section class="panel desk-editions">'
             .'<div class="section-head"><div><span class="studio-section-kicker">YOUR PUBLICATIONS</span><h2>Recent editions</h2>'
             .'<p class="muted">Follow each edition from upload through publication.</p></div>'
-            .'<a class="btn ghost" href="/admin/editions">Manage editions →</a></div>'
-            .$this->editionTable(TenantData::editionsForAdmin('e.status NOT IN ("ARCHIVED","TRASHED")',[],8))
+            .($canCreate?'<a class="btn ghost" href="/admin/editions">Manage editions →</a>':'').'</div>'
+            .($canCreate?$this->editionTable(TenantData::editionsForAdmin('e.status NOT IN ("ARCHIVED","TRASHED")',[],8)):'<p class="muted">Edition editing tools are available to publisher editors and administrators.</p>')
             .'</section>';
         $attention=$runtime['attention']??[];
         $available=array_column(\EpaperSaas\Services\AdminFeatureCatalog::flatten($groups),1);
@@ -1472,13 +1473,14 @@ $h.='<section class="panel processing-settings-card processing-recovery-card"><d
         foreach($cfg['fields'] as$key=>$field){[$label,$type,$default,$options]=$field;$value=TenantData::setting($key,$default);$h.='<label>'.$this->e($label);if($type==='select'){$h.='<select name="settings['.$this->e($key).']">';foreach($options as$o)$h.='<option value="'.$this->e($o).'"'.((string)$value===(string)$o?' selected':'').'>'.$this->e(ucwords(str_replace(['_','-'],' ',$o))).'</option>';$h.='</select>';}elseif($type==='textarea')$h.='<textarea name="settings['.$this->e($key).']" rows="4">'.$this->e($value).'</textarea>';elseif($type==='fixed'){$fixedNote=$key==='clipping.expiry_days'?'Fixed product policy · extension unavailable':'Publisher identity is included on every shareable clipping';$h.='<div class="fixed-setting"><strong>'.$this->e($default).'</strong><span>'.$this->e($fixedNote).'</span></div>'; }else $h.='<input type="'.$this->e($type).'" name="settings['.$this->e($key).']" value="'.$this->e($value).'">';$h.='<small><code>'.$this->e($key).'</code></small></label>';}$h.='</div><div class="form-actions"><button class="btn primary">Save '.$this->e($cfg['label']).'</button></div></form>';
         if($group==='access'){$effective=MobileAuth::channels(true);$infra=(array)Config::get('auth.mobile.channels',['sms']);$h.='<section class="panel"><h2>Effective reader identity policy</h2><p class="muted">Infrastructure permits: <strong>'.$this->e($infra?implode(', ',array_map('strtoupper',$infra)):'none').'</strong>. Effective tenant verification methods: <strong>'.$this->e($effective?implode(', ',array_map('strtoupper',$effective)):'none').'</strong>.</p><p class="muted">When the effective method list is empty and Temporary device account fallback is ON, the Android app creates a <code>LOCAL_DEVICE</code> reader using a random installation UUID. EP-DI stores only an HMAC of that UUID; IMEI, SIM ID, serial number and MAC address are never used.</p><p class="muted">Trusted-app desktop login: <strong>'.(DesktopAuth::appApprovalEnabled()?'ON':'OFF').'</strong> · FCM server delivery: <strong>'.(\EpaperSaas\Services\FcmPush::configured()?'CONFIGURED':'NOT CONFIGURED').'</strong> · active session policy: <strong>1 mobile app + 1 desktop</strong> per verified local reader.</p></section>';}
         if($group==='appearance'){
-            $h.='<section class="panel"><h2>Frontend design studio</h2><p class="muted">Choose from five independent layouts. Preview links are visible only to publisher administrators and never change the live theme. Saving the Frontend theme above publishes your choice; Default remains available as a rollback.</p><div class="theme-preview-row">';
-            foreach(ThemeCatalog::options('frontend') as $name){
-                $active=(string)TenantData::setting('appearance.frontend_theme','Default')===$name;
-                $url='/?'.http_build_query(['theme_surface'=>'frontend','theme_preview'=>$name]);
-                $h.='<div class="theme-preview"><strong>'.$this->e($name).'</strong><small>'.($active?'Currently selected':'Alternative layout').'</small><a class="btn ghost" target="_blank" rel="noopener noreferrer" href="'.$this->e($url).'">Preview</a></div>';
+            $latestPublished=TenantData::editionsWithCovers('e.status="PUBLISHED"',[],1);
+            $editionPath=$latestPublished?'/edition/'.rawurlencode((string)$latestPublished[0]['slug']).'/page/1':null;
+            $saved=[];
+            foreach(['frontend','admin','reader','auth'] as $surface){
+                $saved[$surface]=(string)TenantData::setting('appearance.'.$surface.'_theme',
+                    ThemeCatalog::default($surface));
             }
-            $h.='</div></section>';
+            $h.=AppearanceGallery::render($saved,$editionPath);
         }
         if($group==='reader')$h.='<section class="panel"><h2>Edition navigation</h2><p class="muted">Choose Dropdown, Strip or Off. Dropdown sits between Download and Share, collapses to a calendar icon when toolbar space is tight, stays within the exact publication + city + language variant, and opens page 1 when changing edition.</p></section>';
         View::layout($cfg['label'],$h,['brand'=>$this->brandName(),'admin'=>true]);

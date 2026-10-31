@@ -22,7 +22,7 @@ final class AdminWorkspace
             .'<input type="search" data-admin-feature-search placeholder="Find editions, clipping, settings…" aria-label="Search publisher tools" autocomplete="off"></div>'
             .'<nav class="launchpad-quick" aria-label="Frequent publisher tasks">';
         foreach(array_slice($quick,0,6) as $item)
-            $h.='<a href="'.$e($item[1]).'"><span class="launchpad-icon" aria-hidden="true">'.View::icon($item[3]).'</span>'
+            $h.='<a href="'.$e($item[1]).'"><span class="launchpad-icon" aria-hidden="true">'.AdminIcons::svg($item[3]).'</span>'
                 .'<span>'.$e($item[0]).'</span><span aria-hidden="true">→</span></a>';
         $h.='</nav><div class="launchpad-pinned" data-admin-pinned-area hidden>'
             .'<strong>Pinned tools <small>Saved on this device</small></strong>'
@@ -34,10 +34,11 @@ final class AdminWorkspace
             $h.='<section class="launchpad-group" data-feature-group><h3>'.$e(ucwords(strtolower($name))).'</h3><div class="launchpad-items">';
             foreach($items as [$label,$url,$hint,$icon])
                 $h.='<div class="launchpad-item" data-feature-item data-search-text="'.$e($name.' '.$label.' '.$hint).'">'
-                    .'<a href="'.$e($url).'"><span class="launchpad-icon" aria-hidden="true">'.View::icon($icon).'</span>'
+                    .'<a href="'.$e($url).'"><span class="launchpad-icon" aria-hidden="true">'.AdminIcons::svg($icon).'</span>'
                     .'<span class="launchpad-item-text"><strong>'.$e($label).'</strong><small>'.$e($hint).'</small></span></a>'
                     .'<button type="button" class="launchpad-pin" data-feature-pin="'.$e($url).'"'
-                    .' aria-label="Pin '.$e($label).'" aria-pressed="false" title="Pin this tool">☆</button></div>';
+                    .' aria-label="Pin '.$e($label).'" aria-pressed="false" title="Pin this tool">'
+                    .AdminIcons::svg('bookmark').'</button></div>';
             $h.='</div></section>';
         }
         return $h.'</div><p data-feature-empty hidden>No matching features available to your role.</p></details></section>';

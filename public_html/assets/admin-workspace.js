@@ -40,7 +40,7 @@
     root.querySelectorAll('[data-feature-pin]').forEach(button=>{
       const active=pins.includes(button.dataset.featurePin);
       button.setAttribute('aria-pressed',String(active));
-      button.textContent=active?'★':'☆';
+      button.classList.toggle('is-pinned',active);
       const feature=available.get(button.dataset.featurePin);
       button.setAttribute('aria-label',(active?'Unpin ':'Pin ')+(feature?.label||'tool'));
       button.title=active?'Remove from pinned tools':'Pin to quick access';
