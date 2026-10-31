@@ -1,7 +1,7 @@
 <?php
 namespace EpaperSaas;
 use EpaperSaas\Core\{Auth,Build,Config,Http,RateLimiter,RedisStore,RequestContext,Store,Uuid,View};
-use EpaperSaas\Services\{AnalyticsCatalog,Audit,CacheInspector,ClipService,DomainResolver,DirectRecovery,EditionOperations,EditionManifest,Entitlements,InfrastructureConfig,Media,DesktopAuth,DeviceAuth,MobileAuth,MobileAuthPendingException,MultiLayerCache,OfflineVault,PlatformClient,Processing,ProcessingRecovery,ProductionReadiness,PublicReadCache,PublishingRuntime,PublishingScheduler,QueueService,RecoveryCenter,RabbitMq,ReaderNavigation,ReaderSession,RuntimeCache,SchemaDoctor,SemanticNews,SeoDiscovery,SettingsCatalog,SupervisorRuntime,TenantData,TrustedAppAuth,PerformanceTelemetry};
+use EpaperSaas\Services\{AnalyticsCatalog,Audit,CacheInspector,ClipService,DomainResolver,DirectRecovery,EditionOperations,EditionManifest,Entitlements,InfrastructureConfig,Media,DesktopAuth,DeviceAuth,MobileAuth,MobileAuthPendingException,MultiLayerCache,OfflineVault,PlatformClient,Processing,ProcessingRecovery,ProductionReadiness,PublicReadCache,FrontendHomeLayouts,ThemeCatalog,PublishingRuntime,PublishingScheduler,QueueService,RecoveryCenter,RabbitMq,ReaderNavigation,ReaderSession,RuntimeCache,SchemaDoctor,SemanticNews,SeoDiscovery,SettingsCatalog,SupervisorRuntime,TenantData,TrustedAppAuth,PerformanceTelemetry};
 final class App
 {
     public function run(): never
@@ -284,7 +284,26 @@ final class App
         $pubs=PublicReadCache::publications();$pubHtml='';if($pubs){$pubHtml='<section class="section public-section"><div class="section-head"><div><span class="eyebrow">PUBLICATIONS</span><h2>Choose your publication</h2></div></div><div class="publication-rail" role="list">';foreach($pubs as$p){$initial=function_exists('mb_substr')?mb_strtoupper(mb_substr((string)$p['name'],0,1)):strtoupper(substr((string)$p['name'],0,1));$pubHtml.='<a class="publication-tile" role="listitem" href="/epaper/'.$this->e($p['slug']).'"><span class="publication-monogram">'.$this->e($initial).'</span><span><strong>'.$this->e($p['name']).'</strong><small>Browse editions</small></span><b aria-hidden="true">→</b></a>';}$pubHtml.='</div></section>';}
         $archiveCta='<section class="archive-cta"><div><span class="eyebrow">ARCHIVE</span><h2>Return to any front page.</h2><p>Choose a date to see the editions published that day.</p></div><form action="/archive" method="get" class="archive-cta-form"><label><span>Date</span><input type="date" name="date" value="'.date('Y-m-d').'"></label><button class="btn primary" type="submit">Find editions</button></form></section>';
         $highlights=PublicReadCache::highlights(8);$hi='';if($highlights){$hi='<section class="section public-section" id="highlights"><div class="section-head"><div><span class="eyebrow">HIGHLIGHTS</span><h2>From the newsroom</h2></div></div><div class="highlight-grid">';foreach($highlights as$h){$url=trim((string)($h['target_url']??''));$tag=$url&&str_starts_with($url,'/')?'a':'div';$attrs=$tag==='a'?' href="'.$this->e($url).'"':'';$hi.='<'.$tag.' class="highlight-card"'.$attrs.'><strong>'.$this->e($h['title']).'</strong>'.(!empty($h['summary'])?'<p>'.$this->e($h['summary']).'</p>':'').'</'.$tag.'>';}$hi.='</div></section>';}
-        $org=SemanticNews::organization();$website=['@context'=>'https://schema.org','@type'=>'WebSite','@id'=>Http::origin().'/#website','url'=>Http::origin().'/', 'name'=>$this->brandName(),'publisher'=>['@id'=>Http::origin().'/#organization'],'potentialAction'=>['@type'=>'SearchAction','target'=>Http::origin().'/search?q={search_term_string}','query-input'=>'required name=search_term_string']];View::layout('Today',$resume.$hero.$recent.$pubHtml.$archiveCta.$hi,['brand'=>$this->brandName(),'canonical_url'=>Http::origin().'/', 'lang'=>(string)TenantData::setting('seo.default_language','en-IN'),'structured_data'=>[$org,$website]]);
+        $org=SemanticNews::organization();$website=['@context'=>'https://schema.org','@type'=>'WebSite','@id'=>Http::origin().'/#website','url'=>Http::origin().'/', 'name'=>$this->brandName(),'publisher'=>['@id'=>Http::origin().'/#organization'],'potentialAction'=>['@type'=>'SearchAction','target'=>Http::origin().'/search?q={search_term_string}','query-input'=>'required name=search_term_string']];$homeContent=$resume.$hero.$recent.$pubHtml.$archiveCta.$hi;
+        // Homepage structures use the same effective tenant theme as View, including
+        // an admin-only private preview; Default keeps its historical markup untouched.
+        $selectedHomeTheme=ThemeCatalog::resolve('frontend',(string)TenantData::setting('appearance.frontend_theme','Default'));
+        if($selectedHomeTheme!=='Default'){
+            $cards=[];
+            foreach($ed as $edition){
+                $edition['cover_url']=$this->editionCoverUrl($edition,'THUMB') ?: $this->editionCoverUrl($edition,'PREVIEW');
+                $cards[]=$edition;
+            }
+            $homeContent=$resume.FrontendHomeLayouts::render($selectedHomeTheme,[
+                'brand'=>$this->brandName(),
+                'tagline'=>$tagline,
+                'editions'=>$cards,
+                'publications'=>$pubs,
+                'articles'=>SemanticNews::recentArticles(10),
+                'highlights'=>$highlights,
+            ]);
+        }
+        View::layout('Today',$homeContent,['brand'=>$this->brandName(),'canonical_url'=>Http::origin().'/', 'lang'=>(string)TenantData::setting('seo.default_language','en-IN'),'structured_data'=>[$org,$website]]);
     }
 
     private function publication(string $slug): never
