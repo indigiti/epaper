@@ -173,11 +173,28 @@ jobs:
           php -l app/Services/SettingsCatalog.php
           php tests/frontend-cloudways-contract.php
           php tests/frontend-layouts.php --fixtures
+          php -l app/Services/AdminIcons.php
+          php -l app/Services/AppearanceGallery.php
+          php -l app/Services/AdminDashboardVisuals.php
+          php tests/admin-redesign-contract.php
+          php tests/admin-workspace-contracts.php
+          php tests/admin-route-policy.php
+          node --check public_html/assets/admin-sidebar.js
+          node --check public_html/assets/app.js
       - name: Generate desktop and mobile browser previews
         run: |
           npm install --no-save --no-package-lock playwright@1.56.1
           npx playwright install --with-deps chromium
           node tests/frontend-home-browser.mjs
+          node tests/admin-design-browser.mjs
+      - name: Preserve redesigned dashboard theme previews
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cw-epaper-admin-redesign-previews
+          path: tests/admin-redesign-previews/*.png
+          if-no-files-found: warn
+          retention-days: 14
       - name: Preserve desktop and mobile theme review screenshots
         if: always()
         uses: actions/upload-artifact@v4
