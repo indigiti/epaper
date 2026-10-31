@@ -39,6 +39,9 @@ body.public-shell .has-vanta-halo.newsstand-hero .btn.ghost{
   color:#fff;border-color:rgba(255,255,255,.45);background:rgba(255,255,255,.10)
 }
 body.public-shell .has-vanta-halo.newsstand-hero .btn.ghost:hover{background:rgba(255,255,255,.20)}
+body.public-shell .has-vanta-halo.newsstand-hero .empty-state,
+body.public-shell .has-vanta-halo.newsstand-hero .empty-state h1,
+body.public-shell .has-vanta-halo.newsstand-hero .empty-state p{color:#f7fbff}
 body.public-shell .has-vanta-halo.newsstand-hero .btn.primary{
   color:#112b49;background:#fff;border-color:#fff
 }
