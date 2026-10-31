@@ -20,7 +20,7 @@
   margin-bottom:8px;
 }
 .reader-page .clip-create-head .eyebrow{
-  font-size:9px;
+  font-size:11px;
   letter-spacing:.12em;
 }
 .reader-page .clip-create-head h2{
@@ -39,13 +39,13 @@
 }
 .reader-page .clip-create-form>p{
   margin:0;
-  font-size:11px;
+  font-size:13px;
   line-height:1.4;
   color:var(--text-2,#6e6e73);
 }
 .reader-page .clip-create-form label{
   gap:3px;
-  font-size:11px;
+  font-size:13px;
   font-weight:700;
 }
 .reader-page .clip-create-form input,
@@ -54,7 +54,7 @@
   height:42px;
   border-radius:9px;
   padding:0 10px;
-  font-size:13px;
+  font-size:14px;
 }
 .reader-page .clip-expiry-note{
   display:flex;
@@ -67,16 +67,16 @@
   border-color:color-mix(in srgb,var(--accent,#2563eb) 17%,var(--border,#dfe1e5));
   background:color-mix(in srgb,var(--accent,#2563eb) 3%,var(--surface-2,#f8f8fa));
 }
-.reader-page .clip-expiry-note strong{font-size:10px;white-space:nowrap}
-.reader-page .clip-expiry-note span{font-size:10px;line-height:1.4}
-.reader-page .guest-free-clip-note{padding:8px 9px;font-size:11px;line-height:1.4}
+.reader-page .clip-expiry-note strong{font-size:12px;white-space:nowrap}
+.reader-page .clip-expiry-note span{font-size:12px;line-height:1.4}
+.reader-page .guest-free-clip-note{padding:8px 9px;font-size:12px;line-height:1.4}
 .reader-page .clip-create-submit{
   min-height:42px;
   margin:0;
   width:100%;
   justify-self:stretch;
   border-radius:10px;
-  font-size:12px;
+  font-size:14px;
 }
 .reader-page .clip-create-progress{
   padding:11px;

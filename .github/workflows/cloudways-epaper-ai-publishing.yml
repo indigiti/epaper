@@ -38,6 +38,12 @@ jobs:
         run: |
           python -m py_compile tests/staging_acceptance.py
           python tests/staging_acceptance.py --help > /dev/null
+      - name: Read-only Cloudways public route acceptance (non-blocking evidence)
+        continue-on-error: true
+        timeout-minutes: 2
+        run: |
+          python tests/public_route_diagnostics.py
+          python tests/staging_acceptance.py --only epaper
       - run: python -m compileall -q ai_processing bin/ai-ocr-normalize.py bin/ai-layout-preview.py bin/ai-candidate-generate.py bin/ai-clipping-probe.py bin/ai-clipping-smoke.py
       - run: |
           set -e
@@ -76,7 +82,10 @@ jobs:
           php tests/admin-query-bounds.php
           php -l app/Services/SemanticNews.php
           node --check public_html/assets/admin-sidebar.js
-          php tests/upgrade-center-contract.php
+          php tests/auth-tenant-escaping.php
+           node tests/reader-editorial-recovery.test.js
+           php tests/reader-visual-safety-contract.php
+           php tests/upgrade-center-contract.php
           php -l app/Controllers/AdminManualClippingController.php
           php -l app/Views/ManualClippingView.php
           php -l app/Services/ManualClipGeometry.php
@@ -125,3 +134,22 @@ jobs:
           EPDI_AI_TEST_DB_USER: root
           EPDI_AI_TEST_DB_PASSWORD: epdi_ci_only_password
         run: php tests/official-clip-mariadb.php
+  public-browser-smoke:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install playwright==1.58.0
+      - run: python -m playwright install --with-deps chromium
+      - name: Public responsive browser acceptance with PR reader assets
+        run: python tests/browser_acceptance.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: epaper-public-browser-smoke
+          path: qa-artifacts/
+          retention-days: 7

@@ -30,7 +30,9 @@ class Client:
         )
     def request(self, path, form=None, headers=None):
         data = None if form is None else urllib.parse.urlencode(form).encode()
-        req = urllib.request.Request(self.base + path, data=data, headers=headers or {},
+        request_headers={"User-Agent": "EPDI-read-only-acceptance/1.0", "Accept": "text/html,application/json"}
+        request_headers.update(headers or {})
+        req = urllib.request.Request(self.base + path, data=data, headers=request_headers,
                                      method="POST" if form is not None else "GET")
         try:
             response = self.client.open(req, timeout=12)
@@ -48,7 +50,8 @@ def as_json(response, name):
     try:
         data = json.loads(response[2])
     except (ValueError, TypeError):
-        raise AssertionError(name + " did not return JSON")
+        media = response[1].get("Content-Type", "unknown")
+        raise AssertionError(f"{name} did not return JSON (HTTP {response[0]}, Content-Type {media})")
     check(isinstance(data, dict), name + " JSON response")
     return data
 
