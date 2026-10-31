@@ -31,10 +31,11 @@ foreach($cases as [$theme,$input,$supported]){
     }
     $check($halo::decorate($input,$theme,false)===$input,$theme.' remains byte-identical when setting Off');
 }
-$settings=\EpaperSaas\Services\SettingsCatalog::group('appearance')['fields']??[];
-$check(isset($settings['appearance.home_background_effect']),'Publisher Appearance includes HALO option');
-$check($settings['appearance.home_background_effect'][2]==='Off','HALO is disabled by default');
-$check($settings['appearance.home_background_effect'][3]===['Off','Halo'],'HALO setting is constrained to exact allowed values');
+$settings=\EpaperSaas\Services\SettingsCatalog::group('effects')['fields']??[];
+$check(isset($settings['appearance.home_background_effect']),'Separate Background Effects tab owns effect selection');
+$check($settings['appearance.home_background_effect'][2]==='Off','Vanta effects are disabled by default');
+$check($settings['appearance.home_background_effect'][3]===\EpaperSaas\Services\BackgroundEffects::EFFECTS,
+    'Effect dropdown is constrained to exactly the supported Vanta renderers');
 
 $src=(string)file_get_contents($root.'/app/Services/PublicHalo.php');
 $app=(string)file_get_contents($root.'/app/App.php');

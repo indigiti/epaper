@@ -23,6 +23,7 @@ final class AdminIcons
         'user-round'=>'<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>',
         'users'=>'<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M14 3a4 4 0 0 1 0 8M22 21v-2a4 4 0 0 0-3-3.87"/><circle cx="9" cy="7" r="4"/>',
         'credit-card'=>'<rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20M6 15h4"/>',
+        'palette'=>'<path d="M12 3a9 9 0 1 0 9 9c0-1.7-1.1-2.7-2.5-2.7h-2a2 2 0 0 0-1.5 3.3l.5.6a1.8 1.8 0 0 1-1.4 2.9H12A4 4 0 0 1 8 12a9 9 0 0 1 4-9z"/><circle cx="7.5" cy="9" r=".7"/><circle cx="11" cy="6.5" r=".7"/><circle cx="15" cy="7" r=".7"/><circle cx="6.5" cy="13" r=".7"/>',
         'settings'=>'<circle cx="12" cy="12" r="3"/><path d="M19.4 15a2 2 0 0 0 .4 2l-2.8 2.8a2 2 0 0 0-2-.4 2 2 0 0 0-1.5 1.6h-3a2 2 0 0 0-1.5-1.6 2 2 0 0 0-2 .4L4.2 17a2 2 0 0 0 .4-2A2 2 0 0 0 3 13.5v-3A2 2 0 0 0 4.6 9a2 2 0 0 0-.4-2L7 4.2a2 2 0 0 0 2 .4A2 2 0 0 0 10.5 3h3A2 2 0 0 0 15 4.6a2 2 0 0 0 2-.4L19.8 7a2 2 0 0 0-.4 2 2 2 0 0 0 1.6 1.5v3A2 2 0 0 0 19.4 15z"/>',
         'shield-check'=>'<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10zM9 12l2 2 4-4"/>',
         'sliders-horizontal'=>'<path d="M3 6h9M16 6h5M3 12h3M10 12h11M3 18h12M19 18h2"/><circle cx="14" cy="6" r="2"/><circle cx="8" cy="12" r="2"/><circle cx="17" cy="18" r="2"/>',
