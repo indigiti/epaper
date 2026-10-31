@@ -26,7 +26,7 @@ def main():
         browser=p.chromium.launch(args=['--no-sandbox'],headless=True)
         try:
             for width in WIDTHS:
-                ctx=browser.new_context(viewport={'width':width,'height':844 if width<600 else 900},reduced_motion='reduce')
+                ctx=browser.new_context(viewport={'width':width,'height':844 if width<600 else 900},reduced_motion='reduce',user_agent='EPDI-read-only-acceptance/1.0',extra_http_headers={'Accept':'text/html,application/json'})
                 page=ctx.new_page()
                 page.route('**/assets/**',serve_pr_asset)
                 for path in ('/','/archive','/login'):
@@ -53,7 +53,7 @@ def main():
                 ctx.close()
             reader={'status':'NOT_TESTED','reason':'No public edition found'}
             if edition:
-                ctx=browser.new_context(viewport={'width':390,'height':844})
+                ctx=browser.new_context(viewport={'width':390,'height':844},user_agent='EPDI-read-only-acceptance/1.0',extra_http_headers={'Accept':'text/html,application/json'})
                 page=ctx.new_page();page.route('**/assets/**',serve_pr_asset)
                 try:
                     response=page.goto(BASE+edition,wait_until='domcontentloaded',timeout=25000)
