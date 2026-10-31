@@ -1,0 +1,77 @@
+/*
+ * Homepage HALO progressive enhancement. Fallback is intentional CSS:
+ * the front page, headline and all links remain visible without WebGL.
+ * Not loaded by Reader, Account, Authentication or Admin.
+ */
+body.public-shell .has-vanta-halo{
+  position:relative;isolation:isolate;overflow:hidden;
+  background:linear-gradient(118deg,#0e213b 0%,#1e4269 64%,#19495c 100%);
+  color:#f8fbff
+}
+body.public-shell .has-vanta-halo .epdi-halo-layer{
+  position:absolute!important;inset:0;z-index:0;
+  display:block;width:100%;height:100%;overflow:hidden;
+  pointer-events:none;opacity:.90
+}
+body.public-shell .has-vanta-halo .epdi-halo-layer canvas{
+  display:block;pointer-events:none!important;max-width:none!important
+}
+body.public-shell .has-vanta-halo:before{
+  content:"";position:absolute;inset:0;z-index:1;pointer-events:none;
+  background:linear-gradient(90deg,rgba(5,15,29,.85) 0%,rgba(5,15,29,.58) 45%,rgba(5,15,29,.13) 85%)
+}
+body.public-shell .has-vanta-halo.newsstand-hero{
+  border:1px solid rgba(111,176,215,.22);border-radius:22px;
+  padding:clamp(26px,4vw,60px);
+  box-shadow:0 18px 58px rgba(12,37,67,.12)
+}
+body.public-shell .has-vanta-halo.newsstand-hero .newsstand-hero-copy,
+body.public-shell .has-vanta-halo.newsstand-hero .newsstand-hero-cover{
+  position:relative;z-index:2
+}
+body.public-shell .has-vanta-halo.newsstand-hero .newsstand-hero-copy:before{display:none}
+body.public-shell .has-vanta-halo.newsstand-hero h1,
+body.public-shell .has-vanta-halo.newsstand-hero .eyebrow,
+body.public-shell .has-vanta-halo.newsstand-hero .newsstand-date{color:#fff!important}
+body.public-shell .has-vanta-halo.newsstand-hero .newsstand-tagline,
+body.public-shell .has-vanta-halo.newsstand-hero .edition-meta-line{color:#d5e4f3!important}
+body.public-shell .has-vanta-halo.newsstand-hero .btn.ghost{
+  color:#fff;border-color:rgba(255,255,255,.45);background:rgba(255,255,255,.10)
+}
+body.public-shell .has-vanta-halo.newsstand-hero .btn.ghost:hover{background:rgba(255,255,255,.20)}
+body.public-shell .has-vanta-halo.newsstand-hero .empty-state,
+body.public-shell .has-vanta-halo.newsstand-hero .empty-state h1,
+body.public-shell .has-vanta-halo.newsstand-hero .empty-state p{color:#f7fbff}
+body.public-shell .has-vanta-halo.newsstand-hero .btn.primary{
+  color:#112b49;background:#fff;border-color:#fff
+}
+body.public-shell .has-vanta-halo.fth-hero{
+  min-height:380px;
+  background:linear-gradient(118deg,#10243b,#214c70 64%,#164b59)
+}
+body.public-shell .has-vanta-halo.fth-magazine-hero{background:linear-gradient(115deg,#211d4c,#3f3d78,#184c65)}
+body.public-shell .has-vanta-halo.fth-hero .fth-hero-backdrop{opacity:0;pointer-events:none}
+body.public-shell .has-vanta-halo.fth-hero .fth-hero-overlay{
+  position:absolute;inset:0;z-index:1;pointer-events:none;
+  background:linear-gradient(90deg,rgba(5,14,30,.78),rgba(5,14,30,.48) 68%,rgba(5,14,30,.18))
+}
+body.public-shell .has-vanta-halo.fth-hero .fth-hero-body{
+  position:relative;z-index:2;color:#fff
+}
+body.public-shell .has-vanta-halo.fth-hero .fth-hero-body h1,
+body.public-shell .has-vanta-halo.fth-hero .fth-hero-body p,
+body.public-shell .has-vanta-halo.fth-hero .fth-kicker{color:#fff}
+@media(max-width:899px){
+  /* Same static premium visual, no extra JS dependencies or WebGL work. */
+  body.public-shell .has-vanta-halo.newsstand-hero{
+    padding:25px 18px;border-radius:14px;
+  }
+  body.public-shell .has-vanta-halo:before{
+    background:linear-gradient(100deg,rgba(5,15,29,.76),rgba(5,15,29,.48))
+  }
+  body.public-shell .has-vanta-halo .epdi-halo-layer{display:none}
+}
+@media(prefers-reduced-motion:reduce){
+  body.public-shell .has-vanta-halo .epdi-halo-layer,
+  body.public-shell .has-vanta-halo .epdi-halo-layer canvas{display:none!important}
+}

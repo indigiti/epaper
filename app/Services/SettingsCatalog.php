@@ -8,9 +8,10 @@ final class SettingsCatalog
         return [
             'appearance' => [
                 'label' => 'Appearance',
-                'description' => 'Independent frontend layout selection, Admin/Reader/Authentication themes, public color mode and interface density.',
+                'description' => 'Independent frontend layout, optional homepage HALO effect, Admin/Reader/Authentication themes, public color mode and interface density.',
                 'fields' => [
                     'appearance.frontend_theme' => ['Frontend theme','select','Default',['Default','Newsstand Modern','Editorial Portal','Classic Newspaper','Digital Magazine']],
+                    'appearance.home_background_effect' => ['Homepage animated hero background','select','Off',['Off','Halo']],
                     'appearance.admin_theme' => ['Admin theme','select','Publisher Pro',['Publisher Pro','Executive Slate','Midnight Desk','Default']],
                     'appearance.reader_theme' => ['Reader theme','select','Newsstand Replica',['Newsstand Replica','Editorial Luxe','Metro Pulse','Heritage Press','Apple Editorial','Default']],
                     'appearance.auth_theme' => ['Authentication theme','select','Default',['Default','Split Editorial','Gradient Focus','Minimal Access']],

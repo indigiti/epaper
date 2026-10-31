@@ -172,6 +172,8 @@ jobs:
           php -l app/Services/FrontendHomeLayouts.php
           php -l app/Services/SettingsCatalog.php
           php tests/frontend-cloudways-contract.php
+          php -l app/Services/PublicHalo.php
+          php tests/home-halo-contract.php
           php tests/frontend-layouts.php --fixtures
           php -l app/Services/ReaderHub.php
           php tests/reader-hub-contract.php --fixtures
@@ -190,6 +192,11 @@ jobs:
           npm install --no-save --no-package-lock playwright@1.56.1
           npx playwright install --with-deps chromium
           node tests/frontend-home-browser.mjs
+          node --check public_html/assets/home-halo.js
+          node --check public_html/assets/vendor/vanta.halo.0.5.24.min.js
+          node --check public_html/assets/vendor/three.r134.min.js
+          node tests/home-halo-browser.mjs
+          node tests/home-halo-real-browser.mjs
           node tests/admin-design-browser.mjs
           node tests/reader-hub-browser.mjs
       - name: Preserve Reader Hub desktop/mobile preview screenshots
@@ -198,6 +205,14 @@ jobs:
         with:
           name: cw-epaper-reader-hub-previews
           path: tests/reader-hub-screenshots/*.png
+          if-no-files-found: warn
+          retention-days: 14
+      - name: Preserve HALO desktop and mobile fallback screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cw-epaper-halo-previews
+          path: tests/home-halo-previews/*.png
           if-no-files-found: warn
           retention-days: 14
       - name: Preserve redesigned dashboard theme previews
