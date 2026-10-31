@@ -466,3 +466,7 @@ body.admin-shell .theme-preview-banner{
   border-bottom:1px solid #e4d09c;font-size:12px
 }
 body.admin-shell .theme-preview-banner a{color:#503b0d;text-decoration:underline;font-weight:750}
+
+body.admin-shell .studio-desk .studio-hero-aside .studio-focus-row{display:flex;align-items:center;justify-content:space-between;gap:10px;border-top:1px solid var(--studio-border);padding:7px 0;color:var(--studio-text)}
+body.admin-shell .studio-desk .studio-hero-aside .studio-focus-row strong{color:var(--studio-primary);font-size:24px}
+body.admin-shell .studio-desk .studio-hero-aside .studio-focus-row span{font-size:11px;color:var(--studio-muted)}
