@@ -58,12 +58,19 @@
     group.addEventListener('toggle',storeGroups);
     const summary=group.querySelector(':scope > summary');
     summary?.addEventListener('click',event=>{
-      if(!desktop()||!body.classList.contains('admin-nav-collapsed'))return;
+      // Take ownership of native disclosure state so click, Enter and Space
+      // persist synchronously, including when navigation follows immediately.
       event.preventDefault();
-      setCollapsed(false);
-      group.open=true;
-      summary.focus();
-      storeGroups();
+      if(desktop()&&body.classList.contains('admin-nav-collapsed')){
+        setCollapsed(false);
+        group.open=true;
+        summary.focus();
+      }else{
+        group.open=!group.open;
+      }
+      if(!search.value.trim()&&!body.classList.contains('admin-nav-collapsed')){
+        save(groupsKey,groups.filter(section=>section.open).map(section=>section.dataset.adminNavSection));
+      }
     });
   }
   // requestAnimationFrame lets queued initialization toggles settle. This is
