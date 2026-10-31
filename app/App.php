@@ -1433,7 +1433,10 @@ final class App
 
     private function adminSettings(string $method): never
     {
-        if($method==='POST'){$u=Auth::user();foreach(SettingsCatalog::keys() as$key){$raw=$this->postedSetting($key,null,$present);if(!$present)continue;TenantData::setSetting($key,trim((string)$raw),$u['user_guid']??null);}Audit::log('settings.legacy.updated','settings',RequestContext::tenantGuid());Http::redirect('/admin/settings/appearance?saved=1');}Http::redirect('/admin/settings/appearance');
+        // Preserve the former /admin/settings POST endpoint without allowing it
+        // to bypass bounded effect settings or any other group-level validation.
+        if($method==='POST')$this->adminSettingsGroup('appearance',$method);
+        Http::redirect('/admin/settings/appearance');
     }
 
 
