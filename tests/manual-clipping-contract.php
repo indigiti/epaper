@@ -134,7 +134,7 @@ if(str_contains($overlay,'reader-editorial-toggle') ||
  throw new RuntimeException('Public Reader Articles toolbar control must stay removed');
 if(!str_contains($overlay,"let enabled=true;") ||
    !str_contains($overlay,"layer.hidden=!enabled") ||
-   !str_contains($overlay,'window.EpdiEditorialClips={attach,showPage:syncDocument,scan:scanOtherViews,setEnabled}'))
+   !str_contains($overlay,'window.EpdiEditorialClips={attach,showPage:syncDocument,scan:scanOtherViews,setEnabled,retryFailed}'))
  throw new RuntimeException('Approved editorial outlines must still display and remain operable');
 if(!str_contains($view,'editorial-ui=official-links-20261020'))
  throw new RuntimeException('Reader editorial JS needs targeted cache bust after toolbar removal');
