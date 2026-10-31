@@ -56,6 +56,32 @@ try{
       };
     });
     assert(result.width>=220&&result.width<=300,theme+' nav width invalid');
+    const rows=await page.evaluate(()=>{
+      const nav=document.querySelector('[data-admin-sidebar-nav]');
+      const side=document.querySelector('[data-app-sidebar]');
+      const sections=[...nav.querySelectorAll('details[data-admin-nav-section]')];
+      const measure=el=>{const r=el.getBoundingClientRect();return {x:r.x,w:r.width,center:r.x+r.width/2};};
+      return {
+        sidebar:measure(side),nav:measure(nav),
+        parents:sections.map(section=>measure(section.querySelector(':scope > summary'))),
+        sections:sections.map(measure),
+        icons:sections.map(section=>measure(section.querySelector('.nav-section-mark'))),
+        links:sections.filter(section=>section.open).flatMap(section=>[...section.querySelectorAll('.app-nav-link')].map(measure)),
+        linkIcons:sections.filter(section=>section.open).flatMap(section=>[...section.querySelectorAll('.app-nav-link .admin-nav-icon')].map(measure)),
+        labels:sections.filter(section=>section.open).flatMap(section=>[...section.querySelectorAll('.app-nav-link .admin-nav-text')].map(measure)),
+      };
+    });
+    const nearly=(a,b)=>Math.abs(a-b)<=1.1;
+    assert(rows.parents.every(x=>nearly(x.x,rows.nav.x)),theme+' group headings have uneven left offsets');
+    assert(rows.parents.every(x=>nearly(x.w,rows.parents[0].w)),theme+' group headings have inconsistent widths');
+    assert(rows.parents.every(x=>x.w>=rows.nav.w-4),theme+' group headings do not fill sidebar');
+    assert(rows.sections.every(x=>nearly(x.w,rows.sections[0].w)),theme+' group containers do not align');
+    assert(rows.icons.every(x=>nearly(x.x,rows.icons[0].x)),theme+' parent SVG icons are not aligned');
+    assert(rows.links.every(x=>nearly(x.x,rows.links[0].x)),theme+' submenu rows do not align');
+    assert(rows.linkIcons.every(x=>nearly(x.x,rows.linkIcons[0].x)),theme+' submenu icons are not aligned');
+    assert(rows.labels.every(x=>nearly(x.x,rows.labels[0].x)),theme+' submenu text does not share one column');
+    assert(rows.labels[0].x>rows.icons[0].x+22,theme+' submenu hierarchy is not visually indented');
+    assert(rows.links.every(x=>x.x+x.w<=rows.sidebar.x+rows.sidebar.w+1),theme+' submenu exceeds sidebar');
     assert(result.overflow<=2,theme+' desktop overflow');
     assert(!adminPalettes.has(result.palette),theme+' duplicates another admin palette');
     adminPalettes.add(result.palette);
@@ -81,9 +107,27 @@ try{
   await toggle.click();
   assert(await page.locator('body').evaluate(el=>el.classList.contains('admin-nav-collapsed')),'Sidebar should collapse');
   assert((await toggle.getAttribute('aria-expanded'))==='false','ARIA collapse state');
+  const rail=await page.evaluate(()=>{
+    const nav=document.querySelector('[data-admin-sidebar-nav]');
+    const summary=nav.querySelector('details[data-admin-nav-section="OVERVIEW"] > summary');
+    const ico=summary.querySelector('.nav-section-mark');
+    const title=summary.getBoundingClientRect();
+    const symbol=ico.getBoundingClientRect();
+    return {off:Math.abs(title.x+title.width/2-(symbol.x+symbol.width/2)),width:title.width};
+  });
+  assert(rail.off<=2.5,'Collapsed rail icon is not centered');
+  assert(rail.width>=38&&rail.width<=65,'Collapsed rail section width is invalid');
   await page.locator('details[data-admin-nav-section="PUBLISHING"] summary').click();
   assert(!(await page.locator('body').evaluate(el=>el.classList.contains('admin-nav-collapsed'))),'Rail selection should expand sidebar');
   await page.setViewportSize({width:390,height:844});
+  await page.evaluate(()=>document.body.classList.add('app-nav-open'));
+  const mobileGeometry=await page.evaluate(()=>{
+    const root=document.querySelector('.app-sidebar').getBoundingClientRect();
+    const sections=[...document.querySelectorAll('[data-admin-sidebar-nav] .nav-section > summary')].map(el=>el.getBoundingClientRect());
+    return {sidebar:root.width,headers:sections.map(r=>r.width),xs:sections.map(r=>r.x)};
+  });
+  assert(mobileGeometry.headers.every(w=>w>mobileGeometry.sidebar*.67),'Mobile sidebar headings still shrink to contents');
+  assert(mobileGeometry.xs.every(x=>Math.abs(x-mobileGeometry.xs[0])<1.2),'Mobile headings misaligned');
   await page.screenshot({path:path.join(output,'admin-publisher-pro-mobile.png'),fullPage:false});
   const over=await page.evaluate(()=>document.documentElement.scrollWidth-innerWidth);
   assert(over<=2,'Mobile dashboard horizontal overflow '+over);
