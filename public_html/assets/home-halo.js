@@ -18,6 +18,7 @@
   );
   const allowed=()=>!motion.matches&&!narrow.matches&&!isLowEnd()&&!document.hidden;
   let effect=null,visible=false,requested=false,disposed=false,requestSerial=0,loaded=null;
+  let idleReady=false,permanentFailure=false;
   let idleId=null;
   const safeAsset=(src)=>typeof src==='string'&&
     src.startsWith('/assets/vendor/')&&!src.includes('//')&&!src.includes('..');
@@ -70,7 +71,7 @@
   }
 
   async function start(){
-    if(disposed||!visible||!allowed()||effect||requested)return;
+    if(disposed||!idleReady||permanentFailure||!visible||!allowed()||effect||requested)return;
     if(!supported())return;
     requested=true;
     const generation=++requestSerial;
@@ -101,18 +102,21 @@
       if(!effect)return;
       target.classList.add('epdi-halo-running');
     }catch(_){
-      // Static CSS is the permanent fallback; do not retry failed downloads.
-      loaded=Promise.reject(new Error('Effect unavailable'));
-      loaded.catch(()=>{});
+      // Fail closed: keep the static gradient, no repeated script requests.
+      permanentFailure=true;
     }finally{
       requested=false;
+      // Visibility can change during loading; recheck after invalidated runs.
+      if(!permanentFailure&&generation!==requestSerial&&visible&&allowed()&&!disposed){
+        window.requestAnimationFrame(refresh);
+      }
     }
   }
 
   function refresh(){
     if(disposed)return;
     if(!allowed()||!visible){destroy();return;}
-    start();
+    if(idleReady)start();
   }
 
   const observer='IntersectionObserver' in window?
@@ -124,11 +128,11 @@
   else visible=true;
 
   function schedule(){
-    if(!allowed())return;
+    const ready=()=>{idleReady=true;refresh();};
     if('requestIdleCallback' in window){
-      idleId=window.requestIdleCallback(refresh,{timeout:1600});
+      idleId=window.requestIdleCallback(ready,{timeout:1600});
     }else{
-      idleId=window.setTimeout(refresh,750);
+      idleId=window.setTimeout(ready,750);
     }
   }
   if(document.readyState==='complete')schedule();
