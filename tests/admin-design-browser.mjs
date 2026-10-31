@@ -14,21 +14,22 @@ const css=[base,beta,ops,workspace,studio,side,types,design].join('\n');
 const output=path.join(root,'tests/admin-redesign-previews');
 await mkdir(output,{recursive:true});
 
+const icon='<svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="4" width="7" height="7" rx="1"/><rect x="13" y="4" width="7" height="7" rx="1"/><rect x="4" y="13" width="7" height="7" rx="1"/><rect x="13" y="13" width="7" height="7" rx="1"/></svg>';
 const section=(name,items,opened=false,active=false)=>
-  '<details class="nav-section'+(active?' is-active':'')+'" data-admin-nav-section="'+name+'"'+(opened?' open':'')+'><summary class="nav-section-title"><span class="nav-section-label"><span class="nav-section-mark">▣</span><span class="nav-section-heading">'+name+'</span></span><span class="nav-section-chevron">⌄</span></summary><div class="nav-group">'+
-  items.map(item=>'<a class="app-nav-link'+(item[1]==='/admin'?' active':'')+'" href="'+item[1]+'" '+(item[1]==='/admin'?'aria-current="page"':'')+' data-admin-search-terms="'+name+' '+item[0]+'"><span class="admin-nav-icon">◈</span><span class="admin-nav-text">'+item[0]+'</span></a>').join('')+'</div></details>';
+  '<details class="nav-section'+(active?' is-active':'')+'" data-admin-nav-section="'+name+'"'+(opened?' open':'')+'><summary class="nav-section-title"><span class="nav-section-label"><span class="nav-section-mark">'+icon+'</span><span class="nav-section-heading">'+name+'</span></span><span class="nav-section-chevron">'+icon+'</span></summary><div class="nav-group">'+
+  items.map(item=>'<a class="app-nav-link'+(item[1]==='/admin'?' active':'')+'" href="'+item[1]+'" '+(item[1]==='/admin'?'aria-current="page"':'')+' data-admin-search-terms="'+name+' '+item[0]+'"><span class="admin-nav-icon">'+icon+'</span><span class="admin-nav-text">'+item[0]+'</span></a>').join('')+'</div></details>';
 const nav='<nav id="admin-side-sections" class="app-nav grouped-nav grouped-nav-compact admin-sidebar-nav" data-admin-sidebar-nav data-admin-nav-role="OWNER">'+
   section('OVERVIEW',[['Publishing Desk','/admin']],true,true)+
   section('PUBLISHING',[['Editions','/admin/editions'],['Publications','/admin/publications']],true)+
   section('SETTINGS',[['Publisher Settings','/admin/settings']])+'</nav>';
 const fixture=theme=>
-  '<!doctype html><html lang="en"><head><meta name="viewport" content="width=device-width,initial-scale=1"><style>'+css+'</style></head>'+
+  '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>'+css+'</style></head>'+
   '<body class="admin-shell theme-'+theme+'" data-tenant-guid="test-tenant" data-user-guid="test-user">'+
   '<header class="site-header"><div class="site-header-inner"><a class="brand" href="/">ePaper Publishing Studio</a><div class="header-actions"><a class="console-health-link" href="#">Diagnostics</a><a class="btn primary console-create" href="#">Add new</a></div></div></header>'+
   '<div class="app-workspace"><aside class="app-sidebar" data-app-sidebar>'+
-  '<div class="sidebar-context admin-sidebar-identity"><span class="admin-sidebar-emblem">▣</span><span class="admin-sidebar-brand-copy"><strong>ePaper</strong><small>Publishing Studio</small></span><button type="button" class="admin-sidebar-collapse" data-admin-sidebar-collapse aria-expanded="true">◀</button></div>'+
-  '<div class="admin-sidebar-search"><span class="admin-sidebar-search-icon">⌕</span><input type="search" data-admin-nav-search placeholder="Search modules"><kbd>/</kbd><button type="button" data-admin-nav-search-expand class="admin-sidebar-search-expand">⌕</button></div>'+
-  nav+'<p data-admin-sidebar-empty hidden>No matching modules</p><a class="admin-sidebar-account" href="/admin/account"><span class="admin-sidebar-avatar">◉</span><span class="admin-sidebar-account-copy"><strong>Publisher user</strong><small>Admin</small></span></a></aside>'+
+  '<div class="sidebar-context admin-sidebar-identity"><span class="admin-sidebar-emblem">'+icon+'</span><span class="admin-sidebar-brand-copy"><strong>ePaper</strong><small>Publishing Studio</small></span><button type="button" class="admin-sidebar-collapse" data-admin-sidebar-collapse aria-expanded="true">'+icon+'</button></div>'+
+  '<div class="admin-sidebar-search"><span class="admin-sidebar-search-icon">'+icon+'</span><input type="search" data-admin-nav-search placeholder="Search modules"><kbd>/</kbd><button type="button" data-admin-nav-search-expand class="admin-sidebar-search-expand">'+icon+'</button></div>'+
+  nav+'<p data-admin-sidebar-empty hidden>No matching modules</p><a class="admin-sidebar-account" href="/admin/account"><span class="admin-sidebar-avatar">'+icon+'</span><span class="admin-sidebar-account-copy"><strong>Publisher user</strong><small>Admin</small></span></a></aside>'+
   '<main id="main" class="main-container workspace-main"><div class="publishing-desk studio-desk"><section class="studio-hero"><div class="studio-hero-copy"><span class="studio-eyebrow">PUBLISHING STUDIO</span><h1>Welcome back</h1><p>All your editions and publishing activity in one place.</p><div class="studio-hero-actions"><a class="studio-button studio-button-primary" href="#">New edition</a><a class="studio-button studio-button-soft" href="#">View website</a></div></div><div class="studio-hero-aside"><span class="studio-hero-kicker">TODAYS FOCUS</span><a href="#"><strong>5</strong><span>Ready to publish</span></a><a href="#"><strong>2</strong><span>Needs attention</span></a></div></section>'+
   '<nav class="desk-metrics studio-metrics">'+[42,3,8,5].map(n=>'<a class="desk-metric"><span class="studio-metric-label">Publishing status</span><strong>'+n+'</strong><small>View details</small></a>').join('')+'</nav>'+
   '<section class="panel studio-pipeline-card"><div class="section-head"><h2>Edition pipeline</h2></div><div class="studio-pipeline-bars"><div class="studio-pipeline-row"><span class="studio-pipeline-label">Published</span><span class="studio-pipeline-track"><span class="bar-published" style="width:100%"></span></span><strong>42</strong></div></div></section>'+
@@ -90,7 +91,7 @@ try{
   const auth=await context.newPage();
   const authStyles=new Set();
   for(const theme of ['default','split-editorial','gradient-focus','minimal-access']){
-    const markup='<!doctype html><html><head><style>'+authBase+'\n'+authThemes+
+    const markup='<!doctype html><html><head><meta charset="utf-8"><style>'+authBase+'\n'+authThemes+
       '</style><style>#epx-login-v5{position:fixed;inset:0;background:linear-gradient(#a8def4,#f8fbfc);padding:72px 20px}#epx-login-v5 .epx-card{width:min(100%,430px);background:#fff;padding:40px}</style></head>'+
       '<body class="auth-shell theme-'+theme+'"><section id="epx-login-v5"><a class="epx-brand">ePaper</a><div class="epx-card"><h1>Sign in</h1><form class="epx-form"><label>Email<input></label><button class="epx-submit">Continue</button></form></div></section></body></html>';
     await auth.setContent(markup);
