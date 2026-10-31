@@ -86,7 +86,8 @@
         gyroControls:false,
         minHeight:240,
         minWidth:320,
-        scale:1.35,
+        // Cap shader render-target resolution on high-DPI desktop displays.
+        scale:Math.max(1.45,Math.min(2.6,(window.devicePixelRatio||1)*1.2)),
         scaleMobile:1.8,
         backgroundColor:0x10233e,
         baseColor:0x3276af,
