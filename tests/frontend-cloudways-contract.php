@@ -27,7 +27,7 @@ $check(str_contains($view,'frontend-themes.css')&&str_contains($view,'frontend-l
 $check(str_contains($view,'reader-editorial-clips.css')&&str_contains($view,'clip-ui-compact.css'),'Existing Reader and clipping styles remain');
 $check(str_contains($app,'FrontendHomeLayouts::render($selectedHomeTheme'),'Homepage renders selected layout');
 $check(str_contains($app,'$homeContent=$resume.$hero.$recent.$pubHtml.$archiveCta.$hi'),'Original homepage remains default');
-$check(str_contains($app,'Frontend design studio'),'Publisher admin preview studio present');
+$check(str_contains($app,'AppearanceGallery::render($saved,$editionPath)'),'Publisher admin preview studio present');
 $check(str_contains($app,'AdminRoutePolicy::enforce($path)'),'Cloudways admin policy still enforced');
 $check(str_contains($policy,"'/admin/settings'")&&str_contains($policy,'MANAGER'),'Only managers may configure appearance');
 foreach(['newsstand','editorial','newspaper','magazine'] as $surface)$check(str_contains($css,'fth-'.$surface),'Has scoped '.$surface.' layout rules');
