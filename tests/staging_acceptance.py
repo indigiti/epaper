@@ -48,7 +48,8 @@ def as_json(response, name):
     try:
         data = json.loads(response[2])
     except (ValueError, TypeError):
-        raise AssertionError(name + " did not return JSON")
+        media = response[1].get("Content-Type", "unknown")
+        raise AssertionError(f"{name} did not return JSON (HTTP {response[0]}, Content-Type {media})")
     check(isinstance(data, dict), name + " JSON response")
     return data
 
