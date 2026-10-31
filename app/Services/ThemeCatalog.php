@@ -16,7 +16,7 @@ final class ThemeCatalog
         'frontend' => ['Default', 'Newsstand Modern', 'Editorial Portal', 'Classic Newspaper', 'Digital Magazine'],
         'reader' => ['Newsstand Replica', 'Editorial Luxe', 'Metro Pulse', 'Heritage Press', 'Apple Editorial', 'Default'],
         'admin' => ['Publisher Pro', 'Executive Slate', 'Midnight Desk', 'Default'],
-        'auth' => ['Split Editorial', 'Gradient Focus', 'Minimal Access', 'Default'],
+        'auth' => ['Default', 'Split Editorial', 'Gradient Focus', 'Minimal Access'],
     ];
 
     private static bool $previewActive = false;
