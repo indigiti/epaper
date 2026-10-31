@@ -35,6 +35,11 @@ try{
           heroWidth:hero.width,
           resumeWidth:resume.width,
           dockVisible:getComputedStyle(dock).display!=='none',
+          navInViewport:(()=>{
+            const r=document.querySelector('.reader-account-more > summary').getBoundingClientRect();
+            return r.width>10 && r.left>=-1 && r.right<=innerWidth+1;
+          })(),
+          installHidden:getComputedStyle(document.querySelector('[data-pwa-install]')).display==='none',
           colors:[getComputedStyle(document.body).backgroundColor,
             getComputedStyle(document.querySelector('.rh-panel')).backgroundColor],
           hasResume:!!document.querySelector('.rh-progress[aria-valuenow]')
@@ -45,6 +50,8 @@ try{
       assert(metrics.resumeWidth>=85,mode.name+' '+device+' reading CTA too narrow');
       assert(metrics.horizontalOverflow<=2,mode.name+' '+device+' horizontal overflow '+metrics.horizontalOverflow);
       assert(metrics.dockVisible===(width<=600),mode.name+' '+device+' mobile dock visibility incorrect');
+      assert(metrics.navInViewport,mode.name+' '+device+' account More menu trigger is off screen');
+      assert(metrics.installHidden,mode.name+' '+device+' should not show unavailable PWA install');
       if(mode.name==='new-reader')assert(!metrics.hasResume,'First visit must not show fake reading progress');
       if(device==='desktop')colors.set(mode.name,metrics.colors.join('|'));
       await page.screenshot({path:path.join(output,mode.name+'-'+device+'.png'),fullPage:device==='desktop'});
