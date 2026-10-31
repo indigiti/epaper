@@ -76,10 +76,16 @@ $check(!str_contains($app,'CREATE TABLE ep_')&&!str_contains($css,'@import'),'No
 if(in_array('--fixtures',$argv,true)){
     $out=$root.'/tests/reader-hub-fixtures';
     if(!is_dir($out)&&!mkdir($out,0775,true)&&!is_dir($out))throw new RuntimeException('Cannot write fixture folder');
+    $fixtureFirst=$first;
+    $fixtureFirst['thumb_url']='';
+    $fixtureRecent=$recent;
+    foreach($fixtureRecent as &$row)$row['thumb_url']='';
+    unset($row);
+    $fixtureHtml=ReaderHub::render($metrics,$fixtureFirst,$fixtureRecent,$capabilities);
     $appCss=(string)file_get_contents($root.'/public_html/assets/app.css');
     $accountCss=(string)file_get_contents($root.'/public_html/assets/account-beta.css');
     $styles='<style>'.$appCss."\n".$accountCss."\n".$css.'</style>';
-    foreach(['reading-light'=>[$html,false],'reading-dark'=>[$html,true],'new-reader'=>[$empty,false]] as $name=>[$body,$dark]){
+    foreach(['reading-light'=>[$fixtureHtml,false],'reading-dark'=>[$fixtureHtml,true],'new-reader'=>[$empty,false]] as $name=>[$body,$dark]){
         $bodyClass=$dark?'account-shell dark':'account-shell';
         $document='<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">'
             .$styles.'</head><body class="'.$bodyClass.'">'
