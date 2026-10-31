@@ -48,7 +48,7 @@ $adminCss=(string)file_get_contents($root.'/public_html/assets/admin-design-syst
 $readerCss=(string)file_get_contents($root.'/public_html/assets/reader-themes.css');
 $authCss=(string)file_get_contents($root.'/public_html/assets/auth-themes.css');
 $galleryCss=(string)file_get_contents($root.'/public_html/assets/admin-appearance-gallery.css');
-$check(str_contains($app,'AdminDashboardVisuals::pipeline($counts)'),'Dashboard uses DB-free pipeline stats');
+$check(str_contains($app,'AdminDashboardVisuals::pipeline($counts,$canCreate)'),'Dashboard uses DB-free pipeline stats');
 $check(str_contains($app,'AppearanceGallery::render($saved,$editionPath)'),'Appearance uses new gallery');
 $check(str_contains($view,'AdminIcons::svg($icon)')&&str_contains($view,'AdminIcons::svg($sectionIcons'),'Sidebar uses validated icons');
 $check(str_contains($view,'admin-design-system.css')&&str_contains($view,'admin-appearance-gallery.css'),'Admin CSS bundles wired in shell');
