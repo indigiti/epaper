@@ -4,15 +4,16 @@ import assert from 'node:assert/strict';
 import path from 'node:path';
 
 const root=path.resolve(import.meta.dirname,'..');
-const [base,haloCss,loader]=await Promise.all(
-  ['app.css','home-halo.css','home-halo.js'].map(f=>readFile(path.join(root,'public_html/assets',f),'utf8'))
+const [base,layoutCss,themeCss,haloCss,loader]=await Promise.all(
+  ['app.css','frontend-layouts.css','frontend-themes.css','home-halo.css','home-halo.js']
+    .map(f=>readFile(path.join(root,'public_html/assets',f),'utf8'))
 );
 const output=path.join(root,'tests/home-halo-previews');
 await mkdir(output,{recursive:true});
 const layout=()=>[
 '<!doctype html><html lang="en"><head><meta charset="utf-8">',
 '<meta name="viewport" content="width=device-width,initial-scale=1">',
-'<style>',base,'\n',haloCss,'</style></head>',
+'<style>',base,'\n',layoutCss,'\n',themeCss,'\n',haloCss,'</style></head>',
 '<body class="public-shell theme-default">',
 '<main class="main-container">',
 '<section class="newsstand-hero has-vanta-halo">',
@@ -74,13 +75,33 @@ try{
     });
     await page.goto('https://epaper-halo.invalid/');
     await page.waitForTimeout(2200);
-    const actual=await page.evaluate(()=>({
+    const actual=await page.evaluate(()=>{
+      const hero=document.querySelector('.newsstand-hero');
+      const heading=hero.querySelector('h1');
+      const ghost=hero.querySelector('.btn.ghost');
+      const layer=hero.querySelector('.epdi-halo-layer');
+      const style=getComputedStyle(hero);
+      return {
       started:window.__haloStarted,destroyed:window.__haloDestroyed,
       running:document.querySelector('.epdi-halo-layer').classList.contains('epdi-halo-running'),
       overflow:document.documentElement.scrollWidth-innerWidth,
       action:document.querySelector('.hero-actions .btn.primary').getAttribute('href'),
-    }));
+      heroBackground:style.backgroundColor,
+      heroImage:style.backgroundImage,
+      headingColor:getComputedStyle(heading).color,
+      bodyColor:getComputedStyle(document.body).color,
+      ghostColor:getComputedStyle(ghost).color,
+      layerBlend:getComputedStyle(layer).mixBlendMode,
+      layerOpacity:parseFloat(getComputedStyle(layer).opacity),
+    };
+    });
     assert(actual.overflow<=2,config.name+' horizontal overflow '+actual.overflow);
+    assert(actual.heroBackground==='rgba(0, 0, 0, 0)',config.name+' hero should be transparent, got '+actual.heroBackground);
+    assert(actual.heroImage==='none',config.name+' hero must not draw an opaque/dark gradient');
+    assert(actual.headingColor===actual.bodyColor,config.name+' text must match light/dark surface ink');
+    assert(actual.ghostColor===actual.bodyColor,config.name+' secondary button must be legible');
+    assert(actual.layerBlend==='multiply',config.name+' visible halo must be softly composited rather than opaque');
+    assert(actual.layerOpacity<0.6,config.name+' overlay is too opaque');
     assert(actual.action==='/edition/demo/page/1','Newspaper reader URLs must remain unchanged');
     assert(actual.started===(config.shouldLoad?1:0),config.name+' unexpected WebGL start');
     assert(requests.length===(config.shouldLoad?2:0),config.name+' unexpected vendor requests');
@@ -110,6 +131,59 @@ try{
   assert((await page.locator('.epdi-halo-layer.epdi-halo-running').count())===0,
     'HALO must not initialize on a Reader surface');
   await context.close();
+
+  // Transparent hero must remain legible for all supported frontend layouts,
+  // at desktop and mobile sizes, in both site color modes.
+  const appearance=await browser.newContext({viewport:{width:1280,height:780},reducedMotion:'reduce'});
+  const visual=await appearance.newPage();
+  for(const theme of ['default','newsstand-modern','digital-magazine']){
+    for(const dark of [false,true]){
+      for(const width of [1280,390]){
+        const hero=theme==='default'?
+          '<section class="newsstand-hero has-vanta-halo"><div class="epdi-halo-layer" data-epaper-halo></div><div class="newsstand-hero-copy"><h1>Front page</h1><p class="newsstand-tagline">Read more today</p><div class="hero-actions"><a class="btn ghost" href="/archive">Archive</a></div></div></section>':
+          '<section class="fth-hero has-vanta-halo fth-'+(theme==='newsstand-modern'?'newsstand':'magazine')+'-hero">'+
+          '<div class="epdi-halo-layer" data-epaper-halo></div>'+
+          '<div class="fth-hero-overlay"></div><div class="fth-hero-body"><h1>Front page</h1><p>Read more today</p><a class="fth-action" href="/archive">Read</a></div></section>';
+        const markup='<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"><style>'+
+          base+'\n'+layoutCss+'\n'+themeCss+'\n'+haloCss+'</style></head><body class="public-shell theme-'+theme+(dark?' dark':'')+'">'+
+          '<main class="main-container">'+hero+'</main></body></html>';
+        await visual.setViewportSize({width,height:780});
+        await visual.setContent(markup);
+        const metrics=await visual.evaluate(()=>{
+          const hero=document.querySelector('.has-vanta-halo');
+          const heading=hero.querySelector('h1');
+          const computed=getComputedStyle(hero);
+          const overlay=hero.querySelector('.fth-hero-overlay');
+          const halo=hero.querySelector('.epdi-halo-layer');
+          const words=getComputedStyle(heading).color;
+          return {
+            bg:computed.backgroundColor,
+            image:computed.backgroundImage,
+            heading:words,
+            body:getComputedStyle(document.body).color,
+            overlay:overlay?getComputedStyle(overlay).display:null,
+            layer:getComputedStyle(halo).display,
+            blend:getComputedStyle(halo).mixBlendMode,
+            overflow:document.documentElement.scrollWidth-innerWidth,
+            visible:heading.getBoundingClientRect().width>0
+          };
+        });
+        assert(metrics.bg==='rgba(0, 0, 0, 0)',theme+' transparent background '+JSON.stringify(metrics));
+        assert(metrics.image==='none',theme+' still paints a background image');
+        assert(metrics.heading===metrics.body,theme+' heading loses '+(dark?'dark':'light')+' contrast');
+        assert(metrics.overlay===null||metrics.overlay==='none',theme+' has a dark image overlay');
+        assert(metrics.layer==='none','Reduced motion should hide the WebGL layer');
+        assert(metrics.overflow<=2,theme+' '+width+' overflows horizontally');
+        assert(metrics.visible,theme+' '+width+' heading is hidden');
+        if(dark)assert(metrics.blend==='screen','Dark mode must use lightening composition');
+        else assert(metrics.blend==='multiply','Light mode must use soft multiply composition');
+        if(width===390)await visual.screenshot({path:path.join(output,'halo-'+theme+(dark?'-dark':'')+'-transparent-mobile.png')});
+        console.log('PASS transparent HALO',theme,dark?'dark':'light',width);
+      }
+    }
+  }
+  await appearance.close();
+
   console.log('PASS HALO page isolation and static fallback');
 }finally{
   await browser.close();
