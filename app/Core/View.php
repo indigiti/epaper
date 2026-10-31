@@ -149,8 +149,10 @@ final class View
                 .($active?' aria-current="page"':'').' title="'.self::e($hint).'">'
                 .$icon($iconName).'<span>'.self::e($name).'</span></a>';
         };
-        $html='<nav class="app-nav account-nav reader-account-nav" aria-label="Reader navigation">';
+        $html='<nav class="app-nav account-nav reader-account-nav" aria-label="Reader navigation">'
+            .'<div class="reader-nav-tabs">';
         foreach($primary as $item)$html.=$makeLink($item);
+        $html.='</div>';
         $hasSecondary=false;
         foreach($secondary as $item){
             if($item[1]===$current){$hasSecondary=true;break;}
