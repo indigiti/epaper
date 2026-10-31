@@ -16,7 +16,7 @@ final class BackgroundEffects
     /** Field metadata: label, control, default, min, max, step, applicable effects. */
     public const FIELDS = [
         'home_effect.background_color'=>['Background color','color','#F4F8FF',null,null,null,['Halo','Net','Dots','Rings','Clouds','Cells']],
-        'home_effect.base_color'=>['Primary effect color','color','#3877BD',null,null,null,['Halo','Waves','Net','Dots','Rings','Fog','Cells']],
+        'home_effect.base_color'=>['Primary effect color','color','#3877BD',null,null,null,['Halo','Waves','Net','Dots','Fog','Cells']],
         'home_effect.secondary_color'=>['Secondary color','color','#67C9C3',null,null,null,['Halo','Dots','Cells']],
         'home_effect.opacity'=>['Transparency','range','0.28',0.08,0.45,0.01,['Halo','Waves','Net','Dots','Rings','Clouds','Cells','Fog']],
         'home_effect.size'=>['Size','range','1.15',0.5,2.5,0.05,['Halo','Dots','Cells']],
