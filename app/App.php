@@ -845,6 +845,7 @@ final class App
                 .'<small>'.$this->e($detail).' <span aria-hidden="true">→</span></small></a>';
         }
         $html.='</nav>';
+        $html.=\EpaperSaas\Services\AdminDashboardVisuals::pipeline($counts);
         $editorial=(new \EpaperSaas\Services\EditorialActionCenter(
             new \EpaperSaas\Repositories\SqlEditorialActionRepository()
         ))->snapshot($tb,$counts,$role,$aiEnabled);
