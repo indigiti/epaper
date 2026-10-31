@@ -44,7 +44,7 @@ final class ThemeCatalog
     {
         self::$previewActive = false;
         $theme = self::accepts($surface, $saved) ? $saved : self::default($surface);
-        if (!in_array($surface, ['frontend', 'reader'], true)) {
+        if (!in_array($surface, ['frontend', 'reader', 'admin'], true)) {
             return $theme;
         }
         $requestedSurface = $_GET['theme_surface'] ?? null;
