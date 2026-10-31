@@ -1,6 +1,6 @@
 # EP-DI source directory
 
-The ePaper PHP application root is `codebase/`. Its web document root is **`public_html/`**, not the entire Git repository.
+On `cw-epaper`, the PHP application root is the **repository root** and its web document root is **`public_html/`**. The default `main` branch uses a historical nested `codebase/` layout; do not interchange their deployment paths.
 
 | Location | Purpose |
 |---|---|
@@ -18,10 +18,10 @@ The ePaper PHP application root is `codebase/`. Its web document root is **`publ
 
 ## Historical documentation
 
-The prior `codebase/` root contained ~170 redundant or older versioned documents. Use the [old filename index](docs/releases/LEGACY-ROOT-INDEX.md) to locate every document and its original Git SHA, and the [archive categories](docs/releases/archive/README.md) to browse past releases. The previous [source README](docs/releases/archive/references/LEGACY-PROJECT-README.md) is retained byte-for-byte.
+See [Cloudways deployment](DEPLOY-CLOUDWAYS.md) and [existing staging acceptance](docs/EXISTING-CLOUDWAYS-STAGING-ACCEPTANCE.md). CI source-contract success is not equivalent to browser, live deployment, or backup/restore acceptance.
 
-**Pinned current release records** and historical `SHA256SUMS` remain at their original paths. Run `php bin/release-check.php` to verify the installed source (this is not production deployment acceptance).
+Verify the currently deployed branch, source commit, web document root, and persistent runtime storage before any release. Run `php bin/release-check.php` when the installed release manifest is available; release integrity is a separate acceptance gate.
 
 ## Production safety
 
-This documentation-only refactor neither deletes nor migrates customer PDFs, pages and clips. Do not merge the separate 4,684-file runtime-storage deletion PR into production without protected persistent storage and a verified Cloudways/DigiOps staging rehearsal. Historical exposed credentials also require rotation.
+Do not remove or migrate live PDFs, pages or clipping media without protected persistent storage and a verified backup restoration rehearsal. Historical exposed credentials also require rotation.

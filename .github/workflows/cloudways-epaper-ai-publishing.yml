@@ -76,7 +76,10 @@ jobs:
           php tests/admin-query-bounds.php
           php -l app/Services/SemanticNews.php
           node --check public_html/assets/admin-sidebar.js
-          php tests/upgrade-center-contract.php
+          php tests/auth-tenant-escaping.php
+           node tests/reader-editorial-recovery.test.js
+           php tests/reader-visual-safety-contract.php
+           php tests/upgrade-center-contract.php
           php -l app/Controllers/AdminManualClippingController.php
           php -l app/Views/ManualClippingView.php
           php -l app/Services/ManualClipGeometry.php
