@@ -89,6 +89,9 @@ $app=(string)file_get_contents($root.'/app/App.php');
 $view=(string)file_get_contents($root.'/app/Core/View.php');
 $check(str_contains($app,"'effects')\$this->adminEffectsSettings(\$method)"),
     'Effects route receives dedicated handler and validation');
+$check(str_contains($app,"if(\$method==='POST')\$this->adminSettingsGroup('appearance',\$method);"),
+    'Legacy settings POST cannot bypass group allowlists or effects validation');
+
 $check(str_contains($view,'admin-effects.css')&&str_contains($view,'admin-effects.js'),
     'Customizer is loaded only in designated admin surface');
 $check(str_contains($view,'vanta-config.js'),'Public and admin Vanta share validated settings map');
