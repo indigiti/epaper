@@ -8,11 +8,12 @@ final class SettingsCatalog
         return [
             'appearance' => [
                 'label' => 'Appearance',
-                'description' => 'Theme families, public light/dark policy and interface density for Admin, Reader and Authentication.',
+                'description' => 'Independent Frontend, Reader, Admin and Authentication themes, public light/dark policy and density.',
                 'fields' => [
+                    'appearance.frontend_theme' => ['Frontend theme','select','Default',['Default','Newsstand Modern','Editorial Portal','Classic Newspaper','Digital Magazine']],
                     'appearance.admin_theme' => ['Admin theme','select','Publisher Pro',['Publisher Pro','Executive Slate','Midnight Desk','Default']],
                     'appearance.reader_theme' => ['Reader theme','select','Newsstand Replica',['Newsstand Replica','Editorial Luxe','Metro Pulse','Heritage Press','Apple Editorial','Default']],
-                    'appearance.auth_theme' => ['Authentication theme','select','Minimal Access',['Split Editorial','Gradient Focus','Minimal Access','Default']],
+                    'appearance.auth_theme' => ['Authentication theme','select','Split Editorial',['Split Editorial','Gradient Focus','Minimal Access','Default']],
                     'appearance.public_color_mode' => ['Public / Reader color default','select','light',['light','system','dark']],
                     'appearance.public_color_switcher' => ['Public / Reader light-dark switcher','select','on',['on','off']],
                     'appearance.density' => ['Admin density','select','Comfortable',['Comfortable','Compact']],
