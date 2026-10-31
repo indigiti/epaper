@@ -173,6 +173,8 @@ jobs:
           php -l app/Services/SettingsCatalog.php
           php tests/frontend-cloudways-contract.php
           php tests/frontend-layouts.php --fixtures
+          php -l app/Services/ReaderHub.php
+          php tests/reader-hub-contract.php --fixtures
           php -l app/Services/AdminIcons.php
           php -l app/Services/AppearanceGallery.php
           php -l app/Services/AdminDashboardVisuals.php
@@ -189,6 +191,15 @@ jobs:
           npx playwright install --with-deps chromium
           node tests/frontend-home-browser.mjs
           node tests/admin-design-browser.mjs
+          node tests/reader-hub-browser.mjs
+      - name: Preserve Reader Hub desktop/mobile preview screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cw-epaper-reader-hub-previews
+          path: tests/reader-hub-screenshots/*.png
+          if-no-files-found: warn
+          retention-days: 14
       - name: Preserve redesigned dashboard theme previews
         if: always()
         uses: actions/upload-artifact@v4
