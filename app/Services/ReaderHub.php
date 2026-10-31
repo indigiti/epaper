@@ -13,7 +13,7 @@ final class ReaderHub
         ['saved_articles','Saved stories','file-text','/account/saved-articles','Articles to return to'],
         ['bookmarks','Bookmarks','bookmark','/account/bookmarks','Pages worth keeping'],
         ['clips','Clippings','scan-text','/account/clips','Your newspaper extracts'],
-        ['offline','Offline editions','hard-drive','/account/offline','Available on this device'],
+        ['offline','Offline editions','hard-drive','/account/offline','Saved for offline reading'],
     ];
 
     public static function render(array $metrics,?array $resume,array $recent,array $capabilities): string
