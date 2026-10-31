@@ -180,6 +180,8 @@ jobs:
           php tests/admin-workspace-contracts.php
           php tests/admin-route-policy.php
           node --check public_html/assets/admin-sidebar.js
+          node --check public_html/assets/admin-appearance-gallery.js
+          node --check tests/admin-design-browser.mjs
           node --check public_html/assets/app.js
       - name: Generate desktop and mobile browser previews
         run: |
