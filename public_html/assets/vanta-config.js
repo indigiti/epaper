@@ -7,7 +7,9 @@
     yOffset:0,ringFactor:1.15,rotationFactor:.18,
     waveHeight:12,waveSpeed:.5,shininess:30,zoom:1,
     points:8,maxDistance:18,spacing:18,showDots:true,
-    dotSpacing:35,showLines:true
+    dotSpacing:35,showLines:true,
+    skyColor:'#9DCCE0',cloudColor:'#DCE8F5',cloudShadowColor:'#94B6CD',sunColor:'#FFE4A7',
+    fogHighlight:'#B3E9E3',fogMidtone:'#80B7DC',fogLowlight:'#B8D0EF',blurFactor:.6
   });
   const bounds={
     opacity:[.08,.45],size:[.5,2.5],speed:[.1,1.5],
@@ -15,9 +17,9 @@
     ringFactor:[.3,2],rotationFactor:[0,2],
     waveHeight:[2,30],waveSpeed:[.1,1.5],shininess:[0,100],
     zoom:[.55,1.6],points:[4,16],maxDistance:[8,35],
-    spacing:[12,30],dotSpacing:[18,60]
+    spacing:[12,30],dotSpacing:[18,60],blurFactor:[.2,1.5]
   };
-  const allowed=['HALO','WAVES','NET','DOTS'];
+  const allowed=['HALO','WAVES','NET','DOTS','RINGS','CLOUDS','CELLS','FOG'];
   const clamp=(key,val)=>{
     const [min,max]=bounds[key];
     const num=Number(val);
@@ -26,7 +28,8 @@
   function sanitize(raw){
     const v={...defaults};
     if(!raw||typeof raw!=='object')return v;
-    for(const key of ['backgroundColor','baseColor','secondaryColor']){
+    for(const key of ['backgroundColor','baseColor','secondaryColor','skyColor','cloudColor',
+      'cloudShadowColor','sunColor','fogHighlight','fogMidtone','fogLowlight']){
       const value=String(raw[key]??'');
       if(/^#[0-9a-fA-F]{6}$/.test(value))v[key]=value.toUpperCase();
     }
@@ -72,6 +75,31 @@
         return {...base,color:color(v.baseColor),color2:color(v.secondaryColor),
           backgroundColor:color(v.backgroundColor),
           size:v.size*3,spacing:v.dotSpacing,showLines:v.showLines};
+      case 'RINGS':
+        return {...base,backgroundColor:color(v.backgroundColor),
+          color:color(v.baseColor)};
+      case 'CLOUDS':
+        return {...base,
+          // Clouds' shader is relatively costly; keep it capped below 1x DPR.
+          scale:Math.max(2,Math.min(3,(pixel||1)*1.6)),
+          backgroundColor:color(v.backgroundColor),
+          skyColor:color(v.skyColor),cloudColor:color(v.cloudColor),
+          cloudShadowColor:color(v.cloudShadowColor),
+          sunColor:color(v.sunColor),sunGlareColor:color(v.sunColor),
+          sunlightColor:color(v.sunColor),speed:v.speed};
+      case 'CELLS':
+        return {...base,
+          backgroundColor:color(v.backgroundColor),
+          color1:color(v.baseColor),color2:color(v.secondaryColor),
+          amplitudeFactor:v.amplitudeFactor,ringFactor:v.ringFactor,
+          rotationFactor:v.rotationFactor,size:v.size,speed:v.speed};
+      case 'FOG':
+        return {...base,
+          baseColor:color(v.baseColor),
+          highlightColor:color(v.fogHighlight),
+          midtoneColor:color(v.fogMidtone),
+          lowlightColor:color(v.fogLowlight),
+          blurFactor:v.blurFactor,zoom:v.zoom,speed:v.speed};
     }
     return null;
   }
