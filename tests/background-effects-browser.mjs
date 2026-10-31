@@ -88,7 +88,7 @@ try{
       if(mode==='desktop'){
         try{
           await page.waitForFunction(key=>
-            window.__started.some(x=>x.effect===key),name,{timeout:3200});
+            window.__started.some(x=>x.effect===key.toUpperCase()),name,{timeout:3200});
         }catch(e){
           const diagnostic=await page.evaluate(()=>({
             status:document.querySelector('[data-effect-status]')?.textContent,
@@ -98,7 +98,7 @@ try{
           }));
           throw new Error('Preview did not start for '+name+': '+JSON.stringify(diagnostic),{cause:e});
         }
-        const started=await page.evaluate(key=>window.__started.find(x=>x.effect===key),name);
+        const started=await page.evaluate(key=>window.__started.find(x=>x.effect===key.toUpperCase()),name);
         assert(started.options.mouseControls===false&&started.options.touchControls===false&&started.options.gyroControls===false,
           name+' must not intercept pointer/reader interactions');
       }
