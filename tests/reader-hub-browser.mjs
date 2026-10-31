@@ -68,6 +68,9 @@ try{
   assert(dropdown && dropdown.x>=-1 && dropdown.x+dropdown.width<=391,'More dropdown clipped by mobile nav');
   assert((await page.locator('.reader-more-menu a[href="/account/notifications"]').count())===1,'Notifications must remain reachable');
   assert((await page.locator('.reader-more-menu a[href="/logout"]').count())===1,'Sign out must remain reachable');
+  assert(await page.locator('.reader-mobile-nav-title').isVisible(),'Mobile header should show reading context');
+  assert(await page.locator('.reader-nav-tabs').isHidden(),'Mobile layout should avoid duplicated clipped tab strips');
+  assert((await page.locator('.reader-mobile-saved-link a').count())===1,'Saved articles remain available through More');
   const current=page.locator('.reader-mobile-dock a[aria-current="page"]');
   assert((await current.count())===1,'Exactly one mobile tab should be active');
   assert((await current.getAttribute('href'))==='/account','Reader Home should be active');
