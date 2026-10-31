@@ -38,6 +38,10 @@ jobs:
         run: |
           python -m py_compile tests/staging_acceptance.py
           python tests/staging_acceptance.py --help > /dev/null
+      - name: Read-only Cloudways public route acceptance (non-blocking evidence)
+        continue-on-error: true
+        timeout-minutes: 2
+        run: python tests/staging_acceptance.py --only epaper
       - run: python -m compileall -q ai_processing bin/ai-ocr-normalize.py bin/ai-layout-preview.py bin/ai-candidate-generate.py bin/ai-clipping-probe.py bin/ai-clipping-smoke.py
       - run: |
           set -e
