@@ -47,7 +47,13 @@ body.account-shell .app-sidebar{
 }
 body.account-shell .reader-account-nav{
   display:flex;align-items:center;gap:6px;min-width:0;max-width:100%;
+  overflow:visible
 }
+body.account-shell .reader-nav-tabs{
+  display:flex;align-items:center;gap:6px;min-width:0;flex:1;
+  overflow-x:auto;overflow-y:hidden;scrollbar-width:none
+}
+body.account-shell .reader-nav-tabs::-webkit-scrollbar{display:none}
 body.account-shell .reader-account-nav .app-nav-link{
   display:inline-flex;align-items:center;justify-content:center;gap:8px;
   min-height:42px;padding:10px 13px;border-radius:9px;white-space:nowrap;
@@ -64,7 +70,7 @@ body.account-shell .reader-account-nav .app-nav-link.active{
 body.account-shell .reader-account-nav .app-nav-link .ui-icon{
   width:17px;height:17px;flex:0 0 17px;stroke-width:1.8
 }
-body.account-shell .reader-account-more{position:relative;margin-left:auto;min-width:0;flex-shrink:0}
+body.account-shell .reader-account-more{position:relative;margin-left:0;min-width:0;flex-shrink:0}
 body.account-shell .reader-more-trigger{
   display:flex;align-items:center;gap:8px;min-height:42px;
   padding:10px 13px;border-radius:9px;color:var(--rh-muted);font-size:13px;
@@ -307,8 +313,8 @@ body.account-shell .rh-explore-link{
   white-space:nowrap;color:var(--rh-ink);font-size:12px;font-weight:740
 }
 /* Do not inherit the previous dark-mode display:flex typo on account panels. */
-body.account-shell.dark .reader-hub .rh-panel,
-body.account-shell.dark .reader-hub .rh-intro-actions{display:revert}
+body.account-shell.dark .reader-hub .rh-panel{display:block}
+body.account-shell.dark .reader-hub .rh-intro-actions{display:flex}
 body.account-shell.dark .app-sidebar{display:block!important;background:var(--rh-card)}
 @media(max-width:1080px){
   body.account-shell .reader-account-nav .app-nav-link{padding:10px 9px;gap:6px;font-size:12px}
@@ -318,9 +324,8 @@ body.account-shell.dark .app-sidebar{display:block!important;background:var(--rh
 @media(max-width:860px){
   body.account-shell .app-sidebar,body.account-shell .workspace-main{width:calc(100% - 30px)}
   body.account-shell .app-sidebar{top:60px;margin-top:12px;overflow:visible}
-  body.account-shell .reader-account-nav{overflow-x:auto;scrollbar-width:none}
-  body.account-shell .reader-account-nav::-webkit-scrollbar{display:none}
-  body.account-shell .reader-account-more{position:sticky;right:0;background:var(--rh-card)}
+  body.account-shell .reader-nav-tabs{overflow-x:auto;scrollbar-width:none}
+  body.account-shell .reader-account-more{position:relative;right:auto;background:var(--rh-card)}
   body.account-shell .rh-content-grid{grid-template-columns:minmax(0,1fr)}
   body.account-shell .rh-shelf-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
   body.account-shell .rh-continue{grid-template-columns:124px minmax(0,1fr);gap:24px;padding:26px}
@@ -331,7 +336,7 @@ body.account-shell.dark .app-sidebar{display:block!important;background:var(--rh
   body.account-shell .app-sidebar{position:relative;top:auto;width:calc(100% - 28px);margin:9px auto 0;padding:4px}
   body.account-shell .reader-account-nav{gap:2px}
   body.account-shell .reader-account-nav .app-nav-link{min-height:38px;padding:9px 10px}
-  body.account-shell .reader-account-more{margin-left:auto}
+  body.account-shell .reader-account-more{margin-left:0}
   body.account-shell .reader-account-nav .app-nav-link .ui-icon{display:none}
   body.account-shell .reader-mobile-dock{
     position:fixed;bottom:0;left:0;right:0;z-index:110;
