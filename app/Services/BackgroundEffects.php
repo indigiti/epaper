@@ -11,21 +11,21 @@ use InvalidArgumentException;
  */
 final class BackgroundEffects
 {
-    public const EFFECTS = ['Off','Halo','Waves','Net','Dots'];
+    public const EFFECTS = ['Off','Halo','Waves','Net','Dots','Rings','Clouds','Cells','Fog'];
 
     /** Field metadata: label, control, default, min, max, step, applicable effects. */
     public const FIELDS = [
-        'home_effect.background_color'=>['Background color','color','#F4F8FF',null,null,null,['Halo','Net','Dots']],
-        'home_effect.base_color'=>['Primary effect color','color','#3877BD',null,null,null,['Halo','Waves','Net','Dots']],
-        'home_effect.secondary_color'=>['Secondary color','color','#67C9C3',null,null,null,['Halo','Dots']],
-        'home_effect.opacity'=>['Transparency','range','0.28',0.08,0.45,0.01,['Halo','Waves','Net','Dots']],
-        'home_effect.size'=>['Size','range','1.15',0.5,2.5,0.05,['Halo','Dots']],
-        'home_effect.speed'=>['Animation speed','range','0.30',0.1,1.5,0.05,['Halo']],
-        'home_effect.amplitude_factor'=>['Amplitude','range','0.75',0.2,2.0,0.05,['Halo']],
+        'home_effect.background_color'=>['Background color','color','#F4F8FF',null,null,null,['Halo','Net','Dots','Rings','Clouds','Cells']],
+        'home_effect.base_color'=>['Primary effect color','color','#3877BD',null,null,null,['Halo','Waves','Net','Dots','Rings','Fog','Cells']],
+        'home_effect.secondary_color'=>['Secondary color','color','#67C9C3',null,null,null,['Halo','Dots','Cells']],
+        'home_effect.opacity'=>['Transparency','range','0.28',0.08,0.45,0.01,['Halo','Waves','Net','Dots','Rings','Clouds','Cells','Fog']],
+        'home_effect.size'=>['Size','range','1.15',0.5,2.5,0.05,['Halo','Dots','Cells']],
+        'home_effect.speed'=>['Animation speed','range','0.30',0.1,1.5,0.05,['Halo','Clouds','Cells','Fog']],
+        'home_effect.amplitude_factor'=>['Amplitude','range','0.75',0.2,2.0,0.05,['Halo','Cells']],
         'home_effect.x_offset'=>['Horizontal offset','range','0.12',-1,1,0.05,['Halo']],
         'home_effect.y_offset'=>['Vertical offset','range','0',-1,1,0.05,['Halo']],
-        'home_effect.halo_ring'=>['Ring intensity','range','1.15',0.3,2.0,0.05,['Halo']],
-        'home_effect.halo_rotation'=>['Rotation','range','0.18',0,2.0,0.05,['Halo']],
+        'home_effect.halo_ring'=>['Ring intensity','range','1.15',0.3,2.0,0.05,['Halo','Cells']],
+        'home_effect.halo_rotation'=>['Rotation','range','0.18',0,2.0,0.05,['Halo','Cells']],
         'home_effect.wave_height'=>['Wave height','range','12',2,30,1,['Waves']],
         'home_effect.wave_speed'=>['Wave speed','range','0.5',0.1,1.5,0.05,['Waves']],
         'home_effect.wave_shininess'=>['Shininess','range','30',0,100,1,['Waves']],
@@ -36,6 +36,14 @@ final class BackgroundEffects
         'home_effect.net_dots'=>['Show nodes','select','On',null,null,null,['Net']],
         'home_effect.dots_spacing'=>['Dot spacing','range','35',18,60,1,['Dots']],
         'home_effect.dots_lines'=>['Connect dots','select','On',null,null,null,['Dots']],
+        'home_effect.cloud_sky'=>['Sky color','color','#9DCCE0',null,null,null,['Clouds']],
+        'home_effect.cloud_color'=>['Cloud color','color','#DCE8F5',null,null,null,['Clouds']],
+        'home_effect.cloud_shadow'=>['Cloud shadow','color','#94B6CD',null,null,null,['Clouds']],
+        'home_effect.cloud_sun'=>['Sunlight color','color','#FFE4A7',null,null,null,['Clouds']],
+        'home_effect.fog_highlight'=>['Highlight color','color','#B3E9E3',null,null,null,['Fog']],
+        'home_effect.fog_midtone'=>['Midtone color','color','#80B7DC',null,null,null,['Fog']],
+        'home_effect.fog_lowlight'=>['Lowlight color','color','#B8D0EF',null,null,null,['Fog']],
+        'home_effect.fog_blur'=>['Fog softness','range','0.6',0.2,1.5,0.05,['Fog']],
     ];
 
     public static function asset(string $effect): ?string
@@ -45,6 +53,10 @@ final class BackgroundEffects
             'Waves'=>'/assets/vendor/vanta.waves.0.5.24.min.js',
             'Net'=>'/assets/vendor/vanta.net.0.5.24.min.js',
             'Dots'=>'/assets/vendor/vanta.dots.0.5.24.min.js',
+            'Rings'=>'/assets/vendor/vanta.rings.0.5.24.min.js',
+            'Clouds'=>'/assets/vendor/vanta.clouds.0.5.24.min.js',
+            'Cells'=>'/assets/vendor/vanta.cells.0.5.24.min.js',
+            'Fog'=>'/assets/vendor/vanta.fog.0.5.24.min.js',
             default=>null
         };
     }
@@ -140,6 +152,14 @@ final class BackgroundEffects
             'showDots'=>$v['home_effect.net_dots']==='On',
             'dotSpacing'=>$get('dots_spacing'),
             'showLines'=>$v['home_effect.dots_lines']==='On',
+            'skyColor'=>$v['home_effect.cloud_sky'],
+            'cloudColor'=>$v['home_effect.cloud_color'],
+            'cloudShadowColor'=>$v['home_effect.cloud_shadow'],
+            'sunColor'=>$v['home_effect.cloud_sun'],
+            'fogHighlight'=>$v['home_effect.fog_highlight'],
+            'fogMidtone'=>$v['home_effect.fog_midtone'],
+            'fogLowlight'=>$v['home_effect.fog_lowlight'],
+            'blurFactor'=>$get('fog_blur'),
         ];
     }
 }
