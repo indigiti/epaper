@@ -59,6 +59,12 @@ try{
       three:!!window.THREE,
       vanta:typeof window.VANTA?.HALO==='function',
       overflow:document.documentElement.scrollWidth-innerWidth,
+      background:getComputedStyle(document.querySelector('.newsstand-hero')).backgroundColor,
+      backgroundImage:getComputedStyle(document.querySelector('.newsstand-hero')).backgroundImage,
+      layerBlend:getComputedStyle(document.querySelector('.epdi-halo-layer')).mixBlendMode,
+      layerOpacity:parseFloat(getComputedStyle(document.querySelector('.epdi-halo-layer')).opacity),
+      headline:getComputedStyle(document.querySelector('h1')).color,
+      bodyText:getComputedStyle(document.body).color,
     }));
     // If WebGL is supported, the actual vendored renderer must start,
     // rather than only succeeding against a fake constructor.
@@ -66,6 +72,11 @@ try{
       'Real Vanta HALO failed to initialize '+JSON.stringify(value)+
       ' errors='+errors.join('; '));
     assert(value.overflow<=2,'Real HALO caused horizontal overflow');
+    assert(value.background==='rgba(0, 0, 0, 0)'&&value.backgroundImage==='none',
+      'Real HALO hero must be transparent, not dark');
+    assert(value.layerBlend==='multiply'&&value.layerOpacity<0.6,
+      'Real HALO must remain a low-opacity decorative overlay');
+    assert(value.headline===value.bodyText,'Headline must retain readable default theme text color');
     await page.screenshot({path:path.join(out,'halo-real-webgl-desktop.png')});
     console.log('PASS real vendored Three.js + HALO integration',JSON.stringify(value));
   }
