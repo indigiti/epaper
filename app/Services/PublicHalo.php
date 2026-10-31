@@ -8,33 +8,38 @@ use EpaperSaas\Core\Build;
 use EpaperSaas\Core\Http;
 
 /**
- * Tenant-controlled, optional Vanta HALO enhancement.
- * No effect is ever rendered on Admin, Reader, Auth or account pages.
+ * Backwards-compatible entry point for publisher-controlled homepage effects.
+ * Remains homepage-only and opt-in; all reader/admin/auth canvases are excluded.
  */
 final class PublicHalo
 {
-    public static function enabled(): bool
+    public static function selectedEffect(): string
     {
-        if((string)TenantData::setting('appearance.home_background_effect','Off')==='Halo'){
-            return true;
-        }
-        if(($_GET['effect_preview']??null)!=='halo')return false;
-        // Query preview must never be available to an anonymous visitor or reader.
-        if(!Auth::user())return false;
-        $membership=Auth::currentMembership();
-        $role=strtoupper((string)($membership['role_key']??''));
-        if(!in_array($role,['OWNER','ADMIN','PUBLISHER_ADMIN'],true))return false;
+        $saved=(string)TenantData::setting('appearance.home_background_effect','Off');
+        if(!in_array($saved,BackgroundEffects::EFFECTS,true))$saved='Off';
+        $query=trim(strtolower((string)($_GET['effect_preview']??'')));
+        $names=['off'=>'Off','halo'=>'Halo','waves'=>'Waves','net'=>'Net','dots'=>'Dots'];
+        if($query===''||!isset($names[$query]))return $saved;
+
+        // Preview must never be used to inject a new animation into a public
+        // cache. Only active publisher managers can override saved selection.
+        if(!Auth::user())return $saved;
+        $role=strtoupper((string)(Auth::currentMembership()['role_key']??''));
+        if(!in_array($role,['OWNER','ADMIN','PUBLISHER_ADMIN'],true))return $saved;
         Http::privateNoStore();
-        return true;
+        return $names[$query];
     }
 
-    /**
-     * Animate only the supported homepage hero types. Print-style themes
-     * (Editorial Portal and Classic Newspaper) preserve their typography.
-     */
+    public static function enabled(): bool
+    {
+        return self::selectedEffect()!=='Off';
+    }
+
     public static function decorate(string $home,string $theme,?bool $enabled=null): string
     {
-        if(!($enabled??self::enabled()))return $home;
+        $effect=$enabled===null?self::selectedEffect():
+            ($enabled?(self::enabled()?self::selectedEffect():'Halo'):'Off');
+        if($effect==='Off'||!BackgroundEffects::asset($effect))return $home;
         $marker=match($theme){
             'Default'=>'<section class="newsstand-hero">',
             'Newsstand Modern'=>'<section class="fth-hero fth-newsstand-hero">',
@@ -42,9 +47,22 @@ final class PublicHalo
             default=>null,
         };
         if(!$marker||!str_contains($home,$marker))return $home;
+
+        // The cache and settings stack is tenant scoped. Invalid legacy values
+        // cannot reach a shader; normalize all numeric and colour fields.
+        try{
+            $config=BackgroundEffects::browserOptions(BackgroundEffects::saved());
+        }catch(\InvalidArgumentException $e){
+            $config=BackgroundEffects::browserOptions(BackgroundEffects::defaults());
+        }
+        $json=json_encode($config,JSON_UNESCAPED_SLASHES|JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|JSON_HEX_QUOT);
+        if(!is_string($json))return $home;
+        $asset=BackgroundEffects::asset($effect);
         $layer='<div class="epdi-halo-layer" aria-hidden="true" data-epaper-halo'
+            .' data-effect-name="'.self::e(strtoupper($effect)).'"'
+            .' data-effect-config="'.self::e($json).'"'
             .' data-three-src="'.self::e(Build::asset('/assets/vendor/three.r134.min.js')).'"'
-            .' data-halo-src="'.self::e(Build::asset('/assets/vendor/vanta.halo.0.5.24.min.js')).'"></div>';
+            .' data-halo-src="'.self::e(Build::asset((string)$asset)).'"></div>';
         $replacement=str_replace('">',' has-vanta-halo">',$marker).$layer;
         return substr_replace($home,$replacement,strpos($home,$marker),strlen($marker));
     }
