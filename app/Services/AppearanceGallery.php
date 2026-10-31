@@ -19,7 +19,7 @@ final class AppearanceGallery
 
     public static function render(array $saved, ?string $readerPath): string
     {
-        $html='<section class="panel appearance-studio" aria-labelledby="appearance-studio-title">'
+        $html='<section class="panel appearance-studio" data-appearance-gallery aria-labelledby="appearance-studio-title">'
             .'<div class="appearance-studio-head"><div><span class="eyebrow">VISUAL DESIGN SYSTEM</span>'
             .'<h2 id="appearance-studio-title">Theme gallery</h2>'
             .'<p>Choose a design and use its preview before saving. These small samples are CSS illustrations, not screenshots of your live publisher data.</p></div>'
@@ -54,11 +54,16 @@ final class AppearanceGallery
                     $html.='<p class="appearance-demo-note">'
                         .($surface==='auth'?'Save the theme and open Sign in in a private window.':'Publish an edition to preview reader.').'</p>';
                 }
+                $html.='<button type="button" class="appearance-demo-choose" data-theme-choose'
+                    .' data-theme-surface="'.self::e($surface).'" data-theme-name="'.self::e($name).'"'
+                    .' aria-label="Select '.self::e($name).' '.self::e($surface).' theme in form">'
+                    .($selected?'Selected in form':'Select this theme').'</button>';
                 $html.='</article>';
             }
             $html.='</div></section>';
         }
-        return $html.'</section>';
+        return $html.'<p class="appearance-studio-instruction" data-theme-selection-note aria-live="polite">'
+            .'Selecting a design updates the form above. Click Save Appearance to publish it.</p></section>';
     }
 
     private static function mockup(string $surface,string $slug): string
