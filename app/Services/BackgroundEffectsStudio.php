@@ -12,12 +12,16 @@ final class BackgroundEffectsStudio
     {
         $values=BackgroundEffects::normalize($saved);
         $current=$values['appearance.home_background_effect'];
-        $names=['Halo'=>'Soft glowing rings','Waves'=>'Fluid editorial waves','Net'=>'Connected network','Dots'=>'Minimal dot field'];
+        $names=['Halo'=>'Soft glowing rings','Waves'=>'Fluid editorial waves','Net'=>'Connected network','Dots'=>'Minimal dot field','Rings'=>'Floating ring sculpture','Clouds'=>'Soft moving sky','Cells'=>'Liquid cellular shapes','Fog'=>'Smooth atmospheric fog'];
         $descriptions=[
             'Halo'=>'Ambient rings with gentle motion',
             'Waves'=>'Low-contrast moving wave surface',
             'Net'=>'Subtle connecting lines and points',
             'Dots'=>'Ordered floating points',
+            'Rings'=>'Floating layered rings',
+            'Clouds'=>'Slow atmospheric clouds',
+            'Cells'=>'Organic shifting cells',
+            'Fog'=>'Gentle blended color haze',
         ];
         $encodedAssets=[];
         foreach(BackgroundEffects::EFFECTS as $name){
