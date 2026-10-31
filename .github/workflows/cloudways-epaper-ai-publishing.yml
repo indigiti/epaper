@@ -41,7 +41,9 @@ jobs:
       - name: Read-only Cloudways public route acceptance (non-blocking evidence)
         continue-on-error: true
         timeout-minutes: 2
-        run: python tests/staging_acceptance.py --only epaper
+        run: |
+          python tests/public_route_diagnostics.py
+          python tests/staging_acceptance.py --only epaper
       - run: python -m compileall -q ai_processing bin/ai-ocr-normalize.py bin/ai-layout-preview.py bin/ai-candidate-generate.py bin/ai-clipping-probe.py bin/ai-clipping-smoke.py
       - run: |
           set -e
