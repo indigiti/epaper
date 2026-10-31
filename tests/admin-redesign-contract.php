@@ -33,6 +33,7 @@ $gallery=\EpaperSaas\Services\AppearanceGallery::render([
 foreach(['frontend','admin','reader','auth'] as $surface)$check(str_contains($gallery,'data-appearance-surface="'.$surface.'"'),'Gallery displays '.$surface);
 $check(substr_count($gallery,'data-demo-theme=')===19,'All 19 thematic CSS preview illustrations available');
 $check(str_contains($gallery,'theme_surface=admin')&&str_contains($gallery,'theme_surface=reader'),'Admin and reader have live preview links');
+$check(substr_count($gallery,'data-theme-choose')===19,'Every theme illustration can select the matching form option');
 $check(str_contains($gallery,'Save the theme and open Sign in'),'Authentication mockup accurately indicates applied login theme');
 $check(!str_contains($gallery,'<script'),'Gallery has no runtime script or third-party embeds');
 $chart=\EpaperSaas\Services\AdminDashboardVisuals::pipeline([
@@ -52,6 +53,7 @@ $check(str_contains($app,'AdminDashboardVisuals::pipeline($counts,$canCreate)'),
 $check(str_contains($app,'AppearanceGallery::render($saved,$editionPath)'),'Appearance uses new gallery');
 $check(str_contains($view,'AdminIcons::svg($icon)')&&str_contains($view,'AdminIcons::svg($sectionIcons'),'Sidebar uses validated icons');
 $check(str_contains($view,'admin-design-system.css')&&str_contains($view,'admin-appearance-gallery.css'),'Admin CSS bundles wired in shell');
+$check(str_contains($view,'admin-appearance-gallery.js'),'Gallery interaction is loaded on Appearance admin route');
 $check(str_contains($view,'reader-themes.css')&&str_contains($view,'auth-themes.css'),'Reader and Auth scoped CSS loaded');
 $check(str_contains($view,"ThemeCatalog::resolve('admin'")&&str_contains($view,"ThemeCatalog::resolve('reader'"),'Admin/Reader preview resolution wired');
 $check(str_contains($view,'brand-logo-fallback'),'Broken-image brand text fallback added');
