@@ -21,7 +21,7 @@ def serve_pr_asset(route):
 
 def main():
     OUT.mkdir(exist_ok=True)
-    results=[]; failures=[]; edition=None
+    results=[]; failures=[]; blocked=[]; edition=None
     with sync_playwright() as p:
         browser=p.chromium.launch(args=['--no-sandbox'],headless=True)
         try:
@@ -37,13 +37,18 @@ def main():
                         page.wait_for_timeout(400)
                         result['http']=response.status if response else 0
                         result['title']=page.title()[:90]
-                        if result['http']!=200:
+                        if result['http']==403 and 'just a moment' in result['title'].lower():
+                            blocked.append(f'{path} {width}px challenged (HTTP 403)')
+                        elif result['http']!=200:
                             failures.append(f'{path} {width}px HTTP {result["http"]}')
                         else:
                             overflow=page.evaluate('() => Math.max(document.body.scrollWidth,document.documentElement.scrollWidth)-innerWidth')
                             result['overflow_px']=overflow
                             if overflow>8:failures.append(f'{path} {width}px overflow {overflow}px')
                             page.screenshot(path=str(OUT/f'{label}-{width}.png'))
+                            if path=='/':
+                                result['broken_logo_paths']=page.locator('.site-header .brand-logo').evaluate_all(
+                                    '(imgs)=>imgs.filter(i=>i.complete && i.naturalWidth===0).map(i=>new URL(i.currentSrc||i.src).pathname)')
                             if not edition and path in ('/','/archive'):
                                 links=page.locator('a[href^="/edition/"][href*="/page/"]').evaluate_all(
                                     '(elements)=>elements.map(a=>a.getAttribute("href")).filter(Boolean)')
@@ -64,11 +69,14 @@ def main():
                 except BrowserError as e:failures.append('Reader '+type(e).__name__)
                 ctx.close()
         finally:browser.close()
-    report={'pages':results,'reader':reader,'failures':failures}
+    report={'pages':results,'reader':reader,'failures':failures,'blocked':blocked}
     (OUT/'report.json').write_text(json.dumps(report,indent=2),encoding='utf-8')
     for item in results:print('PAGE',item['path'],item['width'],item.get('http'),item.get('overflow_px'),flush=True)
     print('READER',json.dumps(reader),flush=True)
     if failures:print('FAILURES',json.dumps(failures),flush=True);raise SystemExit(1)
-    print('PASS public responsive browser smoke',flush=True)
+    if blocked:
+        print('PARTIAL — browser-challenged routes are NOT_TESTED:',json.dumps(blocked),flush=True)
+    else:
+        print('PASS public responsive browser smoke',flush=True)
 
 if __name__=='__main__':main()
