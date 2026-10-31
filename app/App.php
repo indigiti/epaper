@@ -649,16 +649,40 @@ final class App
     }
     private function accountOverview(array $u): never
     {
-        $uid=Uuid::toBinary($u['user_guid']);OfflineVault::expireOld($uid);$metrics=$this->accountOverviewMetrics($uid,(string)$u['user_guid']);
-        $resume=Store::one('SELECT h.page_number,h.last_viewed_at,e.edition_guid,e.slug,e.edition_date,e.page_count,e.title,p.name publication_name,a.asset_guid thumb_asset_guid FROM ep_history h JOIN ep_editions e ON e.tenant_guid=h.tenant_guid AND e.edition_guid=h.edition_guid JOIN ep_publications p ON p.tenant_guid=e.tenant_guid AND p.publication_guid=e.publication_guid LEFT JOIN ep_pages pg ON pg.tenant_guid=h.tenant_guid AND pg.edition_guid=h.edition_guid AND pg.page_number=h.page_number LEFT JOIN ep_page_assets a ON a.tenant_guid=pg.tenant_guid AND a.page_guid=pg.page_guid AND a.asset_type="THUMB" WHERE h.tenant_guid=? AND h.platform_user_guid=? ORDER BY h.last_viewed_at DESC LIMIT 1',[TenantData::tenantBin(),$uid]);
-        $html='<section class="reader-os-hero"><div><span class="eyebrow">READER OS · '.OfflineVault::VERSION.'</span><h1>Reader OS</h1><p>Your reading, saved content, encrypted offline editions, notifications and preferences in one place.</p></div><div class="reader-os-hero-actions"><button class="btn ghost hidden" type="button" data-pwa-install>Install app</button><span class="reader-os-version">v2.0</span></div></section>';
-        if($resume){$page=max(1,(int)$resume['page_number']);$total=max(1,(int)$resume['page_count']);$img=$this->assetUrlFromBinary($resume['thumb_asset_guid']??null);$html.='<section class="continue-reading-feature"><div class="continue-cover">'.($img?'<img src="'.$this->e($img).'" alt="" loading="eager" decoding="async">':'').'</div><div class="continue-copy"><span class="eyebrow">CONTINUE READING</span><h2>'.$this->e($resume['title']?:$resume['publication_name'].' · '.date('d M Y',strtotime($resume['edition_date']))).'</h2><p>Page '.$page.' of '.$total.' · Last read '.date('d M, H:i',strtotime($resume['last_viewed_at'])).'</p></div><a class="btn primary" href="/edition/'.$this->e($resume['slug']).'/page/'.$page.'">Continue →</a></section>';}
-        else $html.='<section class="continue-reading-feature empty"><div class="continue-copy"><span class="eyebrow">START READING</span><h2>Your latest edition is ready</h2><p>Open an edition and Reader OS will remember where you stopped.</p></div><a class="btn primary" href="/">Read latest →</a></section>';
-        $stats=[['Bookmarks',(int)$metrics['bookmarks'],'/account/bookmarks'],['Saved articles',(int)$metrics['saved_articles'],'/account/saved-articles'],['Clippings',(int)$metrics['clips'],'/account/clips'],['Offline editions',(int)$metrics['offline'],'/account/offline'],['Unread alerts',(int)$metrics['notifications'],'/account/notifications']];$html.='<div class="reader-os-stats">';foreach($stats as[$label,$value,$href])$html.='<a href="'.$href.'"><strong>'.$value.'</strong><span>'.$this->e($label).'</span></a>';$html.='</div>';
-        $cap=[['Smart Discovery',true],['Smart Article',Entitlements::has('EPAPER.ARTICLE_MODE',false)],['OCR Search',Entitlements::has('EPAPER.OCR_SEARCH',false)],['Cross-device Resume',true],['Bookmarks',true],['Clipping',Entitlements::has('EPAPER.CLIPPING',true)],['Offline Editions',Entitlements::has('EPAPER.OFFLINE',true)],['Personalization',true],['Listen / TTS',Entitlements::has('EPAPER.TTS',false)],['Translation',Entitlements::has('EPAPER.TRANSLATION',false)]];
-        $html.='<div class="reader-os-grid"><section class="reader-os-panel"><div class="section-head"><div><span class="eyebrow">YOUR READER</span><h2>Capabilities</h2></div><a href="/account/subscription">Manage plan</a></div><div class="capability-grid">';foreach($cap as[$label,$enabled])$html.='<div class="capability '.($enabled?'enabled':'disabled').'"><span class="capability-mark">'.($enabled?'✓':'—').'</span><div><strong>'.$this->e($label).'</strong><small>'.($enabled?'Available':'Not in current plan').'</small></div></div>';$html.='</div></section>';
-        $recent=Store::all('SELECT h.page_number,h.last_viewed_at,e.slug,e.edition_date,e.title,p.name publication_name FROM ep_history h JOIN ep_editions e ON e.tenant_guid=h.tenant_guid AND e.edition_guid=h.edition_guid JOIN ep_publications p ON p.tenant_guid=e.tenant_guid AND p.publication_guid=e.publication_guid WHERE h.tenant_guid=? AND h.platform_user_guid=? ORDER BY h.last_viewed_at DESC LIMIT 5',[TenantData::tenantBin(),$uid]);$html.='<section class="reader-os-panel"><div class="section-head"><div><span class="eyebrow">RECENT</span><h2>Reading history</h2></div><a href="/account/history">View all</a></div><div class="reader-history-list">';if($recent){foreach($recent as$r)$html.='<a href="/edition/'.$this->e($r['slug']).'/page/'.max(1,(int)$r['page_number']).'"><strong>'.$this->e($r['title']?:$r['publication_name']).'</strong><span>'.$this->e(date('d M Y',strtotime($r['edition_date']))).' · Page '.max(1,(int)$r['page_number']).'</span></a>';}else$html.='<p class="muted">No recent reading yet.</p>';$html.='</div></section></div>';
-        View::layout('Reader OS',$html,['brand'=>$this->brandName(),'account'=>true]);
+        $uid=Uuid::toBinary($u['user_guid']);
+        OfflineVault::expireOld($uid);
+        $metrics=$this->accountOverviewMetrics($uid,(string)$u['user_guid']);
+
+        // One bounded, tenant-scoped read supplies both resume and recent cards,
+        // replacing two nearly identical history queries in the old dashboard.
+        $recent=Store::all('SELECT h.page_number,h.last_viewed_at,e.edition_guid,e.slug,e.edition_date,e.page_count,e.title,p.name publication_name,a.asset_guid thumb_asset_guid
+            FROM ep_history h
+            JOIN ep_editions e ON e.tenant_guid=h.tenant_guid AND e.edition_guid=h.edition_guid
+            JOIN ep_publications p ON p.tenant_guid=e.tenant_guid AND p.publication_guid=e.publication_guid
+            LEFT JOIN ep_pages pg ON pg.tenant_guid=h.tenant_guid AND pg.edition_guid=h.edition_guid AND pg.page_number=h.page_number
+            LEFT JOIN ep_page_assets a ON a.tenant_guid=pg.tenant_guid AND a.page_guid=pg.page_guid AND a.asset_type="THUMB"
+            WHERE h.tenant_guid=? AND h.platform_user_guid=?
+            ORDER BY h.last_viewed_at DESC LIMIT 5',[TenantData::tenantBin(),$uid]);
+        foreach($recent as &$entry){
+            $entry['thumb_url']=$this->assetUrlFromBinary($entry['thumb_asset_guid']??null);
+            unset($entry['thumb_asset_guid']);
+        }
+        unset($entry);
+        $resume=$recent[0]??null;
+        $capabilities=[
+            ['Smart Discovery',true],
+            ['Smart Article',Entitlements::has('EPAPER.ARTICLE_MODE',false)],
+            ['OCR Search',Entitlements::has('EPAPER.OCR_SEARCH',false)],
+            ['Cross-device Resume',true],
+            ['Bookmarks',true],
+            ['Clipping',Entitlements::has('EPAPER.CLIPPING',true)],
+            ['Offline Editions',Entitlements::has('EPAPER.OFFLINE',true)],
+            ['Personalization',true],
+            ['Listen / TTS',Entitlements::has('EPAPER.TTS',false)],
+            ['Translation',Entitlements::has('EPAPER.TRANSLATION',false)],
+        ];
+        $html=\EpaperSaas\Services\ReaderHub::render($metrics,$resume,$recent,$capabilities);
+        View::layout('My Reading',$html,['brand'=>$this->brandName(),'account'=>true]);
     }
 
     private function accountLibrary(array $u): never
