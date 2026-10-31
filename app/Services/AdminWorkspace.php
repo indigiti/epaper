@@ -37,7 +37,8 @@ final class AdminWorkspace
                     .'<a href="'.$e($url).'"><span class="launchpad-icon" aria-hidden="true">'.AdminIcons::svg($icon).'</span>'
                     .'<span class="launchpad-item-text"><strong>'.$e($label).'</strong><small>'.$e($hint).'</small></span></a>'
                     .'<button type="button" class="launchpad-pin" data-feature-pin="'.$e($url).'"'
-                    .' aria-label="Pin '.$e($label).'" aria-pressed="false" title="Pin this tool">☆</button></div>';
+                    .' aria-label="Pin '.$e($label).'" aria-pressed="false" title="Pin this tool">'
+                    .AdminIcons::svg('bookmark').'</button></div>';
             $h.='</div></section>';
         }
         return $h.'</div><p data-feature-empty hidden>No matching features available to your role.</p></details></section>';
