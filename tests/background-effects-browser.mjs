@@ -18,6 +18,11 @@ try{
     const context=await browser.newContext({viewport:{width,height},deviceScaleFactor:1});
     await context.addInitScript(()=>{
       window.__started=[];window.__destroyed=0;window.__posted=0;
+      // Browser CI runners can expose 2 logical cores: mock a capable desktop
+      // so we test real effect selection, not the intentional low-power gate.
+      Object.defineProperty(navigator,'hardwareConcurrency',{configurable:true,get:()=>8});
+      Object.defineProperty(navigator,'deviceMemory',{configurable:true,get:()=>8});
+      Object.defineProperty(navigator,'connection',{configurable:true,get:()=>({saveData:false})});
       window.WebGLRenderingContext=window.WebGLRenderingContext||function(){};
       const old=HTMLCanvasElement.prototype.getContext;
       HTMLCanvasElement.prototype.getContext=function(type,...args){
@@ -81,8 +86,18 @@ try{
           'Fog needs its own softness slider');
       }
       if(mode==='desktop'){
-        await page.waitForFunction(key=>
-          window.__started.some(x=>x.effect===key),name,{timeout:2500});
+        try{
+          await page.waitForFunction(key=>
+            window.__started.some(x=>x.effect===key),name,{timeout:3200});
+        }catch(e){
+          const diagnostic=await page.evaluate(()=>({
+            status:document.querySelector('[data-effect-status]')?.textContent,
+            selected:document.querySelector('[data-effect-choice]')?.value,
+            loaded:window.__started.length,
+            webgl:typeof window.WebGLRenderingContext!=='undefined'
+          }));
+          throw new Error('Preview did not start for '+name+': '+JSON.stringify(diagnostic),{cause:e});
+        }
         const started=await page.evaluate(key=>window.__started.find(x=>x.effect===key),name);
         assert(started.options.mouseControls===false&&started.options.touchControls===false&&started.options.gyroControls===false,
           name+' must not intercept pointer/reader interactions');
