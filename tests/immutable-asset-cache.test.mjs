@@ -88,11 +88,13 @@ check((await newResponse.text()).startsWith('network '),
   'New asset fingerprint automatically causes a fresh download');
 
 offline=true;
+const offlineStored=await cacheApi.match(oldRequest);
+const offlineExpected=await offlineStored.text();
 const offlineRequest='/assets/home-halo.css?v=2.0.2.3.missing-0';
 const offlineAsset=await hit(offlineRequest);
 const offlineText=await offlineAsset.text();
-check(offlineText.includes('home-halo.css')||offlineText.includes('CSS'),
-  'Offline first load can reuse a precached asset with a different revision query');
+check(offlineText===offlineExpected,
+  'Offline first load returns the cached stylesheet body despite a different revision query');
 
 offline=false;
 const protectedRequest=new Request('https://epaper.test/media/private-page');
