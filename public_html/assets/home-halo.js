@@ -89,9 +89,9 @@
         // Cap shader render-target resolution on high-DPI desktop displays.
         scale:Math.max(1.45,Math.min(2.6,(window.devicePixelRatio||1)*1.2)),
         scaleMobile:1.8,
-        backgroundColor:0x10233e,
-        baseColor:0x3276af,
-        color2:0x6de5d2,
+        backgroundColor:0xf4f8ff,
+        baseColor:0x3877bd,
+        color2:0x67c9c3,
         amplitudeFactor:0.75,
         ringFactor:1.15,
         rotationFactor:0.18,
@@ -103,7 +103,7 @@
       if(!effect)return;
       target.classList.add('epdi-halo-running');
     }catch(_){
-      // Fail closed: keep the static gradient, no repeated script requests.
+      // Fail closed: keep the transparent static glow, no repeated script requests.
       permanentFailure=true;
     }finally{
       requested=false;
