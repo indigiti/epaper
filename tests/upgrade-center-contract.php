@@ -16,8 +16,10 @@ $schema=$read('app/Services/SchemaDoctor.php');
 $css=$read('public_html/assets/admin-typography.css');
 $version=trim($read('VERSION'));
 $migration=$read('database/upgrade-v2.0.2.2-clip-marking.sql');
-if($version!=='2.0.2.2')
-    throw new RuntimeException('Build version must match Clip Marking migration');
+// A DB migration has a fixed historical version; later asset-only releases
+// must not be required to rename or rerun that established schema migration.
+if(version_compare($version,'2.0.2.2','<'))
+    throw new RuntimeException('Release cannot predate the Clip Marking migration');
 if(!str_contains($migration,'CREATE TABLE IF NOT EXISTS ep_clip_marks'))
     throw new RuntimeException('Clip Marking migration must be additive');
 foreach([
