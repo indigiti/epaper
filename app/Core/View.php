@@ -152,7 +152,7 @@ final class View
         $html='<nav class="app-nav account-nav reader-account-nav" aria-label="Reader navigation">'
             .'<div class="reader-nav-tabs">';
         foreach($primary as $item)$html.=$makeLink($item);
-        $html.='</div>';
+        $html.='</div><span class="reader-mobile-nav-title">My reading</span>';
         $hasSecondary=false;
         foreach($secondary as $item){
             if($item[1]===$current){$hasSecondary=true;break;}
@@ -160,7 +160,8 @@ final class View
         $html.='<details class="reader-account-more"'.($hasSecondary?' open':'').'>'
             .'<summary class="reader-more-trigger">'. $icon('layers')
             .' More '. $icon('chevron-right').'</summary>'
-            .'<div class="reader-more-menu">';
+            .'<div class="reader-more-menu">'
+            .'<div class="reader-mobile-saved-link">'.$makeLink($primary[2]).'</div>';
         foreach($secondary as $item)$html.=$makeLink($item);
         $html.='</div></details></nav>';
         $dock=[
