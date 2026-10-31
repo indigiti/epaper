@@ -829,8 +829,8 @@ final class App
             .'<a class="studio-button studio-button-soft" href="/" target="_blank" rel="noopener">'.View::icon('external').'View website</a>'
             .'</div></div><div class="studio-hero-aside" aria-label="Workspace focus">'
             .'<span class="studio-hero-kicker">TODAY’S FOCUS</span>'
-            .'<a href="/admin/editions?status=NEEDS_ATTENTION"><strong>'.(int)($counts['NEEDS_ATTENTION']??0).'</strong><span>Editions needing attention '.View::icon('chev-right').'</span></a>'
-            .'<a href="/admin/editions?status=READY"><strong>'.(int)($counts['READY']??0).'</strong><span>Ready to publish '.View::icon('chev-right').'</span></a>'
+            .($canCreate?'<a href="/admin/editions?status=NEEDS_ATTENTION">':'<div class="studio-focus-row">').'<strong>'.(int)($counts['NEEDS_ATTENTION']??0).'</strong><span>Editions needing attention '.View::icon('chev-right').'</span>'.($canCreate?'</a>':'</div>')
+            .($canCreate?'<a href="/admin/editions?status=READY">':'<div class="studio-focus-row">').'<strong>'.(int)($counts['READY']??0).'</strong><span>Ready to publish '.View::icon('chev-right').'</span>'.($canCreate?'</a>':'</div>')
             .'</div></section>';
         $html.='<nav class="desk-metrics studio-metrics" aria-label="Publishing overview">';
         foreach([
@@ -839,13 +839,13 @@ final class App
             ['Ready to publish','READY','Review finished editions','success','pages'],
             ['Scheduled','SCHEDULED','Upcoming publications','info','calendar']
         ] as [$label,$state,$detail,$tone,$icon]){
-            $html.='<a class="desk-metric '.$tone.'" href="/admin/editions?status='.$state.'">'
+            $html.=($canCreate?'<a class="desk-metric '.$tone.'" href="/admin/editions?status='.$state.'">':'<div class="desk-metric '.$tone.'">')
                 .'<span class="studio-metric-label">'.View::icon($icon).$this->e($label).'</span>'
                 .'<strong>'.(int)($counts[$state]??0).'</strong>'
-                .'<small>'.$this->e($detail).' <span aria-hidden="true">→</span></small></a>';
+                .'<small>'.$this->e($detail).' <span aria-hidden="true">→</span></small>'.($canCreate?'</a>':'</div>');
         }
         $html.='</nav>';
-        $html.=\EpaperSaas\Services\AdminDashboardVisuals::pipeline($counts);
+        $html.=\EpaperSaas\Services\AdminDashboardVisuals::pipeline($counts,$canCreate);
         $editorial=(new \EpaperSaas\Services\EditorialActionCenter(
             new \EpaperSaas\Repositories\SqlEditorialActionRepository()
         ))->snapshot($tb,$counts,$role,$aiEnabled);
@@ -853,8 +853,8 @@ final class App
         $html.='<div class="studio-content-grid"><section class="panel desk-editions">'
             .'<div class="section-head"><div><span class="studio-section-kicker">YOUR PUBLICATIONS</span><h2>Recent editions</h2>'
             .'<p class="muted">Follow each edition from upload through publication.</p></div>'
-            .'<a class="btn ghost" href="/admin/editions">Manage editions →</a></div>'
-            .$this->editionTable(TenantData::editionsForAdmin('e.status NOT IN ("ARCHIVED","TRASHED")',[],8))
+            .($canCreate?'<a class="btn ghost" href="/admin/editions">Manage editions →</a>':'').'</div>'
+            .($canCreate?$this->editionTable(TenantData::editionsForAdmin('e.status NOT IN ("ARCHIVED","TRASHED")',[],8)):'<p class="muted">Edition editing tools are available to publisher editors and administrators.</p>')
             .'</section>';
         $attention=$runtime['attention']??[];
         $available=array_column(\EpaperSaas\Services\AdminFeatureCatalog::flatten($groups),1);
