@@ -62,11 +62,11 @@ final class View
         $displayName=trim((string)($user['display_name']??$user['full_name']??$user['name']??''));
         $email=trim((string)($user['email']??''));
         if($displayName==='')$displayName=$email!==''?$email:'My account';
-        $sectionIcons=['OVERVIEW'=>'dashboard','PUBLISHING'=>'newspaper','EDITORIAL'=>'scan-text',
-            'DISCOVERY'=>'search','AUDIENCE'=>'user','SETTINGS'=>'settings',
-            'OPERATIONS'=>'activity','ADVANCED'=>'archive'];
+        $sectionIcons=['OVERVIEW'=>'layout-dashboard','PUBLISHING'=>'newspaper','EDITORIAL'=>'file-text',
+            'DISCOVERY'=>'compass','AUDIENCE'=>'users','SETTINGS'=>'settings',
+            'OPERATIONS'=>'workflow','ADVANCED'=>'cpu'];
         $html='<div class="sidebar-context admin-sidebar-identity">'
-            .'<span class="admin-sidebar-emblem" aria-hidden="true">'.self::icon('newspaper').'</span>'
+            .'<span class="admin-sidebar-emblem" aria-hidden="true">'.\EpaperSaas\Services\AdminIcons::svg('newspaper').'</span>'
             .'<span class="admin-sidebar-brand-copy"><strong>'.self::e($tenant).'</strong>'
             .'<small>Publishing Studio</small></span>'
             .'<button type="button" class="admin-sidebar-collapse" data-admin-sidebar-collapse'
@@ -74,13 +74,13 @@ final class View
             .' title="Collapse sidebar">'.self::icon('chev-left').'</button></div>'
             .'<div class="admin-sidebar-search">'
             .'<label class="sr-only" for="admin-nav-search">Search publisher modules</label>'
-            .'<span class="admin-sidebar-search-icon" aria-hidden="true">'.self::icon('search').'</span>'
+            .'<span class="admin-sidebar-search-icon" aria-hidden="true">'.\EpaperSaas\Services\AdminIcons::svg('search').'</span>'
             .'<input type="search" id="admin-nav-search" data-admin-nav-search'
             .' placeholder="Search modules" autocomplete="off" spellcheck="false">'
             .'<kbd aria-hidden="true">/</kbd>'
             .'<button type="button" class="admin-sidebar-search-expand" data-admin-nav-search-expand'
             .' aria-label="Expand sidebar and search modules" title="Search modules">'
-            .self::icon('search').'</button></div>'
+            .\EpaperSaas\Services\AdminIcons::svg('search').'</button></div>'
             .'<nav id="admin-side-sections" class="app-nav grouped-nav grouped-nav-compact admin-sidebar-nav"'
             .' aria-label="Publisher administration" data-admin-sidebar-nav data-admin-nav-role="'.self::e($role).'">';
         foreach($groups as $group=>$items){
@@ -96,7 +96,7 @@ final class View
                 .' data-admin-nav-section="'.self::e($group).'"'.(($group==='PUBLISHING'||$active)?' open':'').'>'
                 .'<summary class="nav-section-title" title="Open '.self::e(ucwords(strtolower($group))).' navigation">'
                 .'<span class="nav-section-label"><span class="nav-section-mark" aria-hidden="true">'
-                .self::icon($sectionIcons[$group]??'pages').'</span>'
+                .\EpaperSaas\Services\AdminIcons::svg($sectionIcons[$group]??'layers').'</span>'
                 .'<span class="nav-section-heading">'.self::e($group).'</span></span>'
                 .'<span class="nav-section-chevron" aria-hidden="true">'.self::icon('chev-down').'</span></summary>'
                 .'<div class="nav-group">';
@@ -106,7 +106,7 @@ final class View
                     .($selected?' aria-current="page"':'')
                     .' data-admin-search-terms="'.self::e($group.' '.$label.' '.$hint).'"'
                     .' title="'.self::e($hint).'">'
-                    .'<span class="admin-nav-icon" aria-hidden="true">'.self::icon($icon).'</span>'
+                    .'<span class="admin-nav-icon" aria-hidden="true">'.\EpaperSaas\Services\AdminIcons::svg($icon).'</span>'
                     .'<span class="admin-nav-text">'.self::e($label).'</span></a>';
             }
             $html.='</div></details>';
@@ -114,10 +114,10 @@ final class View
         $html.='</nav><p class="admin-sidebar-empty" data-admin-sidebar-empty hidden>'
             .'No matching modules for your role.</p>'
             .'<a class="admin-sidebar-account" href="/admin/account" title="My account">'
-            .'<span class="admin-sidebar-avatar" aria-hidden="true">'.self::icon('user').'</span>'
+            .'<span class="admin-sidebar-avatar" aria-hidden="true">'.\EpaperSaas\Services\AdminIcons::svg('user-round').'</span>'
             .'<span class="admin-sidebar-account-copy"><strong>'.self::e($displayName).'</strong>'
             .'<small>'.self::e($email!==''?$email:str_replace('_',' ',$role)).'</small></span>'
-            .'<span class="admin-sidebar-account-arrow" aria-hidden="true">'.self::icon('chev-right').'</span></a>';
+            .'<span class="admin-sidebar-account-arrow" aria-hidden="true">'.\EpaperSaas\Services\AdminIcons::svg('chevron-right').'</span></a>';
         return $html;
     }
     private static function accountNav(): string
