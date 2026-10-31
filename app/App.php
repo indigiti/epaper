@@ -2,7 +2,7 @@
 namespace EpaperSaas;
 use EpaperSaas\Core\{Auth,Build,Config,Http,RateLimiter,RedisStore,RequestContext,Store,Uuid,View};
 use EpaperSaas\Controllers\{StagingAcceptanceController,AdminAiClippingController};
-use EpaperSaas\Services\{AnalyticsCatalog,Audit,CacheInspector,ClipService,DomainResolver,DirectRecovery,EditionOperations,EditionManifest,EditionPageSequence,EditionRemoval,AiEditorialReview,Entitlements,InfrastructureConfig,Media,DesktopAuth,DeviceAuth,MobileAuth,MobileAuthPendingException,MultiLayerCache,OfflineVault,PlatformClient,Processing,ProcessingRecovery,ProductionReadiness,PublicReadCache,FrontendHomeLayouts,ThemeCatalog,PublishingRuntime,PublishingScheduler,QueueService,RecoveryCenter,RabbitMq,ReaderNavigation,ReaderSession,RuntimeCache,SchemaDoctor,SemanticNews,SeoDiscovery,SettingsCatalog,SupervisorRuntime,TenantData,TrustedAppAuth,PerformanceTelemetry};
+use EpaperSaas\Services\{AnalyticsCatalog,Audit,CacheInspector,ClipService,DomainResolver,DirectRecovery,EditionOperations,EditionManifest,EditionPageSequence,EditionRemoval,AiEditorialReview,Entitlements,InfrastructureConfig,Media,DesktopAuth,DeviceAuth,MobileAuth,MobileAuthPendingException,MultiLayerCache,OfflineVault,PlatformClient,Processing,ProcessingRecovery,ProductionReadiness,PublicReadCache,FrontendHomeLayouts,ThemeCatalog,AppearanceGallery,PublishingRuntime,PublishingScheduler,QueueService,RecoveryCenter,RabbitMq,ReaderNavigation,ReaderSession,RuntimeCache,SchemaDoctor,SemanticNews,SeoDiscovery,SettingsCatalog,SupervisorRuntime,TenantData,TrustedAppAuth,PerformanceTelemetry};
 final class App
 {
     public function run(): never
@@ -1472,13 +1472,14 @@ $h.='<section class="panel processing-settings-card processing-recovery-card"><d
         foreach($cfg['fields'] as$key=>$field){[$label,$type,$default,$options]=$field;$value=TenantData::setting($key,$default);$h.='<label>'.$this->e($label);if($type==='select'){$h.='<select name="settings['.$this->e($key).']">';foreach($options as$o)$h.='<option value="'.$this->e($o).'"'.((string)$value===(string)$o?' selected':'').'>'.$this->e(ucwords(str_replace(['_','-'],' ',$o))).'</option>';$h.='</select>';}elseif($type==='textarea')$h.='<textarea name="settings['.$this->e($key).']" rows="4">'.$this->e($value).'</textarea>';elseif($type==='fixed'){$fixedNote=$key==='clipping.expiry_days'?'Fixed product policy · extension unavailable':'Publisher identity is included on every shareable clipping';$h.='<div class="fixed-setting"><strong>'.$this->e($default).'</strong><span>'.$this->e($fixedNote).'</span></div>'; }else $h.='<input type="'.$this->e($type).'" name="settings['.$this->e($key).']" value="'.$this->e($value).'">';$h.='<small><code>'.$this->e($key).'</code></small></label>';}$h.='</div><div class="form-actions"><button class="btn primary">Save '.$this->e($cfg['label']).'</button></div></form>';
         if($group==='access'){$effective=MobileAuth::channels(true);$infra=(array)Config::get('auth.mobile.channels',['sms']);$h.='<section class="panel"><h2>Effective reader identity policy</h2><p class="muted">Infrastructure permits: <strong>'.$this->e($infra?implode(', ',array_map('strtoupper',$infra)):'none').'</strong>. Effective tenant verification methods: <strong>'.$this->e($effective?implode(', ',array_map('strtoupper',$effective)):'none').'</strong>.</p><p class="muted">When the effective method list is empty and Temporary device account fallback is ON, the Android app creates a <code>LOCAL_DEVICE</code> reader using a random installation UUID. EP-DI stores only an HMAC of that UUID; IMEI, SIM ID, serial number and MAC address are never used.</p><p class="muted">Trusted-app desktop login: <strong>'.(DesktopAuth::appApprovalEnabled()?'ON':'OFF').'</strong> · FCM server delivery: <strong>'.(\EpaperSaas\Services\FcmPush::configured()?'CONFIGURED':'NOT CONFIGURED').'</strong> · active session policy: <strong>1 mobile app + 1 desktop</strong> per verified local reader.</p></section>';}
         if($group==='appearance'){
-            $h.='<section class="panel"><h2>Frontend design studio</h2><p class="muted">Choose from five independent layouts. Preview links are visible only to publisher administrators and never change the live theme. Saving the Frontend theme above publishes your choice; Default remains available as a rollback.</p><div class="theme-preview-row">';
-            foreach(ThemeCatalog::options('frontend') as $name){
-                $active=(string)TenantData::setting('appearance.frontend_theme','Default')===$name;
-                $url='/?'.http_build_query(['theme_surface'=>'frontend','theme_preview'=>$name]);
-                $h.='<div class="theme-preview"><strong>'.$this->e($name).'</strong><small>'.($active?'Currently selected':'Alternative layout').'</small><a class="btn ghost" target="_blank" rel="noopener noreferrer" href="'.$this->e($url).'">Preview</a></div>';
+            $latestPublished=TenantData::editionsWithCovers('e.status="PUBLISHED"',[],1);
+            $editionPath=$latestPublished?'/edition/'.rawurlencode((string)$latestPublished[0]['slug']).'/page/1':null;
+            $saved=[];
+            foreach(['frontend','admin','reader','auth'] as $surface){
+                $saved[$surface]=(string)TenantData::setting('appearance.'.$surface.'_theme',
+                    ThemeCatalog::default($surface));
             }
-            $h.='</div></section>';
+            $h.=AppearanceGallery::render($saved,$editionPath);
         }
         if($group==='reader')$h.='<section class="panel"><h2>Edition navigation</h2><p class="muted">Choose Dropdown, Strip or Off. Dropdown sits between Download and Share, collapses to a calendar icon when toolbar space is tight, stays within the exact publication + city + language variant, and opens page 1 when changing edition.</p></section>';
         View::layout($cfg['label'],$h,['brand'=>$this->brandName(),'admin'=>true]);
