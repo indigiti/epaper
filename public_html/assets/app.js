@@ -205,3 +205,24 @@ if(Math.random()<Number(cfg.rumSampleRate||0.10)){
   window.addEventListener('load',repair,{once:true});
   setTimeout(repair,80);setTimeout(repair,450);setTimeout(repair,1200);
 })();
+
+
+/* Display tenant brand text instead of a browser broken-image icon on bad logo URLs.
+   Works for cached failures and late network failures; no image polling or extra fetch. */
+(()=>{
+  const fallback=document.querySelector('.site-header .brand-logo-fallback');
+  const stack=document.querySelector('.site-header .brand-logo-stack');
+  if(!fallback||!stack)return;
+  const images=Array.from(stack.querySelectorAll('img.brand-logo'));
+  const refresh=()=>{
+    for(const img of images)if(img.complete&&img.naturalWidth===0)img.hidden=true;
+    const visibleValid=images.some(img=>!img.hidden&&img.complete&&img.naturalWidth>0);
+    fallback.hidden=visibleValid;
+    stack.hidden=!visibleValid;
+  };
+  for(const img of images){
+    img.addEventListener('error',refresh,{once:true});
+    img.addEventListener('load',refresh,{once:true});
+  }
+  refresh();
+})();
