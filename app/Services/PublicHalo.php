@@ -32,9 +32,9 @@ final class PublicHalo
      * Animate only the supported homepage hero types. Print-style themes
      * (Editorial Portal and Classic Newspaper) preserve their typography.
      */
-    public static function decorate(string $home,string $theme): string
+    public static function decorate(string $home,string $theme,?bool $enabled=null): string
     {
-        if(!self::enabled())return $home;
+        if(!($enabled??self::enabled()))return $home;
         $marker=match($theme){
             'Default'=>'<section class="newsstand-hero">',
             'Newsstand Modern'=>'<section class="fth-hero fth-newsstand-hero">',
