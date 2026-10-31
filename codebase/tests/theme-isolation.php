@@ -31,6 +31,8 @@ $check(str_contains($view,"ThemeCatalog::resolve(\$surface,\$savedTheme)"),'Shar
 $check(str_contains($view,'frontend-themes.css')&&str_contains($view,'reader-themes.css'),'Surface-specific CSS linked independently');
 $check(str_contains($view,'ThemeCatalog::previewActive()')&&str_contains($view,'noindex,nofollow,noarchive'),'Preview SEO isolation');
 $check(str_contains($app,'theme_preview')&&str_contains($app,'theme_surface'),'Admin preview links provided');
+$check(str_contains($app,"if((\$path==='/admin/settings'||str_starts_with(\$path,'/admin/settings/'))"),'Settings routes protected independently of navigation');
+$check(str_contains($view,"(\$account?'account':'frontend')"),'Account workspace excluded from frontend theme');
 $check(str_contains($settings,'appearance.frontend_theme'),'Frontend choice managed through validated tenant settings');
 foreach(['newsstand-modern','editorial-portal','classic-newspaper','digital-magazine'] as $slug) {
     $check(str_contains($frontCss,'.public-shell.theme-'.$slug),'Frontend '.$slug.' is styled');
