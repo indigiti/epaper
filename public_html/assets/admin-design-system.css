@@ -470,3 +470,7 @@ body.admin-shell .theme-preview-banner a{color:#503b0d;text-decoration:underline
 body.admin-shell .studio-desk .studio-hero-aside .studio-focus-row{display:flex;align-items:center;justify-content:space-between;gap:10px;border-top:1px solid var(--studio-border);padding:7px 0;color:var(--studio-text)}
 body.admin-shell .studio-desk .studio-hero-aside .studio-focus-row strong{color:var(--studio-primary);font-size:24px}
 body.admin-shell .studio-desk .studio-hero-aside .studio-focus-row span{font-size:11px;color:var(--studio-muted)}
+
+body.admin-shell .launchpad-pin svg{width:18px;height:18px;fill:none;stroke:currentColor}
+body.admin-shell .launchpad-pin.is-pinned{color:var(--studio-primary);background:var(--studio-primary-soft)}
+body.admin-shell .launchpad-pin.is-pinned svg{fill:color-mix(in srgb,var(--studio-primary) 24%,transparent)}
