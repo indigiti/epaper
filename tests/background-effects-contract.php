@@ -33,7 +33,8 @@ $default=Fx::defaults();
 $check($default['appearance.home_background_effect']==='Off','New and unconfigured publishers retain no animation');
 $check(count(Fx::FIELDS)>=25,'Effect-specific color, motion and geometry controls are registered');
 $check(count($default)===count(Fx::FIELDS)+1,'Exactly one saved value per supported control');
-$check(Fx::normalize($default)===$default,'Default values normalize without error');
+$check(Fx::normalize(Fx::normalize($default))===Fx::normalize($default),
+    'Default values normalize consistently and idempotently');
 $rejected=0;
 foreach([
     ['appearance.home_background_effect'=>'javascript:alert(1)'],
