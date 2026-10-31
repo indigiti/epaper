@@ -19,7 +19,7 @@ body.admin-shell .effect-main-select select{
   width:100%;min-height:42px;padding:10px;border:1px solid var(--studio-border,#dde2e6);
   border-radius:9px;color:var(--studio-text,#1c2934);background:var(--studio-surface,#fff)
 }
-body.admin-shell .effect-picker{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:0 0 23px}
+body.admin-shell .effect-picker{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:0 0 23px}
 body.admin-shell .effect-choice-card{
   display:grid;justify-items:start;align-content:start;gap:5px;text-align:left;
   min-width:0;min-height:101px;padding:13px;
@@ -50,6 +50,11 @@ body.admin-shell .effect-icon-halo{background:radial-gradient(circle at 70% 46%,
 body.admin-shell .effect-icon-waves{background:repeating-radial-gradient(ellipse at 50% 110%,transparent 0 8px,#8dbbd0 10px 12px,#d2e7ef 14px 20px)}
 body.admin-shell .effect-icon-net{background:linear-gradient(40deg,transparent 46%,#75b4bc 47% 49%,transparent 50%),linear-gradient(135deg,transparent 46%,#81b6d2 47% 49%,transparent 50%),#edf6f8}
 body.admin-shell .effect-icon-dots{background:radial-gradient(circle,#74a4ca 1.5px,transparent 2px) 0 0 / 10px 10px,#eff5fa}
+body.admin-shell .effect-icon-rings{background:repeating-radial-gradient(circle at 62% 46%,transparent 0 5px,#78adcf 6px 8px,transparent 10px 13px),#f0f7fa}
+body.admin-shell .effect-icon-clouds{background:radial-gradient(ellipse at 34% 61%,#fff 1%,#dceaf1 45%,transparent 67%),radial-gradient(ellipse at 70% 37%,#fff,#b4d9e4 66%),#d6edf6}
+body.admin-shell .effect-icon-cells{background:radial-gradient(ellipse at 34% 42%,#bedfe5 1%,#8bb9d2 35%,transparent 69%),radial-gradient(ellipse at 74% 67%,#78b6b0,#dceaf7 65%)}
+body.admin-shell .effect-icon-fog{background:linear-gradient(125deg,#ecf3fb 0%,#afd2e4 35%,#c4e6d5 72%,#edf7f8)}
+
 body.admin-shell .effect-customize-heading{padding-top:18px;border-top:1px solid var(--studio-border,#e1e6ec)}
 body.admin-shell .effect-fields{display:grid;gap:11px}
 body.admin-shell .effect-field{display:grid;grid-template-columns:minmax(130px,1fr) minmax(175px,1.3fr);gap:12px;align-items:center;min-height:35px}
@@ -112,7 +117,7 @@ body.admin-shell.dark .effect-preview-cover{background:#fff}
   body.admin-shell .effect-studio{gap:13px}
   body.admin-shell .effect-field{grid-template-columns:1fr;gap:5px}
   body.admin-shell .effect-field-input{min-height:33px}
-  body.admin-shell .effect-picker{gap:8px}
+  body.admin-shell .effect-picker{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
   body.admin-shell .effect-choice-card{padding:10px;min-height:100px}
   body.admin-shell .effect-preview-stage{grid-template-columns:minmax(0,1fr) 80px;gap:12px;padding:16px;min-height:245px}
   body.admin-shell .effect-preview-cover{height:142px}
