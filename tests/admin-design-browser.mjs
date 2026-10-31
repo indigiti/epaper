@@ -117,6 +117,21 @@ try{
     console.log('PASS reader',theme);
   }
   await reader.close();
+
+  // No hidden POST or persistence: gallery selection only changes existing form values.
+  const galleryJs=await asset('admin-appearance-gallery.js');
+  const gallery=await context.newPage();
+  await gallery.setContent('<!doctype html><html><head><meta charset="utf-8"></head><body class="admin-shell">'+
+    '<form><select name="settings[appearance.admin_theme]"><option value="Publisher Pro">Publisher Pro</option><option value="Midnight Desk">Midnight Desk</option></select></form>'+
+    '<section data-appearance-gallery><article class="appearance-demo-card"><button type="button" data-theme-choose data-theme-surface="admin" data-theme-name="Midnight Desk">Choose Midnight Desk</button></article>'+
+    '<p data-theme-selection-note></p></section></body></html>');
+  await gallery.addScriptTag({content:galleryJs});
+  await gallery.locator('[data-theme-choose]').click();
+  assert((await gallery.locator('select').inputValue())==='Midnight Desk','Thumbnail selection did not update actual Appearance form');
+  assert((await gallery.locator('[data-theme-choose]').getAttribute('aria-pressed'))==='true','Thumbnail selection accessibility state');
+  assert((await gallery.locator('[data-theme-selection-note]').textContent()).includes('Save Appearance'),'Selection must require explicit save');
+  console.log('PASS appearance thumbnails select only, without publishing automatically');
+  await gallery.close();
   console.log('PASS admin navigation / theme differentiation / mobile smoke; live role acceptance still needed');
 }finally{
   await browser.close();
