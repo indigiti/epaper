@@ -94,6 +94,12 @@ try{
   assert(!(await settings.evaluate(el=>el.open)),'Settings should begin collapsed');
   await settings.locator('summary').click();
   assert(await settings.evaluate(el=>el.open),'Native disclosure must open');
+  const persisted=await page.evaluate(()=>{
+    const keys=Object.keys(localStorage);
+    const key=keys.find(k=>k.startsWith('epdi:admin:sidebar-groups:v2:'));
+    return key?JSON.parse(localStorage.getItem(key)||'[]'):[];
+  });
+  assert(persisted.includes('SETTINGS'),'Disclosure must persist immediately, even before a queued toggle event');
   await page.reload();
   await page.addScriptTag({content:navJs});
   assert(await settings.evaluate(el=>el.open),'Disclosure must persist across page reload');
