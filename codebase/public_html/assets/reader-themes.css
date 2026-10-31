@@ -27,3 +27,7 @@
 .reader-page.dark.theme-heritage-press .reader-pages{background:#22252d;color:#f6f7fa}
 .reader-page.theme-metro-pulse .reader-header .reader-quality-menu{color:#172238}
 @media(max-width:720px){.reader-page.theme-editorial-luxe .reader-title strong,.reader-page.theme-heritage-press .reader-title strong{font-size:1em}.reader-page.theme-metro-pulse .reader-header{border-bottom-width:2px}}
+
+/* Admin-only preview banner on ePaper reader surface. */
+.reader-page .theme-preview-banner{display:flex;gap:12px;align-items:center;justify-content:center;flex-wrap:wrap;padding:11px 18px;background:#fff0be;color:#352c13;border-bottom:1px solid #e6c15d;font-size:13px}
+.reader-page .theme-preview-banner a{color:#352c13;text-decoration:underline;font-weight:700}
