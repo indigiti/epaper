@@ -37,8 +37,7 @@ final class PublicHalo
 
     public static function decorate(string $home,string $theme,?bool $enabled=null): string
     {
-        $effect=$enabled===null?self::selectedEffect():
-            ($enabled?(self::enabled()?self::selectedEffect():'Halo'):'Off');
+        $effect=$enabled===null?self::selectedEffect():($enabled?'Halo':'Off');
         if($effect==='Off'||!BackgroundEffects::asset($effect))return $home;
         $marker=match($theme){
             'Default'=>'<section class="newsstand-hero">',
@@ -51,7 +50,9 @@ final class PublicHalo
         // The cache and settings stack is tenant scoped. Invalid legacy values
         // cannot reach a shader; normalize all numeric and colour fields.
         try{
-            $config=BackgroundEffects::browserOptions(BackgroundEffects::saved());
+            $config=BackgroundEffects::browserOptions(
+                $enabled===null?BackgroundEffects::saved():BackgroundEffects::defaults()
+            );
         }catch(\InvalidArgumentException $e){
             $config=BackgroundEffects::browserOptions(BackgroundEffects::defaults());
         }
