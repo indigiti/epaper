@@ -1,12 +1,13 @@
-const VERSION='epdi-v2.0.2.1';
+const VERSION='epdi-v2.0.2.3';
+const REVISIONED_ASSET=/^2\.0\.2\.3\.[0-9a-z]+-[0-9a-z]+$/;
 const SHELL_CACHE=`${VERSION}:shell`;
 const PAGE_CACHE=`${VERSION}:pages`;
 const SHELL=[
-  '/assets/app.css?v=2.0.2.1',
-  '/assets/app.js?v=2.0.2.1',
-  '/assets/offline-vault.js?v=2.0.2.1',
-  '/assets/offline-vault.css?v=2.0.2.1',
-  '/manifest.webmanifest?v=2.0.2.1',
+  '/assets/app.css?v=2.0.2.3',
+  '/assets/app.js?v=2.0.2.3',
+  '/assets/offline-vault.js?v=2.0.2.3',
+  '/assets/offline-vault.css?v=2.0.2.3',
+  '/manifest.webmanifest?v=2.0.2.3',
   '/offline.html',
   '/offline-library.html',
   '/offline-reader.html',
@@ -31,14 +32,32 @@ self.addEventListener('fetch',event=>{
   }
   if(url.pathname.startsWith('/assets/')||url.pathname==='/manifest.webmanifest'){
     event.respondWith((async()=>{
-      const cached=await caches.match(request);if(cached)return cached;
-      const response=await fetch(request);if(!response||!response.ok)return response;
-      // Clone immediately, before any asynchronous cache-open/write boundary. Returning
-      // the original response allows the browser to consume its body; cloning later can
-      // otherwise fail with "Response body is already used".
-      const cacheCopy=response.clone();
-      try{const cache=await caches.open(SHELL_CACHE);await cache.put(request,cacheCopy)}catch(_e){}
-      return response;
+      const revision=url.searchParams.get('v')||'';
+      const immutable=url.pathname.startsWith('/assets/')&&REVISIONED_ASSET.test(revision);
+      // Immutable cache-first is ONLY safe for a URL that includes the actual
+      // on-disk asset revision. All other asset URLs revalidate when online.
+      if(immutable){
+        const cached=await caches.match(request);
+        if(cached)return cached;
+      }
+      try{
+        const response=await fetch(request,immutable?undefined:{cache:'no-cache'});
+        if(!response||!response.ok)return response;
+        // Clone before async cache operations to keep the returned body usable.
+        const copy=response.clone();
+        try{
+          const cache=await caches.open(SHELL_CACHE);
+          await cache.put(request,copy);
+        }catch(_e){}
+        return response;
+      }catch(error){
+        // Offline first visit: the precached shell may have a release-only
+        // query while the rendered page uses a content-specific fingerprint.
+        const cached=await caches.match(request)||
+          await caches.match(request,{ignoreSearch:true});
+        if(cached)return cached;
+        throw error;
+      }
     })());return;
   }
 });
