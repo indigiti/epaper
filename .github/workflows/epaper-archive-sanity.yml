@@ -42,11 +42,21 @@ jobs:
           find app bin tests public_html -type f -name '*.php' -not -path '*/uploads/*' -print0 | xargs -0 -n1 php -l > /tmp/epdi-php-lint.txt
       - name: Independent frontend and reader theme regression
         run: php tests/theme-isolation.php
+      - name: Four distinct frontend template regression
+        run: php tests/frontend-layouts.php --fixtures
       - name: Chromium browser smoke for frontend and reader skins
         run: |
           npm install --no-save --no-package-lock playwright@1.56.1
           npx playwright install --with-deps chromium
           node tests/theme-browser-smoke.mjs
+          node tests/frontend-home-browser.mjs
+      - name: Upload frontend layout screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-layout-browser-previews
+          path: codebase/tests/frontend-layout-screenshots/*.png
+          if-no-files-found: ignore
       - name: Upload synthetic theme preview screenshots
         if: always()
         uses: actions/upload-artifact@v4
