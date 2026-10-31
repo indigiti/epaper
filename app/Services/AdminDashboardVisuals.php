@@ -14,7 +14,7 @@ final class AdminDashboardVisuals
         'NEEDS_ATTENTION' => ['Needs attention','bar-attention'],
     ];
 
-    public static function pipeline(array $counts): string
+    public static function pipeline(array $counts, bool $allowEditionLinks=true): string
     {
         $total=0;
         foreach($counts as $count)$total+=max(0,(int)$count);
@@ -28,12 +28,14 @@ final class AdminDashboardVisuals
         foreach(self::STATES as $state=>[$label,$class]){
             $number=max(0,(int)($counts[$state]??0));
             $percentage=(int)round($number*100/$max);
-            $h.='<a role="listitem" href="/admin/editions?status='.$state.'"'
+            $tag=$allowEditionLinks?'a':'div';
+            $href=$allowEditionLinks?' href="/admin/editions?status='.$state.'"':'';
+            $h.='<'.$tag.' role="listitem"'.$href
                 .' class="studio-pipeline-row" aria-label="'.$label.': '.$number.' editions">'
                 .'<span class="studio-pipeline-label">'.$label.'</span>'
                 .'<span class="studio-pipeline-track"><span class="'.$class.'"'
                 .' style="width:'.$percentage.'%"></span></span>'
-                .'<strong>'.$number.'</strong></a>';
+                .'<strong>'.$number.'</strong></'.$tag.'>';
         }
         return $h.'</div></section>';
     }
