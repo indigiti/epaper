@@ -74,13 +74,33 @@ try{
     });
     await page.goto('https://epaper-halo.invalid/');
     await page.waitForTimeout(2200);
-    const actual=await page.evaluate(()=>({
+    const actual=await page.evaluate(()=>{
+      const hero=document.querySelector('.newsstand-hero');
+      const heading=hero.querySelector('h1');
+      const ghost=hero.querySelector('.btn.ghost');
+      const layer=hero.querySelector('.epdi-halo-layer');
+      const style=getComputedStyle(hero);
+      return {
       started:window.__haloStarted,destroyed:window.__haloDestroyed,
       running:document.querySelector('.epdi-halo-layer').classList.contains('epdi-halo-running'),
       overflow:document.documentElement.scrollWidth-innerWidth,
       action:document.querySelector('.hero-actions .btn.primary').getAttribute('href'),
-    }));
+      heroBackground:style.backgroundColor,
+      heroImage:style.backgroundImage,
+      headingColor:getComputedStyle(heading).color,
+      bodyColor:getComputedStyle(document.body).color,
+      ghostColor:getComputedStyle(ghost).color,
+      layerBlend:getComputedStyle(layer).mixBlendMode,
+      layerOpacity:parseFloat(getComputedStyle(layer).opacity),
+    };
+    });
     assert(actual.overflow<=2,config.name+' horizontal overflow '+actual.overflow);
+    assert(actual.heroBackground==='rgba(0, 0, 0, 0)',config.name+' hero should be transparent, got '+actual.heroBackground);
+    assert(actual.heroImage==='none',config.name+' hero must not draw an opaque/dark gradient');
+    assert(actual.headingColor===actual.bodyColor,config.name+' text must match light/dark surface ink');
+    assert(actual.ghostColor===actual.bodyColor,config.name+' secondary button must be legible');
+    assert(actual.layerBlend==='multiply',config.name+' visible halo must be softly composited rather than opaque');
+    assert(actual.layerOpacity<0.6,config.name+' overlay is too opaque');
     assert(actual.action==='/edition/demo/page/1','Newspaper reader URLs must remain unchanged');
     assert(actual.started===(config.shouldLoad?1:0),config.name+' unexpected WebGL start');
     assert(requests.length===(config.shouldLoad?2:0),config.name+' unexpected vendor requests');
