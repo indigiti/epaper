@@ -813,7 +813,7 @@ final class App
         if(preg_match('#^/admin/editions/([0-9a-f-]{36})/process-now$#i',$path,$m)&&$method==='POST')$this->adminProcessNow($m[1]);if(preg_match('#^/admin/editions/([0-9a-f-]{36})/reprocess$#i',$path,$m)&&$method==='POST')$this->adminReprocess($m[1]);if(preg_match('#^/admin/editions/([0-9a-f-]{36})/publish$#i',$path,$m)&&$method==='POST')$this->adminPublish($m[1]);if(preg_match('#^/admin/editions/([0-9a-f-]{36})/schedule$#i',$path,$m)&&$method==='POST')$this->adminSchedule($m[1]);if(preg_match('#^/admin/editions/([0-9a-f-]{36})/unschedule$#i',$path,$m)&&$method==='POST')$this->adminUnschedule($m[1]);
         if($path==='/admin/processing')$this->adminProcessing();if(preg_match('#^/admin/processing/([0-9a-f-]{36})$#i',$path,$m))$this->adminProcessingDetail($m[1]);if($path==='/admin/processing/repair-queue'&&$method==='POST')$this->adminProcessingRepairQueue();
         if($path==='/admin/subscribers')$this->adminSubscribers();if($path==='/admin/plans')$this->adminPlans();if(preg_match('#^/admin/subscribers/([0-9a-f-]{36})/status$#i',$path,$m)&&$method==='POST')$this->adminSubscriberStatus($m[1]);
-        if($path==='/admin/system/upgrade')$this->adminSystemUpgrade($method);if($path==='/admin/settings')$this->adminSettings($method);if(preg_match('#^/admin/settings/(appearance|brand|seo|trust|access|reader|processing|clipping)$#',$path,$m))$this->adminSettingsGroup($m[1],$method);
+        if($path==='/admin/system/upgrade')$this->adminSystemUpgrade($method);if($path==='/admin/settings')$this->adminSettings($method);if(preg_match('#^/admin/settings/(appearance|effects|brand|seo|trust|access|reader|processing|clipping)$#',$path,$m))$this->adminSettingsGroup($m[1],$method);
         if($path==='/admin/access')$this->adminAccess();if($path==='/admin/audit')\EpaperSaas\Controllers\AdminAuditController::index($method);if($path==='/admin/errors')$this->adminErrors();if($path==='/admin/storage')$this->adminStorage();if($path==='/admin/performance')$this->adminPerformance();if($path==='/admin/performance/cache-action'&&$method==='POST')$this->adminCacheAction();if($path==='/admin/system/health')$this->adminHealth();if($path==='/admin/system/readiness.json')$this->adminReadinessJson();if($path==='/admin/system/recovery')$this->adminRecovery();if($path==='/admin/system/recovery.json')$this->adminRecoveryJson();if($path==='/admin/system/recovery/scheduler-run'&&$method==='POST')$this->adminRecoverySchedulerRun();if($path==='/admin/system/recovery/reconcile'&&$method==='POST')$this->adminRecoveryReconcile();if($path==='/admin/system/recovery/repair-missing'&&$method==='POST')$this->adminRecoveryRepairMissing();if($path==='/admin/system/recovery/redis-baseline'&&$method==='POST')$this->adminRecoveryRedisBaseline();if($path==='/admin/system/release-audit')$this->adminReleaseAudit();
         if($path==='/admin/system/infrastructure'&&$method==='GET')$this->adminInfrastructure();if($path==='/admin/system/infrastructure/supervisor'&&$method==='GET')$this->adminSupervisorSetup();if($path==='/admin/system/infrastructure/supervisor.conf'&&$method==='GET')$this->adminSupervisorConfigDownload();if($path==='/admin/system/infrastructure/rabbitmq/save'&&$method==='POST')$this->adminInfrastructureSave();if($path==='/admin/system/infrastructure/media/save'&&$method==='POST')$this->adminInfrastructureMediaSave();if($path==='/admin/system/infrastructure/rabbitmq/test'&&$method==='POST')$this->adminInfrastructureRabbitTest();if($path==='/admin/system/infrastructure/probe'&&$method==='POST')$this->adminInfrastructureProbe();if($path==='/admin/system/infrastructure/probe-status'&&$method==='GET')$this->adminInfrastructureProbeStatus();if($path==='/admin/account')$this->adminAccount();
         http_response_code(404);View::layout('Not Found','<section class="empty-state"><h1>Admin page not found</h1></section>',['brand'=>$this->brandName(),'admin'=>true]);
@@ -1489,16 +1489,48 @@ $h.='<section class="panel processing-settings-card processing-recovery-card"><d
         View::layout('Processing',$h,['brand'=>$this->brandName(),'admin'=>true]);
     }
 
+    private function adminEffectsSettings(string $method): never
+    {
+        // runAdmin already verified publisher membership, role and POST CSRF.
+        $editor=\EpaperSaas\Services\BackgroundEffects::class;
+        if($method==='POST'){
+            $input=[];
+            foreach($editor::defaults() as $key=>$default){
+                $value=$this->postedSetting($key,null,$present);
+                if(!$present)$this->adminError('Missing required background field: '.$key);
+                $input[$key]=$value;
+            }
+            try{
+                $validated=$editor::normalize($input);
+            }catch(\InvalidArgumentException $e){
+                $this->adminError($e->getMessage());
+            }
+            $guid=Auth::user()['user_guid']??null;
+            foreach($validated as $key=>$value){
+                TenantData::setSetting($key,$value,$guid);
+            }
+            Audit::log('settings.background-effects.updated','settings','effects','SUCCESS',[
+                'effect'=>$validated['appearance.home_background_effect'],
+                'field_count'=>count($validated)
+            ]);
+            Http::redirect('/admin/settings/effects?saved=1');
+        }
+        $h=\EpaperSaas\Services\BackgroundEffectsStudio::render(
+            $editor::saved(),$this->csrf(),!empty($_GET['saved'])
+        );
+        View::layout('Background Effects',$h,['brand'=>$this->brandName(),'admin'=>true]);
+    }
+
     private function adminSettingsGroup(string $group,string $method): never
     {
-        if($group==='brand')$this->adminBrandSettings($method);if($group==='processing')$this->adminProcessingSettings($method);$cfg=SettingsCatalog::group($group);if(!$cfg)$this->notFound('Settings group unavailable');$u=Auth::user();
+        if($group==='effects')$this->adminEffectsSettings($method);if($group==='brand')$this->adminBrandSettings($method);if($group==='processing')$this->adminProcessingSettings($method);$cfg=SettingsCatalog::group($group);if(!$cfg)$this->notFound('Settings group unavailable');$u=Auth::user();
         if($method==='POST'){foreach($cfg['fields'] as$key=>$field){$raw=$this->postedSetting($key,null,$present);if(!$present)continue;$value=trim((string)$raw);if($field[1]==='number'&&!is_numeric($value))$this->adminError($field[0].' must be numeric');if($field[1]==='select'&&is_array($field[3])&&!in_array($value,$field[3],true))$this->adminError('Invalid value for '.$field[0]);TenantData::setSetting($key,$value,$u['user_guid']??null);}if(in_array($group,['seo','trust'],true)){RuntimeCache::broadcast(RequestContext::tenantGuid(),['seo']);RuntimeCache::queueWarm(RequestContext::tenantGuid(),null,['seo'=>true]);}Audit::log('settings.group.updated','settings',$group,'SUCCESS',['keys'=>array_keys($cfg['fields'])]);Http::redirect('/admin/settings/'.$group.'?saved=1');}
         $tabs='';foreach(SettingsCatalog::groups() as$key=>$g)$tabs.='<a class="settings-tab '.($key===$group?'active':'').'" href="/admin/settings/'.$this->e($key).'">'.$this->e($g['label']).'</a>';
         $h='<section class="admin-head"><div><span class="eyebrow">PUBLISHER CONTROL</span><h1>'.$this->e($cfg['label']).'</h1><p class="muted">'.$this->e($cfg['description']).'</p></div></section><nav class="settings-tabs">'.$tabs.'</nav>'.(!empty($_GET['saved'])?'<div class="alert success">Settings saved.</div>':'').'<form method="post" class="panel settings-form">'.$this->csrf().'<div class="form-grid">';
         foreach($cfg['fields'] as$key=>$field){[$label,$type,$default,$options]=$field;$value=TenantData::setting($key,$default);$h.='<label>'.$this->e($label);if($type==='select'){$h.='<select name="settings['.$this->e($key).']">';foreach($options as$o)$h.='<option value="'.$this->e($o).'"'.((string)$value===(string)$o?' selected':'').'>'.$this->e(ucwords(str_replace(['_','-'],' ',$o))).'</option>';$h.='</select>';}elseif($type==='textarea')$h.='<textarea name="settings['.$this->e($key).']" rows="4">'.$this->e($value).'</textarea>';elseif($type==='fixed'){$fixedNote=$key==='clipping.expiry_days'?'Fixed product policy · extension unavailable':'Publisher identity is included on every shareable clipping';$h.='<div class="fixed-setting"><strong>'.$this->e($default).'</strong><span>'.$this->e($fixedNote).'</span></div>'; }else $h.='<input type="'.$this->e($type).'" name="settings['.$this->e($key).']" value="'.$this->e($value).'">';$h.='<small><code>'.$this->e($key).'</code></small></label>';}$h.='</div><div class="form-actions"><button class="btn primary">Save '.$this->e($cfg['label']).'</button></div></form>';
         if($group==='access'){$effective=MobileAuth::channels(true);$infra=(array)Config::get('auth.mobile.channels',['sms']);$h.='<section class="panel"><h2>Effective reader identity policy</h2><p class="muted">Infrastructure permits: <strong>'.$this->e($infra?implode(', ',array_map('strtoupper',$infra)):'none').'</strong>. Effective tenant verification methods: <strong>'.$this->e($effective?implode(', ',array_map('strtoupper',$effective)):'none').'</strong>.</p><p class="muted">When the effective method list is empty and Temporary device account fallback is ON, the Android app creates a <code>LOCAL_DEVICE</code> reader using a random installation UUID. EP-DI stores only an HMAC of that UUID; IMEI, SIM ID, serial number and MAC address are never used.</p><p class="muted">Trusted-app desktop login: <strong>'.(DesktopAuth::appApprovalEnabled()?'ON':'OFF').'</strong> · FCM server delivery: <strong>'.(\EpaperSaas\Services\FcmPush::configured()?'CONFIGURED':'NOT CONFIGURED').'</strong> · active session policy: <strong>1 mobile app + 1 desktop</strong> per verified local reader.</p></section>';}
         if($group==='appearance'){
-            $h.='<section class="panel"><h3>Optional animated homepage background</h3><p class="muted">Vanta HALO works on Default, Newsstand Modern and Digital Magazine home hero banners. It is disabled on mobile, reduced-motion and low-power devices. The saved setting defaults to Off.</p><p><a class="btn ghost" href="/?effect_preview=halo" target="_blank" rel="noopener noreferrer">Preview HALO on homepage (manager only) ↗</a></p></section>';
+            $h.='<section class="panel"><h3>Homepage background effects</h3><p class="muted">Animated homepage effects are managed independently of publication, Admin, Reader and Authentication themes.</p><p><a class="btn ghost" href="/admin/settings/effects">Open Background Effects studio →</a></p></section>';
             $latestPublished=TenantData::editionsWithCovers('e.status="PUBLISHED"',[],1);
             $editionPath=$latestPublished?'/edition/'.rawurlencode((string)$latestPublished[0]['slug']).'/page/1':null;
             $saved=[];
