@@ -7,9 +7,9 @@
   'use strict';
   const target=document.querySelector('[data-epaper-halo]');
   if(!target||!document.body.classList.contains('public-shell'))return;
-  const requested=String(target.dataset.effectName||'HALO').toUpperCase();
-  const supportedNames=['HALO','WAVES','NET','DOTS'];
-  if(!supportedNames.includes(requested))return;
+  const selectedEffect=String(target.dataset.effectName||'HALO').toUpperCase();
+  const supportedNames=['HALO','WAVES','NET','DOTS','RINGS','CLOUDS','CELLS','FOG'];
+  if(!supportedNames.includes(selectedEffect))return;
   let parameters={};
   try{parameters=JSON.parse(target.dataset.effectConfig||'{}');}catch(_){}
   const mapping=window.EpaperVantaConfig;
@@ -58,10 +58,10 @@
     if(loaded)return loaded;
     loaded=(async()=>{
       if(!window.THREE)await load(target.dataset.threeSrc);
-      if(!window.VANTA||typeof window.VANTA[requested]!=='function'){
+      if(!window.VANTA||typeof window.VANTA[selectedEffect]!=='function'){
         await load(target.dataset.haloSrc);
       }
-      if(!window.THREE||typeof window.VANTA?.[requested]!=='function'){
+      if(!window.THREE||typeof window.VANTA?.[selectedEffect]!=='function'){
         throw new Error('Vanta effect dependency unavailable');
       }
     })();
@@ -96,10 +96,10 @@
         color2:0x67c9c3,amplitudeFactor:.75,ringFactor:1.15,
         rotationFactor:.18,xOffset:.12,yOffset:0,size:1.15,speed:.30
       };
-      const options=mapping?.options?.(requested,safeConfig)||fallback;
+      const options=mapping?.options?.(selectedEffect,safeConfig)||fallback;
       if(!options)throw new Error('Unsupported Vanta settings');
       target.style.opacity=String(Math.min(.45,Math.max(.08,Number(safeConfig.opacity)||.28)));
-      effect=window.VANTA[requested]({...options,el:target,THREE:window.THREE});
+      effect=window.VANTA[selectedEffect]({...options,el:target,THREE:window.THREE});
       if(!effect)return;
       target.classList.add('epdi-halo-running');
     }catch(_){
