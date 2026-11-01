@@ -24,3 +24,9 @@ After recovery, the administrator is directed to Publisher Onboarding for routin
 6. Do not reassign the canonical host to DCN. DCN must use its own customer hostname and tenant.
 
 **Limitations:** GitHub CI runs synthetic MySQL tests, not a real production database or Cloudways TLS check. No live data is modified by code deployment alone.
+
+## If you do not want to restore the previous product or linked records
+
+On the canonical hostname Restore screen, expand **“I do not want to restore the old product or other records.”** This displays the number of registered applications, publisher tenants and domains belonging to the archived product, explains the database's unique EPAPER product key / hostname constraints, and offers a **Do not restore — leave existing records archived** navigation choice. Opening this preview or selecting the leave-archived link makes **no database changes**.
+
+A genuinely fresh setup needs a **new isolated staging Cloudways application and empty database**, private configuration, independent media and Redis, and a distinct staging hostname. Do not attempt to bypass archived product references on the existing production Platform by creating a second EPAPER product or reusing the same canonical domain. `/admin/staging-reset`, when enabled on isolated staging, only restarts test-domain onboarding—it is **not** a complete database reset. A production cutover would require a separate backed-up migration and acceptance plan.
