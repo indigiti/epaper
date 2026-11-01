@@ -107,6 +107,7 @@ final class DomainResolver
                 'SERVICE_PRODUCT_INACTIVE'=>'The service account product is inactive.',
                 'SERVICE_PRODUCT_MISMATCH'=>'Service account is scoped to a different product.',
                 'DOMAIN_NOT_ACTIVE'=>'The hostname has no active Platform domain binding.',
+                'DOMAIN_SETUP_PENDING'=>'This hostname is registered but awaits DNS verification in Platform Publisher Onboarding.',
                 default=>'Platform domain resolution failed.',
             };
             $out['domain']=['ok'=>false,'code'=>$code,'message'=>$message];

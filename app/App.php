@@ -226,6 +226,7 @@ final class App
             'DOMAIN_IDENTITY_INCOMPLETE'=>'The Platform domain is missing its application, product or publisher tenant binding.',
             'HOSTNAME_MISMATCH'=>'Platform returned a different hostname than the current website.',
             'DOMAIN_NOT_ACTIVE'=>'Platform does not currently authorize this hostname for public routing.',
+            'DOMAIN_SETUP_PENDING'=>'This publisher hostname is registered but DNS verification must be completed in Digiti Platform Publisher Onboarding.',
             'UNSAFE_CANONICAL_FALLBACK'=>'The legacy fallback publisher is not sufficiently pinned to the current product/application.',
         ];
         $description=$safe[$code]??'The ePaper website and its registered Platform application are not yet correctly connected.';
