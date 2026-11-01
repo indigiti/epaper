@@ -228,15 +228,19 @@ final class Onboarding
         if ($dns['verified']) {
             try {
                 $edge=EdgeProviderFactory::make()->provision($d['hostname'],json_decode((string)($d['edge_metadata']??'{}'),true)?:[]);
-                $status=(string)($edge['status']??'ROUTING_VALID');
+                $edgeStatus=(string)($edge['status']??'ROUTING_VALID');
+                $status=$edgeStatus==='ACTIVE'
+                    ?($d['status']==='ACTIVE'?'ACTIVE':'SSL_PROVISIONING')
+                    :(in_array($edgeStatus,['ROUTING_VALID','SSL_PROVISIONING'],true)?$edgeStatus:'ROUTING_VALID');
             } catch (\Throwable $e) {
                 $status='ROUTING_VALID';
                 $edge=['provider_error'=>$e->getMessage()];
             }
         }
-        Store::exec('UPDATE domains SET status=?,dns_metadata=?,edge_metadata=?,verified_at=IF(?<> "AWAITING_DNS",COALESCE(verified_at,NOW(6)),NULL),last_checked_at=NOW(6),updated_at=NOW(6) WHERE domain_guid=?',[
-            $status,json_encode($dns),json_encode($edge),$status,self::gid($d['domain_guid'])
+        $changed=Store::exec('UPDATE domains SET status=?,dns_metadata=?,edge_metadata=?,verified_at=IF(?<> "AWAITING_DNS",COALESCE(verified_at,NOW(6)),NULL),last_checked_at=NOW(6),updated_at=NOW(6) WHERE domain_guid=? AND status=?',[
+            $status,json_encode($dns),json_encode($edge),$status,self::gid($d['domain_guid']),$d['status']
         ]);
+        if($changed!==1)throw new \RuntimeException('Domain changed during DNS verification. Reload onboarding before retrying.');
         \Digiti\Core\RedisStore::del('domain:'.$d['hostname']);
         \Digiti\Core\Audit::log('domain.onboarding.dns_check','domain',$d['domain_guid'],$dns['verified']?'SUCCESS':'FAILED',['hostname'=>$d['hostname'],'status'=>$status]);
         View::flash($dns['verified']?'DNS ownership confirmed. Verify actual hosting and HTTPS before go-live.':'DNS has not passed verification. Check the TXT/CNAME records below.');
