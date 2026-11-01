@@ -41,7 +41,7 @@
   function schedule(){
     const c=currentPage(),q=mode();
     // Adjacent PREVIEW pages are decoded before the user asks for them.
-    warm(c+1,{decodePreview:true,highres:q==='high'});warm(c-1,{decodePreview:true,highres:false});
+    if(q!=='low'){warm(c+1,{decodePreview:true,highres:q==='high'});warm(c-1,{decodePreview:true,highres:false});}
     // Keep the second forward/backward state hot without paying image bandwidth in Low Data.
     const idle=window.requestIdleCallback||((fn)=>setTimeout(fn,180));
     idle(()=>{state(c+2);state(c-2);if(q!=='low')warm(c+2,{decodePreview:true,highres:false});trim()},{timeout:800});
@@ -49,7 +49,7 @@
   function predict(dx,dy){
     if(Math.abs(dx)<24||Math.abs(dx)<Math.abs(dy)*1.15)return;
     const now=performance.now();if(now-directionLock<160)return;directionLock=now;
-    const target=dx<0?currentPage()+1:currentPage()-1;stats.lastDirection=dx<0?'next':'previous';warm(target,{decodePreview:true,highres:mode()==='high'});
+    const target=dx<0?currentPage()+1:currentPage()-1;stats.lastDirection=dx<0?'next':'previous';const q=mode();warm(target,{decodePreview:q!=='low',highres:q==='high'});
   }
   const stage=document.querySelector('[data-page-stage]')||root;
   stage.addEventListener('pointerdown',e=>{if(e.pointerType==='mouse'&&e.button!==0)return;startX=e.clientX;startY=e.clientY},{passive:true});
