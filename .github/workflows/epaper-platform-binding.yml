@@ -54,6 +54,14 @@ jobs:
         run: |
           php tests/auth-tenant-escaping.php
           php codebase/tests/auth-tenant-escaping.php
+      - name: WebDesk restricted publishing role and hostile POST request tests
+        run: |
+          php -l app/Views/WebDeskEditionView.php
+          php -l codebase/app/Views/WebDeskEditionView.php
+          php -l app/Views/ManualClippingView.php
+          php -l codebase/app/Views/ManualClippingView.php
+          php tests/webdesk-permissions.php
+          php codebase/tests/webdesk-permissions.php
       - name: Clipping cache regression (Cloudways PHP disabled link)
         run: |
           php -l app/Services/ClipCropCache.php
