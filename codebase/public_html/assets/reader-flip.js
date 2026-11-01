@@ -33,7 +33,7 @@ function pageUrl(n){return `/edition/${encodeURIComponent(root.dataset.editionSl
 function imageFor(s){return s?.preview||s?.thumbnail||s?.image||s?.highres||''}
 async function getState(n){const c=current();if(n===c.pageNo)return{ok:true,page_number:c.pageNo,page_count:c.pageCount,page_guid:c.pageGuid,width:c.sourceW,height:c.sourceH,preview:c.preview,highres:c.highres,image:c.highres||c.preview};if(stateCache.has(n))return stateCache.get(n);const p=api()?.state?.(n).then(s=>{stateCache.set(n,s);return s}).catch(e=>{stateCache.delete(n);throw e});if(!p)throw new Error('Reader state unavailable');stateCache.set(n,p);return p}
 function pageMarkup(s,n){const src=imageFor(s);return src?`<img src="${src.replace(/&/g,'&amp;').replace(/"/g,'&quot;')}" alt="Newspaper page ${n}" decoding="async" draggable="false"><span class="reader-flip-page-number">${n}</span>`:`<span class="reader-flip-placeholder">Page ${n}</span>`}
-function setPage(el,s,n){el.innerHTML=n?pageMarkup(s,n):'';el.classList.toggle('empty',!n)}
+function setPage(el,s,n){el.innerHTML=n?pageMarkup(s,n):'';delete el.dataset.editorialNumber;delete el.dataset.editorialBoundGuid;el.classList.toggle('empty',!n)}
 function setViewUi(){const labels={flip:'Flip',page:'Page',continuous:'Continuous'};viewLabel.textContent=labels[mode];viewToggle.dataset.mode=mode;$$('[data-reader-view-mode]',control).forEach(b=>b.setAttribute('aria-checked',b.dataset.readerViewMode===mode?'true':'false'));root.dataset.viewMode=mode}
 function closeMenu(){viewMenu.classList.add('hidden');viewToggle.setAttribute('aria-expanded','false')}
 function flipSuspended(){const c=current();return mode!=='flip'||c.clipMode||c.articlePick||c.pagePending||c.scale>c.fitScale*1.08}

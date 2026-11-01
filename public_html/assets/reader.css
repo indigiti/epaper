@@ -162,3 +162,48 @@ body.dark .reader-swipe-fx-arrow{background:rgba(35,38,46,.94);color:#fff;border
   .reader-swipe-fx canvas{display:none}
   .reader-swipe-fx.committed .reader-swipe-fx-arrow{transform:none}
 }
+
+/* Reader accessibility and responsive action hierarchy — November 2026 */
+.reader-more-control{position:relative;display:none;align-items:center}
+.reader-more-menu{position:absolute;right:0;top:calc(100% + 8px);z-index:180;width:min(260px,calc(100vw - 18px));padding:7px;background:var(--surface,#fff);color:var(--text,#1d1d1f);border:1px solid var(--border,#dfe1e5);border-radius:14px;box-shadow:0 16px 46px rgba(15,23,42,.23)}
+.reader-more-menu a,.reader-more-menu button{display:block;width:100%;min-height:44px;box-sizing:border-box;border:0;border-radius:9px;padding:11px 14px;background:transparent;color:inherit;font:inherit;font-size:13px;text-align:left;text-decoration:none;cursor:pointer}
+.reader-more-menu a:hover,.reader-more-menu button:hover,.reader-more-menu :focus-visible{background:var(--surface-2,#eef2f7);outline:2px solid var(--accent,#2563eb);outline-offset:-2px}
+.reader-text-modal{position:fixed;inset:0;z-index:280;display:grid;place-items:center;padding:clamp(10px,2vw,28px);background:rgba(15,23,42,.55);backdrop-filter:blur(8px)}
+.reader-text-sheet{width:min(780px,100%);max-height:calc(100dvh - 36px);display:flex;flex-direction:column;overflow:hidden;background:var(--surface,#fff);color:var(--text,#1d1d1f);border:1px solid var(--border,#dfe1e5);border-radius:22px;box-shadow:0 24px 68px rgba(0,0,0,.25)}
+.reader-text-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:19px 22px;border-bottom:1px solid var(--border,#dfe1e5)}.reader-text-head h2{font-size:clamp(18px,3vw,26px);margin:2px 0 0}.reader-text-head .eyebrow{font-size:10px;font-weight:800;letter-spacing:.09em}
+.reader-text-status{font-size:13px;color:var(--text-2,#6e6e73);padding:11px 22px;margin:0;background:var(--surface-2,#f8fafc)}
+.reader-text-content{overflow:auto;overscroll-behavior:contain;padding:18px clamp(17px,4vw,42px) 50px;font-family:Georgia,"Times New Roman",serif;font-size:clamp(17px,2.3vw,21px);line-height:1.8;white-space:pre-wrap;overflow-wrap:anywhere;scrollbar-gutter:stable}
+.reader-text-content p{max-width:70ch;margin:0 auto 1.2em}
+.reader-shell [data-reader-text-mode],.reader-shell [data-scroll-zoom]{font-size:inherit}
+.reader-shell :is(button,a,input,select,[tabindex]):focus-visible{outline:3px solid #2563eb;outline-offset:2px}
+.reader-shell .clip-selection .handle{pointer-events:auto;touch-action:none;cursor:nwse-resize}
+.reader-shell .clip-selection .handle.ne,.reader-shell .clip-selection .handle.sw{cursor:nesw-resize}
+.reader-shell .clip-selection .handle{width:22px;height:22px}
+@media(max-width:720px){
+ .reader-more-control{display:flex}
+ .reader-header-actions > [data-reader-bookmark],.reader-header-actions > [data-reader-offline],.reader-header-actions > [data-reader-share]{display:none}
+ .reader-header-actions{flex:none;gap:1px}
+ .reader-title{min-width:0;flex:1;max-width:28vw}
+ .reader-more-trigger{min-width:44px;min-height:44px}
+ .reader-header-tool{min-width:42px;min-height:44px}
+ .reader-rail{scrollbar-width:thin;scroll-snap-type:x proximity}
+ .reader-rail button{min-width:44px;min-height:44px;flex:0 0 44px;scroll-snap-align:center}
+ .reader-pager :is(button,a,input){min-height:44px}
+ .reader-text-modal{padding:0;align-items:stretch}
+ .reader-text-sheet{height:100dvh;max-height:100dvh;width:100%;border:0;border-radius:0}
+}
+@media(max-width:420px){
+ .reader-header{gap:3px;padding-inline:4px}
+ .reader-header-actions > a.reader-header-tool[href="/search"]{display:none}
+ .reader-title{max-width:23vw}
+ .reader-title strong{font-size:12px;max-width:23vw}
+ .reader-header-tool{min-width:40px;width:40px}
+ .reader-rail{max-width:calc(100vw - 14px)}
+ .reader-view-trigger{padding:0}
+}
+@media(prefers-reduced-motion:reduce){.reader-text-modal,.reader-more-menu{scroll-behavior:auto}}
+
+/* Normalize flip-mode SVG icon after replacing the original text glyph. */
+.reader-view-glyph{display:inline-flex;align-items:center;justify-content:center;transform:none}
+.reader-view-glyph svg{display:block;width:19px;height:19px}
+

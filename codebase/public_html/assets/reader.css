@@ -126,6 +126,42 @@ body.dark .reader-edition-menu{background:rgba(33,33,36,.985);border-color:#3d3d
 @media(max-width:540px){.reader-edition-menu{left:7px;right:7px;top:46px;width:auto;max-height:min(68dvh,520px)}.reader-edition-menu-head{padding:10px 12px}.reader-edition-date-list{gap:4px}.reader-edition-choice{min-height:44px}.reader-edition-menu-foot span{display:none}}
 @media(prefers-reduced-motion:reduce){.reader-edition-choice{transition:none!important}}
 
+/* Edition-date navigation must remain actionable when only the current date is indexed. */
+.reader-edition-empty{margin:8px 6px 12px;padding:12px 13px;border:1px dashed #d5dbe7;border-radius:10px;
+  color:#626c7d;background:rgba(148,163,184,.07);font-size:12px;line-height:1.6}
+.reader-edition-archive{display:inline-flex;align-items:center;justify-content:center;min-width:100px;
+  min-height:34px;padding:6px 10px;white-space:nowrap;border:1px solid var(--border,#dfe1e5);
+  border-radius:8px;background:var(--surface-2,#f8f8fa);font-size:11px;font-weight:700;color:var(--accent,#2563eb)}
+.reader-edition-archive:hover,.reader-edition-archive:focus-visible{outline:2px solid var(--accent,#2563eb);
+  outline-offset:1px;text-decoration:none}
+.reader-edition-dates:has(.reader-edition-archive){grid-auto-columns:max-content}
+.reader-edition-dates:has(.reader-edition-archive) .reader-edition-date{width:58px;min-width:58px}
+body.dark .reader-edition-empty{border-color:#45495a;background:#24262d;color:#c4c6ce}
+@media(max-width:900px){.reader-edition-archive{min-width:90px}}
+
+/* Page-mode swipe feedback; stays inside the newspaper viewport, never hijacks touch. */
+.reader-swipe-fx{
+  position:absolute;inset:0;z-index:24;display:grid;place-items:center;
+  overflow:hidden;opacity:0;visibility:hidden;pointer-events:none;
+  transition:opacity .16s ease,visibility .16s ease;
+}
+.reader-swipe-fx.visible{visibility:visible;opacity:1}
+.reader-swipe-fx canvas{position:absolute;inset:0;display:block;width:100%;height:100%}
+.reader-swipe-fx-arrow{
+  position:relative;z-index:1;display:grid;place-items:center;
+  width:58px;height:58px;border-radius:50%;background:rgba(255,255,255,.94);
+  color:#242b38;font:700 27px/1 system-ui,sans-serif;
+  box-shadow:0 8px 32px rgba(15,23,42,.2);border:1px solid rgba(255,255,255,.8);
+  transform:scale(.82);transition:transform .17s ease;backdrop-filter:blur(8px);
+}
+.reader-swipe-fx.visible .reader-swipe-fx-arrow{transform:scale(1)}
+.reader-swipe-fx.committed .reader-swipe-fx-arrow{transform:scale(1.12)}
+body.dark .reader-swipe-fx-arrow{background:rgba(35,38,46,.94);color:#fff;border-color:#404754}
+@media(prefers-reduced-motion:reduce){
+  .reader-swipe-fx,.reader-swipe-fx-arrow{transition:none!important}
+  .reader-swipe-fx canvas{display:none}
+  .reader-swipe-fx.committed .reader-swipe-fx-arrow{transform:none}
+}
 
 /* Reader accessibility and responsive action hierarchy — November 2026 */
 .reader-more-control{position:relative;display:none;align-items:center}
@@ -170,3 +206,4 @@ body.dark .reader-edition-menu{background:rgba(33,33,36,.985);border-color:#3d3d
 /* Normalize flip-mode SVG icon after replacing the original text glyph. */
 .reader-view-glyph{display:inline-flex;align-items:center;justify-content:center;transform:none}
 .reader-view-glyph svg{display:block;width:19px;height:19px}
+
