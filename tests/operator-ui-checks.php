@@ -4,6 +4,7 @@ $root=dirname(__DIR__);
 require_once $root.'/app/Core/View.php';
 require_once $root.'/app/Admin/Onboarding.php';
 require_once $root.'/app/Admin/OnboardingDashboard.php';
+require_once $root.'/app/Admin/DomainMapping.php';
 
 function check(bool $condition,string $message): void {
     if(!$condition){fwrite(STDERR,"FAIL: $message\n");exit(1);}
@@ -58,6 +59,25 @@ check(str_contains($view,'platform-ui.css?v=')&&str_contains($view,"hash_file('s
 check(str_contains($app,'Home::index();')&&str_contains($app,'Help::index();'),'simple pages are routed');
 check(str_contains($app,'Existing team members')&&str_contains($app,'platform-form-disclosure'),'existing staff come before the optional add form');
 check(str_contains($app,'Add team member</button></div></form></div></details>'),'team creation disclosure uses valid closing tags');
+
+$mapping=file_get_contents($root.'/app/Admin/DomainMapping.php');
+$crud=file_get_contents($root.'/app/Admin/Crud.php');
+check(str_contains($app,'DomainMapping::save('),'new domain-mapping POST endpoint is available');
+check(str_contains($crud,'DomainMapping::panel($r)'),'domain editor displays the dropdown workflow');
+check(str_contains($mapping,'name="product_tenant_guid"')&&str_contains($mapping,'name="application_guid"'),'both tenant and application have dropdowns');
+check(str_contains($mapping,'WHERE pt.product_guid=? AND pt.status="ACTIVE"'),'tenant dropdown is product-scoped and active-only');
+check(str_contains($mapping,'WHERE product_guid=? AND status="ACTIVE"'),'application dropdown is compatible and active-only');
+check(str_contains($mapping,'Type the exact domain name')&&str_contains($mapping,'confirm_content'),'mapping update requires operator confirmation');
+check(str_contains($mapping,'UPDATE domains SET organisation_guid=?,product_tenant_guid=?'),'mapping persists correct publisher organisation and tenant');
+check(str_contains($mapping,'application_guid=?,is_primary=0,status="AWAITING_DNS"'),'mapping updates application and resets onboarding state');
+check(str_contains($mapping,'domain.mapping.changed')&&str_contains($mapping,"RedisStore::del('domain:'.\$host)"),'mapping changes audited and Platform domain cache cleared');
+$mutable=new ReflectionMethod(\Digiti\Admin\DomainMapping::class,'mutable');
+$domainBase=['hostname'=>'epaper.dcnnews.co.in','base_url'=>'https://epaper.digiti.in','domain_type'=>'CUSTOMER_CUSTOM','status'=>'ROUTING_VALID'];
+check($mutable->invoke(null,$domainBase),'customer domains can change publisher mapping');
+check(!$mutable->invoke(null,array_merge($domainBase,['hostname'=>'epaper.digiti.in'])),'canonical application domain is protected');
+check(!$mutable->invoke(null,array_merge($domainBase,['domain_type'=>'PLATFORM'])),'platform system domain is protected');
+check(!$mutable->invoke(null,array_merge($domainBase,['status'=>'REMOVED'])),'removed domain is protected');
+
 check(str_contains($home,'home-issue')&&str_contains($home,'organisation_name'),'homepage shows current tenant-mapping blockers');
 check(str_contains($help,'Wrong newspaper appears')&&str_contains($help,'Product tenant'),'help explains tenant isolation');
 check(str_contains($onboard,'$customCode!==')&&str_contains($panel,'Advanced options (optional)'),'publisher code generated with optional override');
