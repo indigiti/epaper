@@ -190,7 +190,7 @@ final class Crud
             // Serialize role changes within an organisation so concurrent demotions
             // cannot silently remove its final OWNER/ADMIN.
             Store::one('SELECT organisation_guid FROM organisations WHERE organisation_guid=? FOR UPDATE',
-                [$owner['organisation_guid']]);
+                [self::guidBin((string)$owner['organisation_guid'])]);
             $record=Store::one('SELECT m.role_key,m.status,u.status user_status,o.status org_status '
                 .'FROM memberships m JOIN platform_users u ON u.user_guid=m.user_guid '
                 .'JOIN organisations o ON o.organisation_guid=m.organisation_guid '
@@ -206,7 +206,7 @@ final class Crud
                     .'JOIN platform_users u ON u.user_guid=m.user_guid '
                     .'WHERE m.organisation_guid=? AND m.membership_guid<>? AND m.status="ACTIVE" '
                     .'AND u.status="ACTIVE" AND m.role_key IN ("OWNER","ADMIN","PUBLISHER_ADMIN")',
-                    [$owner['organisation_guid'],self::guidBin($memberGuid)]);
+                    [self::guidBin((string)$owner['organisation_guid']),self::guidBin($memberGuid)]);
                 if($remaining<1)throw new \InvalidArgumentException(
                     'Assign another active publisher owner/admin before converting the last owner to WebDesk.'
                 );
