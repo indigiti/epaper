@@ -182,7 +182,10 @@ final class Onboarding
                 Store::exec('INSERT INTO product_tenants(product_tenant_guid,organisation_guid,product_guid,display_name,status,created_at,updated_at) VALUES(?,?,?,?,"ACTIVE",NOW(6),NOW(6))',[self::gid($tenantGuid),self::gid($orgGuid),self::gid($app['product_guid']),$name]);
             } else {
                 $tenantGuid=(string)($_POST['product_tenant_guid']??'');
-                $row=Store::one('SELECT pt.organisation_guid FROM product_tenants pt JOIN products p ON p.product_guid=pt.product_guid JOIN organisations o ON o.organisation_guid=pt.organisation_guid WHERE pt.product_tenant_guid=? AND p.product_key="EPAPER" AND pt.status="ACTIVE" AND o.status="ACTIVE"',[self::gid($tenantGuid)]);
+                $row=Store::one('SELECT pt.organisation_guid FROM product_tenants pt JOIN products p ON p.product_guid=pt.product_guid JOIN organisations o ON o.organisation_guid=pt.organisation_guid WHERE pt.product_tenant_guid=? AND pt.product_guid=? AND p.product_key="EPAPER"
+                    AND pt.status="ACTIVE" AND o.status="ACTIVE" AND p.status="ACTIVE"',[
+                    self::gid($tenantGuid),self::gid($app['product_guid'])
+                ]);
                 if (!$row) throw new \InvalidArgumentException('Choose an active EPAPER tenant.');
                 $orgGuid=(string)$row['organisation_guid'];
             }
