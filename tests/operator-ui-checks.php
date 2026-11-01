@@ -68,7 +68,7 @@ check(str_contains($mapping,'name="product_tenant_guid"')&&str_contains($mapping
 
 check(str_contains($mapping,'tenant_quickpick')&&str_contains($mapping,'domain-mapping-choice-list'),'publisher alternative rendered without requiring native dropdown');
 check(str_contains($mapping,'eligible publisher account(s)')&&str_contains($mapping,'compatible application(s)'),'eligible option counts shown');
-check(str_contains($mapping,'Why DCN / DCNEP is missing:')&&str_contains($mapping,"$issues[]='different product'"),'DCN unavailable reason shown safely');
+check(str_contains($mapping,'Why DCN / DCNEP is missing:')&&str_contains($mapping,'different product'),'DCN unavailable reason shown safely');
 $requested=(new ReflectionMethod(\Digiti\Admin\DomainMapping::class,'requestedTenant'));
 $amg='01a05e76-d968-7e72-a4ef-aec784cf0547';
 $dcn='01a195d7-3a9a-761d-bde8-3965e712ccd1';
