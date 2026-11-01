@@ -122,6 +122,9 @@ final class RegistryCleanup
                 Store::exec('DELETE FROM domains WHERE domain_guid=? AND status="REMOVED"',[self::bin($guid)]);
                 $impact=['deleted_domains'=>1];
             } elseif($type==='products') {
+                // Preserve the original GUID/name of each physically deleted
+                // operational record in append-only audit history.
+                self::auditProductChildren($admin,$guid);
                 $impact=self::releaseProduct($guid,$purgedHostnames);
             } else {
                 $impact=self::releaseOrganisation($guid);
@@ -172,6 +175,28 @@ final class RegistryCleanup
             .' data-confirm="Irreversibly release archived configuration and reserved keys?">Release archived resources</button>'
             .'<a class="button" href="/admin/'.View::esc($type).'">Cancel</a></div></form></section>';
         View::layout('Release archived resources',$body,['subtitle'=>$info['label']]);
+    }
+
+    private static function auditProductChildren(array $admin,string $productGuid): void
+    {
+        $bin=self::bin($productGuid);
+        $inventory=[
+            ['domains','domain_guid','hostname','domains'],
+            ['applications','application_guid','application_key','applications'],
+            ['product_tenants','product_tenant_guid','display_name','product-tenants'],
+            ['plans','plan_guid','plan_key','plans'],
+            ['features','feature_guid','feature_key','features'],
+        ];
+        foreach($inventory as [$table,$column,$labelColumn,$type]) {
+            // Fixed schema whitelist; never use user-supplied SQL identifiers.
+            foreach(Store::all("SELECT $column,$labelColumn FROM $table WHERE product_guid=?",[$bin]) as $row) {
+                self::audit($admin,$type,(string)$row[$column],(string)$row[$labelColumn],[
+                    'retired_product_guid'=>$productGuid,
+                    'record_before_cleanup'=>true,
+                    'financial_lineage_retained'=>true
+                ]);
+            }
+        }
     }
 
     /** Remove archived operational resources, preserve only FK-backed historical identities. */
