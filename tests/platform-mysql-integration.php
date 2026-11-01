@@ -107,6 +107,22 @@ try{
         $bin('application'),$bin('tenantAMG'),'epaper.digiti.in','epaper.digiti.in'
     ]);
     $canonicalRecord=Store::one('SELECT * FROM domains WHERE domain_guid=?',[Uuid::toBinary($canonicalGuid)]);
+
+    $fresh=(new ReflectionMethod(Restore::class,'freshStartAlternative'))->invoke(null,$canonicalRecord);
+    checkDb(str_contains($fresh,'I do not want to restore the old product or other records'),
+        'archived canonical hostname offers an explicit non-restore alternative');
+    checkDb(str_contains($fresh,'1 application(s), 2 publisher tenant(s), 2 domain(s)'),
+        'fresh start shows counts of affected archived product-linked records');
+    checkDb(str_contains($fresh,'separate staging Cloudways application')
+        &&str_contains($fresh,'new empty database'),
+        'fresh setup is clearly isolated and never implies a production database reset');
+    checkDb(str_contains($fresh,'/admin/domains')
+        &&str_contains($fresh,'leave existing records archived'),
+        'non-restore action leaves the archived hostname intact');
+    checkDb(Store::one('SELECT status FROM domains WHERE domain_guid=?',
+        [Uuid::toBinary($canonicalGuid)])['status']==='REMOVED',
+        'previewing fresh-start option does not restore the archived domain');
+
     $canonical=(new ReflectionMethod(Restore::class,'canonicalDomain'));
     checkDb($canonical->invoke(null,$canonicalRecord),'archived SAAS_DEFAULT ePaper hostname recognized as canonical app host');
     // Mimic cascading archive: the product, application and tenant are all
