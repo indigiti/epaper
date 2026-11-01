@@ -289,3 +289,25 @@ gap:8px;padding:7px 9px;font-size:12px;font-weight:700;height:36px}
 .platform-dependency-guide>p:last-child{margin:13px 0 0}
 .platform-dependency-guide>p:last-child a{font-size:12px;font-weight:700;color:var(--text)}
 @media(max-width:560px){.platform-dependency-guide{padding:13px}.platform-dependency-item{align-items:flex-start;flex-direction:column;gap:9px}.platform-dependency-item .button{align-self:flex-start}}
+
+
+/* Canonical recovery: non-destructive alternative to restoring archived records */
+.platform-fresh-alternative{border:1px solid var(--border);border-radius:13px;margin:18px 0;background:var(--surface);overflow:hidden}
+.platform-fresh-alternative details>summary{list-style:none;cursor:pointer;padding:17px 19px;display:grid;gap:6px;position:relative;padding-right:48px}
+.platform-fresh-alternative details>summary::-webkit-details-marker{display:none}
+.platform-fresh-alternative details>summary::after{content:"+";position:absolute;right:20px;top:18px;color:var(--muted);font-size:23px}
+.platform-fresh-alternative details[open]>summary::after{content:"−"}
+.platform-fresh-alternative details>summary:hover{background:var(--surface2)}
+.platform-fresh-title{font-size:14px;font-weight:780;color:var(--text)}
+.platform-fresh-subtitle{font-size:12px;line-height:1.5;color:var(--muted)}
+.platform-fresh-content{padding:17px 19px 19px;border-top:1px solid var(--border)}
+.platform-fresh-content>p{font-size:12px;line-height:1.65;margin:0 0 13px;color:var(--muted)}
+.platform-fresh-content h4{font-size:13px;margin:18px 0 10px}
+.platform-fresh-content ol{padding-left:23px;margin:0 0 16px;display:grid;gap:8px}
+.platform-fresh-content li{font-size:12px;line-height:1.6}
+.platform-fresh-impact{border:1px solid var(--border);padding:11px 13px;background:var(--surface2);border-radius:10px}
+.platform-fresh-restricted{border:1px solid var(--border);padding:13px 15px;border-radius:10px;line-height:1.6;font-size:12px}
+.platform-fresh-actions{margin-top:15px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.platform-fresh-actions .button{font-size:12px;min-height:38px}
+.platform-fresh-content small{font-size:11px;line-height:1.55;color:var(--muted)}
+@media(max-width:560px){.platform-fresh-alternative details>summary{padding:15px 43px 15px 14px}.platform-fresh-content{padding:15px 13px}.platform-fresh-actions .button{width:100%;justify-content:center}}
