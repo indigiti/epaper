@@ -3,6 +3,7 @@
 body.ui-hide-top-menu .site-nav-links,
 body.ui-hide-focus-links .reader-focus-bar,
 body.ui-hide-reader-toolbar .reader-rail,
+body.ui-hide-reader-edge-navigation .reader-edge-nav,
 body.ui-hide-zoom-in [data-zoom-in],
 body.ui-hide-zoom-out [data-zoom-out],
 body.ui-hide-zoom-value [data-zoom-label],

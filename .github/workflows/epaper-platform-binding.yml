@@ -11,6 +11,12 @@ on:
       - 'tests/epdi-platform-binding-contract.php'
       - 'codebase/tests/epdi-platform-binding-contract.php'
       - 'public_html/assets/reader-ui-visibility.css'
+      - 'public_html/assets/reader-edge-navigation.js'
+      - 'public_html/assets/reader-edge-navigation.css'
+      - 'codebase/public_html/assets/reader-edge-navigation.js'
+      - 'codebase/public_html/assets/reader-edge-navigation.css'
+      - 'tests/reader-edge-navigation-contract.php'
+      - 'codebase/tests/reader-edge-navigation-contract.php'
       - 'codebase/public_html/assets/reader-ui-visibility.css'
       - 'tests/reader-ui-visibility.php'
       - 'codebase/tests/reader-ui-visibility.php'
@@ -29,6 +35,12 @@ on:
       - 'tests/epdi-platform-binding-contract.php'
       - 'codebase/tests/epdi-platform-binding-contract.php'
       - 'public_html/assets/reader-ui-visibility.css'
+      - 'public_html/assets/reader-edge-navigation.js'
+      - 'public_html/assets/reader-edge-navigation.css'
+      - 'codebase/public_html/assets/reader-edge-navigation.js'
+      - 'codebase/public_html/assets/reader-edge-navigation.css'
+      - 'tests/reader-edge-navigation-contract.php'
+      - 'codebase/tests/reader-edge-navigation-contract.php'
       - 'codebase/public_html/assets/reader-ui-visibility.css'
       - 'tests/reader-ui-visibility.php'
       - 'codebase/tests/reader-ui-visibility.php'
@@ -78,6 +90,12 @@ jobs:
           php -l codebase/app/Core/View.php
           php tests/reader-ui-visibility.php
           php codebase/tests/reader-ui-visibility.php
+      - name: Reader edge controls, safety, mirrors and JavaScript parsing
+        run: |
+          php tests/reader-edge-navigation-contract.php
+          php codebase/tests/reader-edge-navigation-contract.php
+          node --check public_html/assets/reader-edge-navigation.js
+          node --check codebase/public_html/assets/reader-edge-navigation.js
       - name: Tenant sign-in visibility and bounded storage checks
         run: |
           php -l app/Core/Auth.php

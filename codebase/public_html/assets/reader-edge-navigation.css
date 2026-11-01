@@ -1,0 +1,30 @@
+/* Reader edge hit zones are click-only, with no full-page event overlay. */
+.reader-stage>.reader-edge-nav{position:absolute;inset:0;z-index:26;pointer-events:none}
+.reader-edge-button{position:absolute;top:50%;transform:translateY(-50%);display:grid;place-items:center;
+  width:48px;height:110px;padding:5px;border:1px solid rgba(15,23,42,.12);color:#182334;
+  background:rgba(255,255,255,.63);opacity:var(--reader-edge-opacity,.3);pointer-events:auto;
+  touch-action:manipulation;cursor:pointer;user-select:none;-webkit-tap-highlight-color:transparent;
+  backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);
+  transition:opacity .16s ease,background .16s ease}
+.reader-edge-prev{left:0;border-radius:0 17px 17px 0;border-left:0}
+.reader-edge-next{right:0;border-radius:17px 0 0 17px;border-right:0}
+#reader[data-edge-opacity="subtle"]{--reader-edge-opacity:.3}
+#reader[data-edge-opacity="balanced"]{--reader-edge-opacity:.48}
+#reader[data-edge-opacity="strong"]{--reader-edge-opacity:.7}
+.reader-edge-button:hover,.reader-edge-button:focus-visible{opacity:1;background:rgba(255,255,255,.94)}
+.reader-edge-button:focus-visible{outline:3px solid #2563eb;outline-offset:-3px}
+.reader-edge-button:disabled{opacity:0!important;visibility:hidden;pointer-events:none!important}
+.reader-edge-glyph{display:block;flex:none}
+.reader-edge-dots{width:38px;height:77px}
+.reader-edge-chevron{display:none;width:32px;height:42px}
+#reader[data-edge-style="chevron"] .reader-edge-dots{display:none}
+#reader[data-edge-style="chevron"] .reader-edge-chevron{display:block}
+body.dark .reader-edge-button{color:#f3f4f6;background:rgba(20,24,32,.68);border-color:rgba(255,255,255,.18)}
+body.dark .reader-edge-button:hover,body.dark .reader-edge-button:focus-visible{background:rgba(20,24,32,.95)}
+.reader-shell.clip-active .reader-edge-nav,.reader-shell.pinching .reader-edge-nav,
+.reader-shell.is-transitioning .reader-edge-nav,.reader-stage.article-pick .reader-edge-nav{opacity:0;pointer-events:none}
+.reader-shell.clip-active .reader-edge-button,.reader-shell.pinching .reader-edge-button,
+.reader-shell.is-transitioning .reader-edge-button,.reader-stage.article-pick .reader-edge-button{pointer-events:none}
+@media(pointer:coarse){.reader-edge-button{width:44px;height:88px}.reader-edge-dots{width:34px;height:70px}}
+@media(max-width:540px){.reader-edge-button{width:44px;height:80px;background:rgba(255,255,255,.76)}.reader-edge-dots{width:32px;height:64px}}
+@media(prefers-reduced-motion:reduce){.reader-edge-button{transition:none}}
