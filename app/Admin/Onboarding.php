@@ -252,7 +252,18 @@ final class Onboarding
     private static function reviews(): array
     {
         $out=[];
-        foreach(Store::all('SELECT DISTINCT resource_guid FROM audit_events WHERE resource_type="domain" AND action="domain.onboarding.confirm" AND result="SUCCESS"') as $r) $out[$r['resource_guid']]=true;
+        foreach(Store::all('SELECT DISTINCT approved.resource_guid FROM audit_events approved
+            WHERE approved.resource_type="domain" AND approved.action="domain.onboarding.confirm"
+                AND approved.result="SUCCESS"
+                AND NOT EXISTS (
+                    SELECT 1 FROM audit_events changed
+                    WHERE changed.resource_type="domain" AND changed.resource_guid=approved.resource_guid
+                        AND changed.occurred_at>=approved.occurred_at
+                        AND changed.action IN (
+                            "domain.mapping.changed","domain.onboarding.reassign",
+                            "domain.staging_reset","domain.remove","registry.restore"
+                        )
+                )') as $r) $out[$r['resource_guid']]=true;
         return $out;
     }
 
