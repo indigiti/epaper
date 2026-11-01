@@ -58,7 +58,7 @@ final class ActionUi
         $url=$base.'/'.rawurlencode($guid);
         $html='<div class="platform-action-bar">';
         if($status==='REMOVED') {
-            return $html.self::form($url.'/restore','Restore','restore')
+            return $html.self::link($url.'/restore','Review & restore','restore')
                 .'</div>';
         }
         if($entity==='domain') {
