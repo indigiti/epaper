@@ -168,18 +168,19 @@ final class AdminManualClippingController
         try{$marks=ManualClipMarking::forAdmin($guid);}
         catch(\Throwable){$schemaReady=false;}
         $tb=TenantData::tenantBin();
-        $assets=' JOIN ep_page_assets prv ON prv.tenant_guid=p.tenant_guid
-                   AND prv.page_guid=p.page_guid AND prv.asset_type="PREVIEW"
-                  JOIN ep_page_assets hi ON hi.tenant_guid=p.tenant_guid
-                   AND hi.page_guid=p.page_guid AND hi.asset_type="HIGHRES"';
+        
         $prev=Store::one(
-            'SELECT p.page_guid,p.page_number FROM ep_pages p'.$assets.'
+            'SELECT p.page_guid,p.page_number FROM ep_pages p
+             JOIN ep_page_assets prv ON prv.tenant_guid=p.tenant_guid AND prv.page_guid=p.page_guid AND prv.asset_type="PREVIEW"
+             JOIN ep_page_assets hi ON hi.tenant_guid=p.tenant_guid AND hi.page_guid=p.page_guid AND hi.asset_type="HIGHRES"
              WHERE p.tenant_guid=? AND p.edition_guid=? AND p.page_number<?
              ORDER BY p.page_number DESC LIMIT 1',
             [$tb,$page['edition_guid'],(int)$page['page_number']]
         );
         $next=Store::one(
-            'SELECT p.page_guid,p.page_number FROM ep_pages p'.$assets.'
+            'SELECT p.page_guid,p.page_number FROM ep_pages p
+             JOIN ep_page_assets prv ON prv.tenant_guid=p.tenant_guid AND prv.page_guid=p.page_guid AND prv.asset_type="PREVIEW"
+             JOIN ep_page_assets hi ON hi.tenant_guid=p.tenant_guid AND hi.page_guid=p.page_guid AND hi.asset_type="HIGHRES"
              WHERE p.tenant_guid=? AND p.edition_guid=? AND p.page_number>?
              ORDER BY p.page_number ASC LIMIT 1',
             [$tb,$page['edition_guid'],(int)$page['page_number']]

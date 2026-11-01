@@ -38,7 +38,7 @@ final class AdminAuditController
         $request=Uuid::isValid($requestRaw)?strtolower($requestRaw):'';
         $badRequest=$requestRaw!==''&&$request==='';
 
-        $where=['tenant_guid=?'];
+        $where=['1=1'];
         $args=[TenantData::tenantBin()];
         if ($action!==''){$where[]='action LIKE ?';$args[]=$action.'%';}
         if ($result!==''){$where[]='result=?';$args[]=$result;}
@@ -59,7 +59,7 @@ final class AdminAuditController
         }else $cursor='';
 
         $sql='SELECT audit_event_guid,occurred_at,actor_type,action,resource_type,result,request_guid
-              FROM ep_audit_events WHERE '.implode(' AND ',$where).'
+              FROM ep_audit_events WHERE tenant_guid=? AND '.implode(' AND ',$where).'
               ORDER BY occurred_at DESC,audit_event_guid DESC LIMIT 51';
         $rows=Store::all($sql,$args);
         $hasMore=count($rows)>50;
