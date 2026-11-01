@@ -128,9 +128,11 @@ final class Onboarding
         $newGuid=Store::tx(function() use($type,$host,$app,$owner):string {
             if($type==='new') {
                 $name=trim((string)($_POST['organisation_name']??''));
-                $code=strtoupper(preg_replace('/[^A-Z0-9_]+/','_',strtoupper(trim((string)($_POST['organisation_code']??'')))));
-                $code=trim($code,'_');
-                if($name===''||strlen($name)>190||$code===''||strlen($code)>64) throw new \InvalidArgumentException('Enter an organisation name and a unique code (up to 64 characters).');
+                $customCode=trim((string)($_POST['organisation_code']??''));
+                $code=trim((string)preg_replace('/[^A-Z0-9_]+/','_',strtoupper($customCode!==''?$customCode:$name)),'_');
+                if($name===''||strlen($name)>190||$code===''||strlen($code)>64) throw new \InvalidArgumentException('Enter a publisher name (up to 190 characters) and a valid short code.');
+                if(Store::value('SELECT 1 FROM organisations WHERE organisation_code=? LIMIT 1',[$code]))
+                    throw new \InvalidArgumentException('This publisher code already exists. Select an existing publisher under Additional domain, or enter a different code in Advanced options.');
                 $orgGuid=Uuid::v7();
                 Store::exec('INSERT INTO organisations(organisation_guid,organisation_code,legal_name,display_name,status,created_at,updated_at) VALUES(?,?,?,?,"ACTIVE",NOW(6),NOW(6))',[self::gid($orgGuid),$code,$name,$name]);
                 $tenantGuid=Uuid::v7();
