@@ -218,47 +218,30 @@ final class Restore
      * A fresh EPAPER product cannot coexist with the archived EPAPER product
      * in this database because the integration key is globally unique.
      */
+    /**
+     * Keep the choice concise: restoring and releasing are both first-class
+     * workflows, not a multi-page installation runaround.
+     */
     private static function freshStartAlternative(array $domain): string
     {
-        $productGuid=(string)$domain['product_guid'];
-        $productBin=Uuid::toBinary($productGuid);
-        $countApps=(int)Store::value('SELECT COUNT(*) FROM applications WHERE product_guid=?',[$productBin]);
-        $countTenants=(int)Store::value('SELECT COUNT(*) FROM product_tenants WHERE product_guid=?',[$productBin]);
-        $countDomains=(int)Store::value('SELECT COUNT(*) FROM domains WHERE product_guid=?',[$productBin]);
-        $counts='<p class="platform-fresh-impact"><strong>Records linked to the existing product:</strong> '
-            .$countApps.' application(s), '.$countTenants.' publisher tenant(s), '
-            .$countDomains.' domain(s). No records will be changed by opening this option.</p>';
-        $staging=StagingReset::enabled();
-        $choice=$staging
-            ?'<p><a class="button" href="/admin/staging-reset">View staging test-domain reset</a>'
-                .' <small>That tool only restarts test-domain onboarding; it does not delete products or create a blank Platform database.</small></p>'
-            :'<div class="platform-fresh-restricted"><strong>Fresh-install reset is not available here.</strong> '
-                .'Use a separately configured, isolated staging application and database. '
-                .'No reset or deletion of the live Platform database is allowed from this screen.</div>';
+        $productGuid=rawurlencode((string)$domain['product_guid']);
+        $domainGuid=rawurlencode((string)$domain['domain_guid']);
+        $orgGuid=rawurlencode((string)$domain['organisation_guid']);
         return '<section class="platform-fresh-alternative" id="fresh-setup-alternative">'
-            .'<details><summary><span class="platform-fresh-title">I do not want to restore the old product or other records</span>'
-            .'<span class="platform-fresh-subtitle">See how to start fresh without reactivating this archived setup</span></summary>'
+            .'<details><summary><span class="platform-fresh-title">Do not restore — release archived resources</span>'
+            .'<span class="platform-fresh-subtitle">Free the old hostname and product key while preserving financial and audit history</span></summary>'
             .'<div class="platform-fresh-content">'
-            .'<p><strong>That is a valid choice.</strong> The original EPAPER product, AMG organisation, '
-            .'application, tenant and hostname can remain archived. '
-            .'This option does not recover or reactivate any of them.</p>'
-            .$counts
-            .'<p><strong>Why you cannot simply add the same website again:</strong> The EPAPER product key and '
-            .'epaper.digiti.in hostname remain reserved in this database. The ePaper reader integration '
-            .'also expects the EPAPER product. Ignoring those relationships would break routing '
-            .'or cross-publisher isolation.</p>'
-            .'<h4>Start fresh safely</h4><ol>'
-            .'<li>Preserve a verified backup of Platform and ePaper databases, media and private configuration.</li>'
-            .'<li>Provision a <strong>separate staging Cloudways application</strong> with a new empty database, '
-            .'independent storage and Redis, and a staging hostname.</li>'
-            .'<li>Install a fresh Platform configuration there, create the EPAPER product and first test publisher, '
-            .'then verify login, reader content isolation and routing using the staging hostname.</li>'
-            .'<li>Only after staging acceptance, prepare a controlled production migration/cutover for '
-            .'epaper.digiti.in. That requires separate data migration, DNS, SSL and cache checks.</li>'
-            .'</ol>'.$choice
+            .'<p>The archived setup can be permanently cleaned up without restoring its product, tenant or application. '
+            .'Only a Platform SUPER_ADMIN can approve cleanup. You will see exactly what can be removed and what billing references must remain.</p>'
             .'<div class="platform-fresh-actions">'
-            .'<a class="button" href="/admin/domains">Do not restore — leave existing records archived</a>'
-            .'</div></div></details></section>';
+            .'<a class="button" href="/admin/products/'.$productGuid.'/release">Release archived EPAPER product and linked configuration</a>'
+            .'<a class="button" href="/admin/domains/'.$domainGuid.'/release">Delete only this archived hostname</a>'
+            .'<a class="button" href="/admin/organisations/'.$orgGuid.'/release">Release old organisation code</a>'
+            .'</div>'
+            .'<p><strong>Preserved:</strong> original GUID references, invoices, payments, refunds, subscriptions, usage and audit logs. '
+            .'Old ePaper PDF/image files are on a separate application and are not touched by Platform cleanup.</p>'
+            .'<p>If there are active subscriptions, pending payments, unarchived dependencies or other blockers, the review will identify them before anything is deleted.</p>'
+            .'</div></details></section>';
     }
 
     private static function requireSystemDomainAdmin(): void
