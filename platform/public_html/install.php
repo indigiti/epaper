@@ -1,6 +1,16 @@
 <?php
-$root=dirname(__DIR__);$lock=$root.'/storage/install.lock';$configFile=$root.'/config/config.php';
-if(is_file($lock)){http_response_code(403);echo '<h1>Installer locked</h1><p>This Digiti Platform installation is already locked.</p>';exit;}
+$root=dirname(__DIR__);
+$lock=$root.'/storage/install.lock';
+$privateDir=trim((string)(getenv('DIGITI_PRIVATE_CONFIG_DIR')?:''));
+$privateRoot=$privateDir!==''?realpath($privateDir):false;
+$publicRoot=realpath($root.'/public_html');
+if($privateDir!==''&&(!$privateRoot||!is_dir($privateRoot)||($publicRoot&&($privateRoot===$publicRoot||str_starts_with($privateRoot,$publicRoot.DIRECTORY_SEPARATOR))))){
+    http_response_code(503);echo '<h1>Installer unavailable</h1>';exit;
+}
+$configFile=($privateRoot?:$root.'/config').'/config.php';
+if(is_file($lock)||is_file($configFile)||is_file($root.'/config/config.php')){
+    http_response_code(403);echo '<h1>Installer locked</h1><p>This Digiti Platform installation is already configured.</p>';exit;
+}
 require_once $root.'/app/Core/Uuid.php';use Digiti\Core\Uuid;
 $errors=[];$success=false;$requirements=[
  'PHP >= 8.2'=>version_compare(PHP_VERSION,'8.2.0','>='),
