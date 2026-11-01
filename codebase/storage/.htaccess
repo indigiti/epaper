@@ -1,0 +1,8 @@
+# Apache defense in depth. Cloudways/Nginx must separately deny this path.
+Options -Indexes
+<IfModule mod_authz_core.c>
+  Require all denied
+</IfModule>
+<IfModule !mod_authz_core.c>
+  Deny from all
+</IfModule>
