@@ -13,7 +13,7 @@ $ok(str_contains($settings,"'reader_auth.sms'")&&str_contains($settings,"'reader
 $ok(str_contains($mobile,"TenantData::setting('reader_auth.")&&str_contains($mobile,'DeviceAuth::mergeIntoMobile'),'mobile verification obeys tenant policy and can promote device identity');
 $ok(str_contains($device,'ep_local_device_accounts')&&str_contains($device,'hash_hmac')&&!preg_match('/IMEI|ANDROID_ID|SERIAL|MAC address/i',$device),'temporary identity uses server-side HMAC, not hardware identifiers');
 $ok(str_contains($auth, "\$source==='LOCAL_DEVICE'")&&str_contains($auth,'establishLocalDevice'),'LOCAL_DEVICE sessions are established and revalidated');
-$ok(str_contains($app,"/api/v1/auth/device")&&str_contains($app,"device_fallback")&&str_contains($app,"(appearance|effects|brand|seo|trust|access|reader"),'device endpoint/bootstrap/admin access route packaged');
+$ok(str_contains($app,"/api/v1/auth/device")&&str_contains($app,"device_fallback")&&str_contains($app,'SettingsCatalog::routeGroup($path)')&&str_contains($settings,'public static function routeGroup('),'device endpoint/bootstrap/admin access route packaged');
 $ok(str_contains($schema,'CREATE TABLE IF NOT EXISTS ep_local_device_accounts'),'device account schema packaged');
 $ok(str_contains($android,'UUID.randomUUID()')&&str_contains($android,'/api/v1/auth/device')&&str_contains($android,'getSharedPreferences'),'Android app creates stable app-install UUID and uses fallback endpoint');
 $ok(str_contains(file_get_contents($root.'/public_html/service-worker.js'),'epdi-v'.$version),'service worker aligned');
