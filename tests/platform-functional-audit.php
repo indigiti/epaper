@@ -20,8 +20,9 @@ function source(string $path):string{
 function methodSource(string $source,string $method):string{
     $a=strpos($source,'function '.$method.'(');
     if($a===false)throw new RuntimeException('Missing method '.$method);
-    $b=strpos($source,'private static function ',$a+14);
-    if($b===false)$b=strlen($source);
+    if(preg_match('/\\n\\s*(?:private|public|protected)(?:\\s+static)?\\s+function\\s+[A-Za-z_]\\w*\\s*\\(/',$source,$found,PREG_OFFSET_CAPTURE,$a+strlen('function '.$method)))
+        $b=$found[0][1];
+    else $b=strlen($source);
     return substr($source,$a,$b-$a);
 }
 
