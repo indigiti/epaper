@@ -7,6 +7,8 @@ on:
       - 'app/**'
       - 'public_html/**'
       - 'config/**'
+      - 'bin/**'
+      - 'database/**'
       - 'tests/**'
       - '.github/workflows/cw-platform-onboarding.yml'
   pull_request:
@@ -16,6 +18,7 @@ on:
       - 'public_html/**'
       - 'config/**'
       - 'database/**'
+      - 'bin/**'
       - 'tests/**'
       - '.github/workflows/cw-platform-onboarding.yml'
   workflow_dispatch:
@@ -46,7 +49,7 @@ jobs:
           php-version: '8.3'
           coverage: none
       - name: PHP syntax lint
-        run: find app public_html tests -type f -name '*.php' -print0 | xargs -0 -n1 php -l
+        run: find app public_html bin tests -type f -name '*.php' -print0 | xargs -0 -n1 php -l
       - name: Onboarding contract checks
         run: php tests/onboarding-source-contract.php
       - name: Operator UI behaviour and navigation smoke checks
@@ -55,6 +58,8 @@ jobs:
         run: php tests/registry-action-checks.php
       - name: Cross-module functional and recovery audit
         run: php tests/platform-functional-audit.php
+      - name: Platform-wide security and operation audit checks
+        run: php tests/platform-security-audit.php
       - name: Schema and real MySQL publisher recovery integration
         env:
           PLATFORM_TEST_MYSQL: '1'
