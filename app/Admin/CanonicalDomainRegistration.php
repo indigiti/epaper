@@ -9,6 +9,9 @@ use Digiti\Core\{Auth,Config,DomainTools,Store,Uuid};
  * Domain registry and Publisher Onboarding must agree on whether a hostname
  * is a customer alias or the ePaper application's own canonical base URL.
  *
+ * Registered active application/product GUIDs and Base URL determine ownership,
+ * regardless of mutable/legacy product or application keys.
+ *
  * This class only classifies/authorizes an INSERT. It does not bypass the
  * unique hostname constraint, reassign publishers or activate DNS routing.
  */
@@ -29,7 +32,7 @@ final class CanonicalDomainRegistration
     /**
      * Pure classifier for deterministic regression tests.
      * Matching an application base URL is legitimate for the *selected*
-     * active EPAPER app; unrelated apps and infrastructure hosts stay blocked.
+     * active application and product; unrelated apps and infrastructure hosts stay blocked.
      */
     public static function classifyKnown(string $hostname,array $selectedApplication,array $registeredApps,bool $superAdmin): string
     {
@@ -55,10 +58,8 @@ final class CanonicalDomainRegistration
             ||($registered['product_guid']??'')!==($selectedApplication['product_guid']??'')) {
             throw new \InvalidArgumentException('This hostname belongs to a different application. Choose the application whose Base URL matches this website.');
         }
-        if(($registered['product_key']??'')!=='EPAPER')
-            throw new \InvalidArgumentException('Only the registered EPAPER application can use canonical ePaper hostname registration.');
         if(!$superAdmin)
-            throw new \InvalidArgumentException('Only a Platform SUPER_ADMIN may register the main ePaper application hostname.');
+            throw new \InvalidArgumentException('Only a Platform SUPER_ADMIN may register a canonical application hostname.');
         return 'SAAS_DEFAULT';
     }
 }
