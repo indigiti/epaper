@@ -284,6 +284,22 @@ final class Onboarding
     private static function detail(array $d,array $users): string
     {
         $guid=$d['domain_guid'];$d['reviewed']=isset(self::reviews()[$guid]);$state=self::state($d);
+        $hostname=(string)$d['hostname'];
+        $canonicalHost=(string)(parse_url((string)($d['application_url']??''),PHP_URL_HOST)?:'');
+        $sharesMain=false;
+        if($canonicalHost!=='' && strcasecmp($canonicalHost,$hostname)!==0) {
+            $sharesMain=(bool)Store::value('SELECT 1 FROM domains
+                WHERE normalized_hostname=? AND product_tenant_guid=? AND status<>"REMOVED" LIMIT 1',[
+                strtolower($canonicalHost),self::gid($d['product_tenant_guid'])
+            ]);
+        }
+        $sharedNotice=$sharesMain
+            ?'<div class="ob-tenant-warning"><strong>This website shares the main ePaper newspaper.</strong>'
+                .'<p>The domain is connected, but both websites use the same publisher tenant and will show the same editions.'
+                .' If this is not intentional, choose a separate DCN/Pune Mirror publisher below.</p>'
+                .'<a class="button" href="#change-publisher-tenant">Change publisher tenant</a></div>'
+            :'';
+
         $steps='';foreach($state['steps'] as $i=>$step) {
             $done=$step['done'];$steps.='<li class="'.($done?'complete':'pending').'"><span class="ob-step-mark">'.($done?'&#10003;':($i+1)).'</span><div><strong>'.self::e($step['name']).'</strong><small>'.self::e($done?'Completed':$step['pending']).'</small></div></li>';
         }
@@ -336,7 +352,7 @@ final class Onboarding
                 .'</form></div></details>';
         }
         return '<section id="domain-review" class="card ob-detail" aria-label="Publisher onboarding tracker"><div class="ob-section-head"><div><span class="ob-eyebrow">DOMAIN TRACKER</span><h2>'.self::e($d['hostname']).'</h2><p class="muted">'.self::e($d['organisation_name']).' · '.self::e($d['tenant_name']).'</p></div><a class="button" href="/admin/onboarding">Close tracker</a></div>'
-            .'<div class="ob-detail-grid"><div class="ob-timeline"><ol>'.$steps.'</ol><p class="ob-warning">Current blocker: <strong>'.self::e($state['blocker']).'</strong>'.($state['stalled']?' · Stalled for over 48 hours':'').'</p></div>'
+            .$sharedNotice.'<div class="ob-detail-grid"><div class="ob-timeline"><ol>'.$steps.'</ol><p class="ob-warning">Current blocker: <strong>'.self::e($state['blocker']).'</strong>'.($state['stalled']?' · Stalled for over 48 hours':'').'</p></div>'
             .'<div class="ob-workspace"><h3>DNS ownership & routing</h3>'.$dns.'<p class="muted">CNAME only works if the configured domain target is routed to the ePaper origin. Also add this hostname to Cloudways domain management and its SSL configuration.</p>'.$verify
             .'<div class="ob-rule"></div><h3>Publisher access</h3><p class="muted">'.((int)$d['owner_count']>0?'An active owner/admin membership is present.':'No active publisher owner yet. Create the user in Users, then assign here.').'</p>'.$assign
             .'<div class="ob-rule"></div><h3>Subscription</h3><p>Current service access: <strong>'.self::e((string)($d['service_access_state']??'NOT CONFIGURED')).'</strong></p><a href="/admin/subscriptions">Manage subscriptions</a>'
