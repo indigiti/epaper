@@ -25,6 +25,7 @@ This is a source/CI audit with targeted database integration, not evidence that 
 |---|---|---|---|
 | High | GET /restore redirected to /admin instead of showing recovery steps | Confirm-before-restore GET page; typed record key; explicit CSRF-checked POST; return to existing domain Edit page | Functional audit; accessible action regression |
 | High | REMOVED hostname still reserved, yet Add tried creating a duplicate | Both publisher and legacy domain create routes detect existing hostname and redirect to record or Restore | Functional audit; unique-key integration |
+| High | Organisation, product, application, user or product-tenant duplicates hit unique-key errors or recreated confusion | Reuse existing identifiers and navigate to Edit/Restore, including the one-tenant-per-organisation/product rule | Handler-level functional audit |
 | High | Archived domains were invisible in onboarding | Added Archived domains inventory with recovery links | Source contract and UI smoke |
 | High | Domain resolution accepted active but mismatched product/application/organisation/tenant records | Fail-closed relational joins, plus identical consistency checks in onboarding approval | Source and real MySQL consistency tests |
 | High | Cascading organisation, product, tenant, application and plan archives could partially persist | Wrapped related mutations in transactions; retain audit and history | Source assertions + schema-backed coverage |
