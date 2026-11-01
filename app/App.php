@@ -36,7 +36,7 @@ final class App
         if(Crud::dispatch($path,$method))exit;
         if($path==='/admin')$this->dashboard();
         if($path==='/admin/onboarding')Onboarding::index($method);
-        if(preg_match('#^/admin/onboarding/([0-9a-f-]{36})/(verify|owner|confirm)$#i',$path,$m))Onboarding::action(strtolower($m[1]),$m[2],$method);
+        if(preg_match('#^/admin/onboarding/([0-9a-f-]{36})/(verify|owner|confirm|reassign)$#i',$path,$m))Onboarding::action(strtolower($m[1]),$m[2],$method);
         if($path==='/admin/organisations')$this->organisations($method);
         if($path==='/admin/users')$this->users($method);
         if($path==='/admin/products')$this->products($method);
