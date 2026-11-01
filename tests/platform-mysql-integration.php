@@ -109,16 +109,14 @@ try{
     $canonicalRecord=Store::one('SELECT * FROM domains WHERE domain_guid=?',[Uuid::toBinary($canonicalGuid)]);
 
     $fresh=(new ReflectionMethod(Restore::class,'freshStartAlternative'))->invoke(null,$canonicalRecord);
-    checkDb(str_contains($fresh,'I do not want to restore the old product or other records'),
-        'archived canonical hostname offers an explicit non-restore alternative');
-    checkDb(str_contains($fresh,'1 application(s), 2 publisher tenant(s), 2 domain(s)'),
-        'fresh start shows counts of affected archived product-linked records');
-    checkDb(str_contains($fresh,'separate staging Cloudways application')
-        &&str_contains($fresh,'new empty database'),
-        'fresh setup is clearly isolated and never implies a production database reset');
-    checkDb(str_contains($fresh,'/admin/domains')
-        &&str_contains($fresh,'leave existing records archived'),
-        'non-restore action leaves the archived hostname intact');
+    checkDb(str_contains($fresh,'Do not restore — release archived resources'),
+        'archived canonical hostname offers a direct cleanup alternative');
+    checkDb(str_contains($fresh,'/admin/products/'.$ids['product'].'/release'),
+        'old EPAPER product has a linked release review');
+    checkDb(str_contains($fresh,'/admin/domains/'.$canonicalGuid.'/release'),
+        'archived canonical hostname can be released independently');
+    checkDb(str_contains($fresh,'invoices, payments, refunds, subscriptions, usage and audit logs'),
+        'cleanup choices explicitly protect retained financial history');
     checkDb(Store::one('SELECT status FROM domains WHERE domain_guid=?',
         [Uuid::toBinary($canonicalGuid)])['status']==='REMOVED',
         'previewing fresh-start option does not restore the archived domain');
