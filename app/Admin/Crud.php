@@ -184,6 +184,13 @@ final class Crud
             'PUBLISHER_ADMIN','EDITOR','OPERATOR'];
         if(!in_array($selected,$allowed,true))throw new \InvalidArgumentException('Unknown publisher role');
         Store::tx(static function()use($guid,$memberGuid,$selected):void{
+            $owner=Store::one('SELECT organisation_guid FROM memberships WHERE membership_guid=? AND user_guid=?',
+                [self::guidBin($memberGuid),self::guidBin($guid)]);
+            if(!$owner)throw new \InvalidArgumentException('Publisher membership not found');
+            // Serialize role changes within an organisation so concurrent demotions
+            // cannot silently remove its final OWNER/ADMIN.
+            Store::one('SELECT organisation_guid FROM organisations WHERE organisation_guid=? FOR UPDATE',
+                [$owner['organisation_guid']]);
             $record=Store::one('SELECT m.role_key,m.status,u.status user_status,o.status org_status '
                 .'FROM memberships m JOIN platform_users u ON u.user_guid=m.user_guid '
                 .'JOIN organisations o ON o.organisation_guid=m.organisation_guid '
@@ -193,6 +200,17 @@ final class Crud
                 ||$record['org_status']!=='ACTIVE')
                 throw new \InvalidArgumentException('Publisher user and membership must be active');
             if($record['role_key']===$selected)return;
+            if(in_array((string)$record['role_key'],['OWNER','ADMIN','PUBLISHER_ADMIN'],true)
+                && !in_array($selected,['OWNER','ADMIN','PUBLISHER_ADMIN'],true)){
+                $remaining=(int)Store::value('SELECT COUNT(*) FROM memberships m '
+                    .'JOIN platform_users u ON u.user_guid=m.user_guid '
+                    .'WHERE m.organisation_guid=? AND m.membership_guid<>? AND m.status="ACTIVE" '
+                    .'AND u.status="ACTIVE" AND m.role_key IN ("OWNER","ADMIN","PUBLISHER_ADMIN")',
+                    [$owner['organisation_guid'],self::guidBin($memberGuid)]);
+                if($remaining<1)throw new \InvalidArgumentException(
+                    'Assign another active publisher owner/admin before converting the last owner to WebDesk.'
+                );
+            }
             Store::exec('UPDATE memberships SET role_key=?,updated_at=NOW(6) '
                 .'WHERE membership_guid=? AND user_guid=? AND status="ACTIVE"',
                 [$selected,self::guidBin($memberGuid),self::guidBin($guid)]);
