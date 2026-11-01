@@ -15,9 +15,8 @@ final class ErrorCenter
                 try {
                     if(Auth::admin()) {
                         View::flash(substr($e->getMessage(),0,250));
-                        if(preg_match('#^/admin/onboarding/([0-9a-f-]{36})/[^/]+$#',$path,$matches))
-                            Http::redirect('/admin/onboarding?domain='.rawurlencode($matches[1]));
-                        Http::redirect($path);
+                        $return=self::returnPath($path);
+                        Http::redirect($return);
                     }
                 } catch(\Throwable) {}
             }
@@ -30,4 +29,29 @@ final class ErrorCenter
             http_response_code(500); echo '<h1>Request needs attention</h1><p>Reference: '.htmlspecialchars($error).'</p>'; exit;
         });
     }
+
+    /**
+     * A failed POST must return to a real GET screen. Do not send operators
+     * to a POST-only endpoint (which previously bounced to /admin).
+     */
+    public static function returnPath(string $path): string
+    {
+        if(preg_match('#^/admin/onboarding/([0-9a-f-]{36})/(?:verify|owner|confirm|reassign)$#i',$path,$m))
+            return '/admin/onboarding?domain='.rawurlencode(strtolower($m[1])).'#domain-review';
+        if(preg_match('#^/admin/domains/([0-9a-f-]{36})/mapping$#i',$path,$m))
+            return '/admin/domains/'.strtolower($m[1]).'/edit';
+        if(preg_match('#^/admin/domains/([0-9a-f-]{36})/verify$#i',$path,$m))
+            return '/admin/onboarding?domain='.rawurlencode(strtolower($m[1])).'#domain-review';
+        if(preg_match('#^/admin/domains/([0-9a-f-]{36})/restore$#i',$path,$m))
+            return '/admin/domains/'.strtolower($m[1]).'/restore';
+        if(preg_match('#^/admin/(?:organisations|users|products|applications|product-tenants|service-accounts|commercial/plans)/([0-9a-f-]{36})/(?:restore|edit)$#i',$path))
+            return $path;
+        if(preg_match('#^/admin/(?:organisations|users|products|applications|product-tenants|domains|service-accounts|commercial/plans)/[0-9a-f-]{36}/(?:status|remove|rotate)$#i',$path))
+            return preg_replace('#/[0-9a-f-]{36}/(?:status|remove|rotate)$#i','',$path);
+        if(in_array($path,['/admin/onboarding','/admin/domains','/admin/organisations','/admin/users',
+            '/admin/products','/admin/applications','/admin/product-tenants','/admin/service-accounts',
+            '/admin/subscriptions','/admin/staging-reset'],true)) return $path;
+        return '/admin';
+    }
+
 }
