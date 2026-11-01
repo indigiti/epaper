@@ -31,6 +31,7 @@ final class View
             ['/admin/applications','Applications'],
             ['/admin/service-accounts','Service accounts'],
             ['/admin/app-connections','Application connection setup'],
+            ['/admin/publisher-login-check','Publisher sign-in diagnostics'],
             ['/admin/commercial','Plans & pricing'],
             ['/admin/billing','Billing & payments'],
             ['/admin/operations','Operations'],

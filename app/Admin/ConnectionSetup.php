@@ -189,7 +189,8 @@ final class ConnectionSetup
             .($accounts?'<div class="table-wrap"><table><thead><tr><th>Account</th><th>Status</th><th>Scopes</th><th>Last used</th><th>Action</th></tr></thead><tbody>'
                 .$accountRows.'</tbody></table></div>'
                 :'<p>No non-archived product-scoped service account was found. Create one for this active product.</p>')
-            .'<a class="button" href="/admin/service-accounts">Create / rotate service token</a>'
+            .'<a class="button" href="/admin/service-accounts">Manage service accounts</a>'
+            .'<a class="button" href="/admin/publisher-login-check">Diagnose publisher sign-in</a>'
             .'<p><small>Required scopes: '.self::e(implode(', ',self::REQUIRED_SCOPES)).'</small></p></section>';
 
         $snippet=self::runtimeSnippet($chosen);

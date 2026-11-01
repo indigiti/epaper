@@ -55,6 +55,8 @@ jobs:
         run: php tests/onboarding-source-contract.php
       - name: Application connection setup, tenant isolation and no-secret preview
         run: php tests/app-connection-setup.php
+      - name: Publisher login prerequisite and restricted grant contracts
+        run: php tests/publisher-login-check.php
       - name: Operator UI behaviour and navigation smoke checks
         run: php tests/operator-ui-checks.php
       - name: Registry icon, restoration and staging reset checks
