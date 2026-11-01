@@ -10,6 +10,10 @@ on:
       - 'codebase/config/**'
       - 'tests/epdi-platform-binding-contract.php'
       - 'codebase/tests/epdi-platform-binding-contract.php'
+      - 'public_html/assets/reader-ui-visibility.css'
+      - 'codebase/public_html/assets/reader-ui-visibility.css'
+      - 'tests/reader-ui-visibility.php'
+      - 'codebase/tests/reader-ui-visibility.php'
       - '.github/workflows/epaper-platform-binding.yml'
   pull_request:
     branches: [cw-epaper, main]
@@ -20,6 +24,10 @@ on:
       - 'codebase/config/**'
       - 'tests/epdi-platform-binding-contract.php'
       - 'codebase/tests/epdi-platform-binding-contract.php'
+      - 'public_html/assets/reader-ui-visibility.css'
+      - 'codebase/public_html/assets/reader-ui-visibility.css'
+      - 'tests/reader-ui-visibility.php'
+      - 'codebase/tests/reader-ui-visibility.php'
       - '.github/workflows/epaper-platform-binding.yml'
   workflow_dispatch:
 
@@ -54,6 +62,14 @@ jobs:
         run: |
           php tests/auth-tenant-escaping.php
           php codebase/tests/auth-tenant-escaping.php
+      - name: Per-publisher public interface visibility and reader safety
+        run: |
+          php -l app/Services/ReaderUiControls.php
+          php -l codebase/app/Services/ReaderUiControls.php
+          php -l app/Core/View.php
+          php -l codebase/app/Core/View.php
+          php tests/reader-ui-visibility.php
+          php codebase/tests/reader-ui-visibility.php
       - name: WebDesk restricted publishing role and hostile POST request tests
         run: |
           php -l app/Views/WebDeskEditionView.php

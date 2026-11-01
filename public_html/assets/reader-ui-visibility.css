@@ -1,0 +1,37 @@
+/* Per-publisher reader presentation preferences; no feature or authorization changes.
+   CSS is deliberately after theme and responsive styles so a hidden button stays hidden. */
+body.ui-hide-top-menu .site-nav-links,
+body.ui-hide-focus-links .reader-focus-bar,
+body.ui-hide-reader-toolbar .reader-rail,
+body.ui-hide-zoom-in [data-zoom-in],
+body.ui-hide-zoom-out [data-zoom-out],
+body.ui-hide-zoom-value [data-zoom-label],
+body.ui-hide-scroll-zoom [data-scroll-zoom],
+body.ui-hide-fit-page [data-fit-page],
+body.ui-hide-fit-width [data-fit-width],
+body.ui-hide-reset-view [data-reset-view],
+body.ui-hide-fullscreen [data-fullscreen],
+body.ui-hide-smart-article [data-article-mode],
+body.ui-hide-page-text [data-reader-text-mode],
+body.ui-hide-clipping .reader-rail > [data-clip],
+body.ui-hide-header-pages .reader-header [data-toggle-pages],
+body.ui-hide-header-search .reader-header-actions > a[href="/search"],
+body.ui-hide-header-search .reader-more-menu > a[href="/search"],
+body.ui-hide-header-quality .reader-header .reader-quality-control,
+body.ui-hide-header-bookmark .reader-header [data-reader-bookmark],
+body.ui-hide-header-bookmark .reader-more-menu [data-reader-more-action="bookmark"],
+body.ui-hide-header-offline .reader-header [data-reader-offline],
+body.ui-hide-header-offline .reader-more-menu [data-reader-more-action="offline"],
+body.ui-hide-header-share .reader-header [data-reader-share],
+body.ui-hide-header-share .reader-more-menu [data-reader-more-action="share"],
+body.ui-hide-header-more .reader-header .reader-more-control,
+body.ui-hide-header-edition-switcher .reader-header [data-reader-edition-menu],
+body.ui-hide-header-edition-switcher .reader-edition-switcher,
+body.ui-hide-archive-calendar .archive-date-panel,
+body.ui-hide-archive-month .archive-month-row,
+body.ui-hide-archive-dates .archive-date-rail,
+body.ui-hide-archive-quick-dates .archive-quick-row {
+    display: none !important;
+}
+/* Retain essential page number + previous/next navigation on all reader variants.
+   The calendar controls only affect the archive browsing UI, not filter queries. */
