@@ -55,16 +55,64 @@ final class DomainMapping
             FROM applications WHERE product_guid=? AND status="ACTIVE"
             ORDER BY name LIMIT 100',[self::bin($domain['product_guid'])]);
         $tenantOptions='';
+        $quickChoices='';
+        $alternativeCount=0;
         foreach($tenants as $tenant) {
             $isCurrent=$tenant['product_tenant_guid']===$domain['product_tenant_guid'];
+            $label=$tenant['organisation_name'].' / '.$tenant['tenant_name'];
             $tenantOptions.='<option value="'.self::e($tenant['product_tenant_guid']).'"'.($isCurrent?' selected':'').'>'
-                .self::e($tenant['organisation_name'].' / '.$tenant['tenant_name']).'</option>';
+                .self::e($label).($isCurrent?' (current)':'').'</option>';
+            if(!$isCurrent) {
+                $alternativeCount++;
+                // This radio is a server-supported alternative to the native dropdown.
+                // No JavaScript is required; choosing it overrides the select value.
+                $quickChoices.='<label class="domain-mapping-choice"><input type="radio" name="tenant_quickpick"'
+                    .' value="'.self::e($tenant['product_tenant_guid']).'"><span><strong>'.self::e($label).'</strong>'
+                    .'<small>Switch this website to this publisher account</small></span></label>';
+            }
         }
         $appOptions='';
         foreach($applications as $app) {
             $isCurrent=$app['application_guid']===$domain['application_guid'];
             $appOptions.='<option value="'.self::e($app['application_guid']).'"'.($isCurrent?' selected':'').'>'
                 .self::e($app['name'].' · '.$app['base_url']).'</option>';
+        }
+        $eligibility='<p class="domain-mapping-inventory">'.count($tenants).' eligible publisher account(s)'
+            .' · '.count($applications).' compatible application(s)</p>';
+        if($alternativeCount===0) {
+            $eligibility.='<div class="domain-mapping-warning"><strong>No alternative publisher accounts available for this product.</strong> '
+                .'This is why the account dropdown cannot switch. '
+                .'Check the DCN tenant’s parent product and the statuses of the DCN organisation and tenant under '
+                .'<a href="/admin/product-tenants">Product Tenants</a>. '
+                .'A different product cannot be assigned here without a separate reviewed migration.</div>';
+        }
+        // Explain hidden DCN options based on actual Platform rows, rather than
+        // allowing product-incompatible publisher assignments.
+        if(strcasecmp((string)$domain['hostname'],'epaper.dcnnews.co.in')===0
+            && !array_filter($tenants,static fn(array $t):bool=>
+                stripos((string)$t['organisation_name'],'DCN')!==false
+                || stripos((string)$t['tenant_name'],'DCNEP')!==false)) {
+            $dcn=Store::all('SELECT pt.product_guid,pt.status tenant_status,o.status organisation_status,
+                pt.display_name tenant_name,o.display_name organisation_name
+                FROM product_tenants pt JOIN organisations o ON o.organisation_guid=pt.organisation_guid
+                WHERE UPPER(o.display_name) LIKE "DCN%" OR UPPER(pt.display_name) LIKE "DCNEP%"
+                ORDER BY pt.created_at DESC LIMIT 20');
+            if($dcn) {
+                $reason=[];
+                foreach($dcn as $candidate) {
+                    $issues=[];
+                    if($candidate['product_guid']!==$domain['product_guid']) $issues[]='different product';
+                    if($candidate['tenant_status']!=='ACTIVE') $issues[]='tenant status '.$candidate['tenant_status'];
+                    if($candidate['organisation_status']!=='ACTIVE') $issues[]='organisation status '.$candidate['organisation_status'];
+                    if($issues) $reason[]=self::e($candidate['organisation_name'].' / '.$candidate['tenant_name'].' — '.implode(', ',$issues));
+                }
+                $eligibility.='<div class="domain-mapping-warning"><strong>Why DCN / DCNEP is missing:</strong> '
+                    .($reason?implode('; ',$reason):'No eligible DCN option is returned for this domain product.')
+                    .'. Correct the organisation/product relationship before changing the domain.</div>';
+            } else {
+                $eligibility.='<div class="domain-mapping-warning">DCN / DCNEP was not found in the current Platform records. '
+                    .'Check Product Tenants and confirm it belongs to this Platform installation.</div>';
+            }
         }
         $guid=rawurlencode((string)$domain['domain_guid']);
         $host=self::e($domain['hostname']);
@@ -76,14 +124,17 @@ final class DomainMapping
             .'<span>Current application: <strong>'.$currentApp.'</strong></span></div>'
             .'<form method="post" action="/admin/domains/'.$guid.'/mapping" class="domain-mapping-form">'
             .'<input type="hidden" name="_csrf" value="'.self::e(Http::csrf()).'">'
-            .'<div class="domain-mapping-fields">'
+            .$eligibility.'<div class="domain-mapping-fields">'
             .'<label>Newspaper account (tenant)<select name="product_tenant_guid" required>'.$tenantOptions.'</select>'
             .'<small>'.($domain['hostname']==='epaper.dcnnews.co.in'
                 ?'For this website, select DCN / DCNEP to use DCN’s own editions.'
                 :'Choose a separate publisher account when this website needs different editions.').'</small></label>'
             .'<label>Application<select name="application_guid" required>'.$appOptions.'</select>'
             .'<small>Normally leave this as EPAPER. Changing it requires matching DNS, SSL and sign-in settings on the new application.</small></label>'
-            .'</div><div class="domain-mapping-confirm">'
+            .'</div>'.($quickChoices!==''?'<div class="domain-mapping-quick"><h3>Can’t use the dropdown? Select a newspaper here instead</h3>'
+                .'<p>Choose one option below to override the dropdown selection. Keep Application on EPAPER unless moving hosting.</p>'
+                .'<div class="domain-mapping-choice-list">'.$quickChoices.'</div></div>':'')
+            .'<div class="domain-mapping-confirm">'
             .'<h3>Before changing this connection</h3><p>This keeps the domain record and does not move or copy newspaper editions. '
             .'The domain will need DNS verification and go-live approval again. Website access may be temporarily interrupted.</p>'
             .'<label class="domain-mapping-checkbox"><input type="checkbox" name="confirm_content" value="1" required>'
@@ -103,7 +154,8 @@ final class DomainMapping
         $d=self::domain($guid);
         if(!$d) throw new \InvalidArgumentException('Domain not found.');
         if(!self::mutable($d)) throw new \InvalidArgumentException('This application or system domain cannot be reassigned.');
-        $tenantGuid=trim((string)($_POST['product_tenant_guid']??''));
+        $quickPick=trim((string)($_POST['tenant_quickpick']??''));
+        $tenantGuid=$quickPick!==''?$quickPick:trim((string)($_POST['product_tenant_guid']??''));
         $appGuid=trim((string)($_POST['application_guid']??''));
         $host=strtolower((string)$d['hostname']);
         $typed=strtolower(trim((string)($_POST['confirm_hostname']??'')));
