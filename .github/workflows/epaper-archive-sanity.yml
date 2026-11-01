@@ -24,6 +24,8 @@ jobs:
       - uses: actions/checkout@v4
       - name: Verify source tree excludes credentials and newspaper media
         run: python3 codebase/tests/security-source-guard.py
+      - name: Verify Cloudways and main executable sources remain identical
+        run: python3 codebase/tests/branch-layout-parity.py
   verify:
     runs-on: ubuntu-24.04
     defaults:
