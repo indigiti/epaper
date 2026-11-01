@@ -27,4 +27,6 @@ checkWebDesk(str_contains($app,'m.role_key IN ("OWNER","ADMIN","PUBLISHER_ADMIN"
        'm.role_key IN ("OWNER","ADMIN","PUBLISHER_ADMIN")'),
     'WebDesk cannot satisfy mandatory publisher owner assignment');
 checkWebDesk(str_contains($crud,'FOR UPDATE') && str_contains($crud,'Assign another active publisher owner'), 'Last publisher owner cannot be demoted to WebDesk');
+checkWebDesk(substr_count($crud,"self::guidBin((string)\$owner['organisation_guid'])")>=2,
+    'Decoded organisation UUID is always bound as binary for SQL locking and owner count');
 echo "PASS — Platform WebDesk memberships\n";
