@@ -331,6 +331,70 @@ try{
         &&(int)Store::value('SELECT COUNT(*) FROM applications WHERE application_key="EPAPER"')===1,
         'fresh setup reuses original EPAPER product, application and canonical hostname keys');
 
+
+    // End-to-end MySQL checks for canonical registration against a fresh
+    // retained-billing lineage. Customer hostnames must never be misclassified.
+    $selected=['application_guid'=>$newAppGuid,'product_guid'=>$newProductGuid];
+    $registrations=Store::all('SELECT a.application_guid,a.product_guid,a.base_url,p.product_key
+        FROM applications a JOIN products p ON p.product_guid=a.product_guid
+        WHERE a.status="ACTIVE" AND p.status="ACTIVE"');
+    $classifier=\Digiti\Admin\CanonicalDomainRegistration::class;
+    checkDb($classifier::classifyKnown('epaper.digiti.in',$selected,$registrations,true)==='SAAS_DEFAULT',
+        'new canonical host maps to the matching active EPAPER application');
+    checkDb($classifier::classifyKnown('epaper.dcnnews.co.in',$selected,$registrations,false)==='CUSTOMER_CUSTOM',
+        'DCN continues to be classified as a distinct customer domain');
+    $denied=false;
+    try{$classifier::classifyKnown('epaper.digiti.in',$selected,$registrations,false);}
+    catch(\InvalidArgumentException){$denied=true;}
+    checkDb($denied,'non-superadmin cannot take over the main application hostname');
+
+    // OAuth S256 code must be exchangeable exactly once using conditional SQL
+    // on the real database, and inactive applications cannot exchange codes.
+    $userGuid=Uuid::v7();$oauthClient='test-epaper-'.bin2hex(random_bytes(6));
+    Store::exec('INSERT INTO platform_users(user_guid,email,display_name,password_hash,
+        status,created_at,updated_at) VALUES(?,"oauth-ci@example.test","CI Publisher",?,
+        "ACTIVE",NOW(6),NOW(6))',[
+        Uuid::toBinary($userGuid),password_hash('ci-only-test-password',PASSWORD_DEFAULT)
+    ]);
+    Store::exec('UPDATE applications SET oauth_client_id=? WHERE application_guid=?',[
+        $oauthClient,Uuid::toBinary($newAppGuid)
+    ]);
+    $verifier=rtrim(strtr(base64_encode(random_bytes(32)),'+/','-_'),'=');
+    $challenge=rtrim(strtr(base64_encode(hash('sha256',$verifier,true)),'+/','-_'),'=');
+    $code=rtrim(strtr(base64_encode(random_bytes(32)),'+/','-_'),'=');
+    $authCodeGuid=Uuid::v7();
+    Store::exec('INSERT INTO auth_codes(auth_code_guid,code_hash,user_guid,application_guid,
+        redirect_uri,code_challenge,expires_at,created_at)
+        VALUES(?,?,?,?,?,?,DATE_ADD(NOW(6),INTERVAL 2 MINUTE),NOW(6))',[
+        Uuid::toBinary($authCodeGuid),hash('sha256',$code,true),Uuid::toBinary($userGuid),
+        Uuid::toBinary($newAppGuid),'https://epaper.digiti.in/auth/callback',$challenge
+    ]);
+    $identity=\Digiti\Core\OAuth::exchange($code,$verifier,$oauthClient);
+    checkDb($identity['user']['user_guid']===$userGuid,
+        'OAuth S256 first exchange succeeds for an active publisher');
+    $replayRejected=false;
+    try{\Digiti\Core\OAuth::exchange($code,$verifier,$oauthClient);}
+    catch(\RuntimeException){$replayRejected=true;}
+    checkDb($replayRejected,'second exchange of the same code is rejected');
+
+    $code2=rtrim(strtr(base64_encode(random_bytes(32)),'+/','-_'),'=');
+    Store::exec('INSERT INTO auth_codes(auth_code_guid,code_hash,user_guid,application_guid,
+        redirect_uri,code_challenge,expires_at,created_at)
+        VALUES(?,?,?,?,?,?,DATE_ADD(NOW(6),INTERVAL 2 MINUTE),NOW(6))',[
+        Uuid::toBinary(Uuid::v7()),hash('sha256',$code2,true),Uuid::toBinary($userGuid),
+        Uuid::toBinary($newAppGuid),'https://epaper.digiti.in/auth/callback',$challenge
+    ]);
+    Store::exec('UPDATE applications SET status="SUSPENDED" WHERE application_guid=?',[
+        Uuid::toBinary($newAppGuid)
+    ]);
+    $inactiveRejected=false;
+    try{\Digiti\Core\OAuth::exchange($code2,$verifier,$oauthClient);}
+    catch(\RuntimeException){$inactiveRejected=true;}
+    checkDb($inactiveRejected,'suspended application cannot exchange an unexpired OAuth code');
+
+    // Billing rejects duplicate active subscriptions and validates invoice
+    // amounts in the application layer; schema already requires FK lineage.
+
     echo "PASS: database-backed Platform domain recovery integration checks complete\n";
 }finally{
     @unlink($cfgPath);
