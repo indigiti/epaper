@@ -36,9 +36,28 @@ final class AdminRoutePolicy
         return 'ADMIN';
     }
 
-    public static function allows(string $path,string $role): bool
+    /** Explicit allowlist for the narrow WebDesk publishing workflow. */
+    public static function webDeskAllows(string $path,string $method='GET'): bool
+    {
+        $method=strtoupper(trim($method));
+        if($path==='/admin'||$path==='/admin/editions'||$path==='/admin/manual-clipping')
+            return $method==='GET'||($path==='/admin/editions'&&$method==='POST');
+        if($path==='/admin/account')return $method==='GET';
+        if(preg_match('#^/admin/editions/[0-9a-f-]{36}/publish$#i',$path))
+            return $method==='POST';
+        if(preg_match('#^/admin/manual-clipping/[0-9a-f-]{36}$#i',$path))
+            return in_array($method,['GET','POST'],true);
+        if(preg_match('#^/admin/manual-clipping/[0-9a-f-]{36}/preview$#i',$path))
+            return $method==='GET';
+        if(preg_match('#^/admin/manual-clipping/[0-9a-f-]{36}/marks/[0-9a-f-]{36}/update$#i',$path))
+            return $method==='POST';
+        return false;
+    }
+
+    public static function allows(string $path,string $role,string $method='GET'): bool
     {
         $role=strtoupper(trim($role));
+        if($role==='WEBDESK')return self::webDeskAllows($path,$method);
         return match(self::requiredCapability($path)){
             'MANAGER'=>in_array($role,self::MANAGERS,true),
             'EDITOR'=>in_array($role,self::EDITORS,true),
@@ -46,10 +65,10 @@ final class AdminRoutePolicy
         };
     }
 
-    public static function enforce(string $path): void
+    public static function enforce(string $path,string $method='GET'): void
     {
         $role=(string)(Auth::currentMembership()['role_key']??'');
-        if(self::allows($path,$role))return;
+        if(self::allows($path,$role,$method))return;
         http_response_code(403);
         View::layout('Access denied',
             '<section class="empty-state"><h1>Access denied</h1>'
