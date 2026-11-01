@@ -22,7 +22,7 @@ final class OAuth
     }
     public static function issueCode(array $user,array $app,string $redirect,string $challenge,?string $state): string
     {
-        if(!$challenge||strlen($challenge)<32)throw new \InvalidArgumentException('PKCE code_challenge required');
+        if(!preg_match('/^[A-Za-z0-9_-]{43}$/',$challenge))throw new \InvalidArgumentException('Valid S256 PKCE code_challenge required');
         if(!self::redirectAllowed($app['application_guid'],$redirect,$app['callback_url']??null))throw new \InvalidArgumentException('redirect_uri mismatch');
         $code=rtrim(strtr(base64_encode(random_bytes(32)),'+/','-_'),'=');
         Store::exec('INSERT INTO auth_codes(auth_code_guid,code_hash,user_guid,application_guid,redirect_uri,code_challenge,state,expires_at,created_at) VALUES(?,?,?,?,?,?,?,DATE_ADD(NOW(),INTERVAL 2 MINUTE),NOW(6))',[
@@ -36,11 +36,13 @@ final class OAuth
     }
     public static function exchange(string $code,string $verifier,string $clientId): array
     {
-        $row=Store::one('SELECT ac.auth_code_guid,ac.user_guid,ac.application_guid,ac.redirect_uri,ac.code_challenge,ac.expires_at,ac.used_at,a.oauth_client_id FROM auth_codes ac JOIN applications a ON a.application_guid=ac.application_guid WHERE ac.code_hash=? AND a.oauth_client_id=? LIMIT 1',[hash('sha256',$code,true),$clientId]);
+        $row=Store::one('SELECT ac.auth_code_guid,ac.user_guid,ac.application_guid,ac.redirect_uri,ac.code_challenge,ac.expires_at,ac.used_at,a.oauth_client_id FROM auth_codes ac JOIN applications a ON a.application_guid=ac.application_guid JOIN products p ON p.product_guid=a.product_guid WHERE ac.code_hash=? AND a.oauth_client_id=? AND a.status="ACTIVE" AND p.status="ACTIVE" LIMIT 1',[hash('sha256',$code,true),$clientId]);
         if(!$row||$row['used_at']||strtotime($row['expires_at'])<time())throw new \RuntimeException('Invalid or expired authorization code');
         $calc=rtrim(strtr(base64_encode(hash('sha256',$verifier,true)),'+/','-_'),'=');if(!hash_equals($row['code_challenge'],$calc))throw new \RuntimeException('PKCE verification failed');
-        Store::exec('UPDATE auth_codes SET used_at=NOW(6) WHERE auth_code_guid=?',[Uuid::toBinary($row['auth_code_guid'])]);
-        $user=Store::one('SELECT user_guid,email,display_name,status FROM platform_users WHERE user_guid=?',[Uuid::toBinary($row['user_guid'])]);
+        $user=Store::one('SELECT user_guid,email,display_name,status FROM platform_users WHERE user_guid=? AND status="ACTIVE"',[Uuid::toBinary($row['user_guid'])]);
+        if(!$user)throw new \RuntimeException('Account is no longer active');
+        $claimed=Store::exec('UPDATE auth_codes SET used_at=NOW(6) WHERE auth_code_guid=? AND used_at IS NULL AND expires_at>NOW(6)',[Uuid::toBinary($row['auth_code_guid'])]);
+        if($claimed!==1)throw new \RuntimeException('Authorization code was already used or expired');
         $memberships=Store::all('SELECT membership_guid,organisation_guid,role_key,status FROM memberships WHERE user_guid=? AND status="ACTIVE"',[Uuid::toBinary($row['user_guid'])]);
         return ['user'=>$user,'memberships'=>$memberships];
     }
