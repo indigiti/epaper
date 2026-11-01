@@ -7,26 +7,152 @@ final class DomainResolver
     {
         $host=$host?:Http::host();$canonical=parse_url((string)Config::get('app.url'),PHP_URL_HOST);return is_string($canonical)&&$canonical!==''&&strtolower($host)===strtolower($canonical);
     }
+    private static function expectedBinding(): array
+    {
+        return [
+            'canonical_url'=>(string)Config::get('app.url',''),
+            'application_guid'=>(string)Config::get('platform.application_guid',''),
+            'product_guid'=>(string)Config::get('platform.product_guid',''),
+            'default_tenant_guid'=>(string)Config::get('platform.default_tenant_guid',''),
+            'allow_canonical_fallback'=>(bool)Config::get('platform.allow_canonical_fallback',false),
+        ];
+    }
+
+    private static function bindingCacheKey(string $host): string
+    {
+        $expected=self::expectedBinding();
+        // Namespace migration: old domain:host file/Redis values may still refer
+        // to the archived EPAPER tenant. New releases never trust those entries.
+        $fingerprint=substr(hash('sha256',json_encode($expected)),0,16);
+        return 'domain:binding-v3:'.$fingerprint.':'.$host;
+    }
+
     public static function diagnose(?string $host=null): array
     {
-        $host=$host?:Http::host();$canonical=parse_url((string)Config::get('app.url'),PHP_URL_HOST)?:'';$token=(string)Config::get('platform.service_token','');$defaultTenant=(string)Config::get('platform.default_tenant_guid','');
-        $out=['host'=>$host,'canonical_host'=>$canonical,'canonical_match'=>self::isCanonicalHost($host),'platform_url'=>(string)Config::get('platform.url',''),'product_key'=>(string)Config::get('platform.product_key','EPAPER'),'application_key'=>(string)Config::get('platform.application_key','city_epaper'),'service_token_configured'=>$token!=='','application_guid_configured'=>(string)Config::get('platform.application_guid','')!=='','oauth_client_id_configured'=>(string)Config::get('platform.oauth_client_id','')!=='','default_tenant_guid_configured'=>$defaultTenant!==''];
-        $ph=PlatformClient::instance()->health();$out['platform_health']=['ok'=>(bool)($ph['ok']??false),'status'=>(string)($ph['status']??'UNAVAILABLE')];
-        try{$d=PlatformClient::instance()->resolveDomain($host);$out['domain']=['ok'=>true,'status'=>(string)($d['status']??'UNKNOWN'),'product_key'=>(string)($d['product_key']??''),'product_tenant_guid'=>(string)($d['product_tenant_guid']??'')];$tenant=(string)($d['product_tenant_guid']??'');if($tenant){try{$ti=PlatformClient::instance()->tenant($tenant);$tr=$ti['tenant']??[];$out['tenant']=['ok'=>true,'status'=>(string)($tr['status']??'UNKNOWN'),'display_name'=>(string)($tr['display_name']??$tr['organisation_name']??'')];}catch(\Throwable$e){$out['tenant']=['ok'=>false,'message'=>$e->getMessage()];}$local=Store::one('SELECT display_name,status,primary_hostname FROM ep_tenants WHERE tenant_guid=?',[Uuid::toBinary($tenant)]);$out['local_tenant']=['ok'=>$local!==null,'status'=>$local['status']??null,'display_name'=>$local['display_name']??null];}}
-        catch(\Throwable$e){$out['domain']=['ok'=>false,'message'=>$e->getMessage()];if($defaultTenant&&self::isCanonicalHost($host)){try{$ti=PlatformClient::instance()->tenant($defaultTenant);$tr=$ti['tenant']??[];$out['canonical_fallback']=['ok'=>true,'product_tenant_guid'=>$defaultTenant,'status'=>(string)($tr['status']??'UNKNOWN'),'display_name'=>(string)($tr['display_name']??$tr['organisation_name']??'')];}catch(\Throwable$te){$out['canonical_fallback']=['ok'=>false,'message'=>$te->getMessage()];}}}
-        if(!$out['service_token_configured'])$out['recommended_action']='CONFIGURE_SERVICE_TOKEN';elseif(!($out['domain']['ok']??false)&&!$defaultTenant)$out['recommended_action']='REGISTER_DOMAIN_OR_SET_CANONICAL_TENANT';elseif(!($out['domain']['ok']??false)&&$defaultTenant)$out['recommended_action']='VERIFY_SERVICE_SCOPES_OR_CANONICAL_TENANT';else$out['recommended_action']='NONE';
-        $out['ok']=(bool)($out['domain']['ok']??false)||(bool)($out['canonical_fallback']['ok']??false);return$out;
+        $host=$host?:Http::host();
+        $expected=self::expectedBinding();
+        $defaultTenant=(string)$expected['default_tenant_guid'];
+        $serviceToken=(string)Config::get('platform.service_token','');
+        $out=[
+            'host'=>$host,
+            'canonical_host'=>(string)(parse_url((string)$expected['canonical_url'],PHP_URL_HOST)?:''),
+            'canonical_match'=>self::isCanonicalHost($host),
+            'platform_url'=>(string)Config::get('platform.url',''),
+            'configured_product_key'=>(string)Config::get('platform.product_key',''),
+            'configured_application_key'=>(string)Config::get('platform.application_key',''),
+            'configured_application_guid_set'=>trim((string)$expected['application_guid'])!=='',
+            'configured_product_guid_set'=>trim((string)$expected['product_guid'])!=='',
+            'oauth_client_id_configured'=>(string)Config::get('platform.oauth_client_id','')!=='',
+            'service_token_configured'=>$serviceToken!=='',
+            'default_tenant_guid_configured'=>$defaultTenant!=='',
+        ];
+        $ph=PlatformClient::instance()->health();
+        $out['platform_health']=[
+            'ok'=>(bool)($ph['ok']??false),
+            'status'=>(string)($ph['status']??'UNAVAILABLE')
+        ];
+        try {
+            // Diagnostics always query Platform rather than accepting an old
+            // domain cache as evidence of correct publisher identity.
+            $domain=PlatformClient::instance()->resolveDomain($host);
+            $out['domain']=[
+                'ok'=>true,
+                'status'=>(string)($domain['status']??'UNKNOWN'),
+                'product_key'=>(string)($domain['product_key']??''),
+                'application_key'=>(string)($domain['application_key']??''),
+                'application_guid'=>(string)($domain['application_guid']??''),
+                'product_guid'=>(string)($domain['product_guid']??''),
+                'product_tenant_guid'=>(string)($domain['product_tenant_guid']??''),
+            ];
+            $out['binding']=PlatformBinding::check($domain,$host,$expected);
+            $configuredKey=(string)Config::get('platform.product_key','');
+            $out['product_key_changed']=$configuredKey!=='' && $configuredKey!==(string)($domain['product_key']??'');
+            $tenant=(string)($domain['product_tenant_guid']??'');
+            if($tenant!=='') {
+                try {
+                    $ti=PlatformClient::instance()->tenant($tenant);
+                    $tr=$ti['tenant']??[];
+                    $out['tenant']=[
+                        'ok'=>true,
+                        'status'=>(string)($tr['status']??'UNKNOWN'),
+                        'display_name'=>(string)($tr['display_name']??$tr['organisation_name']??''),
+                    ];
+                } catch(\Throwable $e) {
+                    $out['tenant']=['ok'=>false,'code'=>'TENANT_LOOKUP_FAILED'];
+                }
+                try {
+                    $local=Store::one('SELECT display_name,status FROM ep_tenants WHERE tenant_guid=?',
+                        [Uuid::toBinary($tenant)]);
+                    $out['local_tenant']=[
+                        'ok'=>$local!==null,
+                        'status'=>$local['status']??null,
+                        'display_name'=>$local['display_name']??null,
+                    ];
+                } catch(\Throwable) {
+                    $out['local_tenant']=['ok'=>false,'status'=>'LOCAL_DATABASE_UNAVAILABLE'];
+                }
+            }
+        } catch(\Throwable $e) {
+            $out['domain']=['ok'=>false,'code'=>'PLATFORM_RESOLVE_FAILED','message'=>$e->getMessage()];
+            $out['binding']=['ok'=>false,'code'=>'PLATFORM_RESOLVE_FAILED'];
+        }
+        $bound=(bool)($out['binding']['ok']??false);
+        $tenantReady=(bool)($out['tenant']['ok']??false)
+            && ($out['tenant']['status']??'')==='ACTIVE';
+        $out['ok']=$bound && $tenantReady;
+        $out['recommended_action']=$serviceToken===''?'CONFIGURE_SERVICE_TOKEN':
+            (!$bound?(string)($out['binding']['code']??'CHECK_PLATFORM_BINDING'):
+                (!$tenantReady?'CHECK_PUBLISHER_TENANT':'NONE'));
+        return $out;
     }
+
     public static function resolve(): array
     {
-        $host=Http::host();$cache=RedisStore::getJson('domain:'.$host)?:self::fileCacheGet('domain:'.$host);if($cache)return self::activate($cache,$host,true);
-        $canonical=parse_url((string)Config::get('app.url'),PHP_URL_HOST);$fallback=(string)Config::get('platform.default_tenant_guid','');
-        try{$d=PlatformClient::instance()->resolveDomain($host);}catch(\Throwable$e){if($fallback&&$host===$canonical){$info=self::remoteTenant($fallback);$d=['ok'=>true,'domain_guid'=>null,'organisation_guid'=>$info['organisation_guid']??(string)Config::get('platform.default_organisation_guid'),'product_guid'=>$info['product_guid']??null,'product_key'=>$info['product_key']??'EPAPER','application_guid'=>(string)Config::get('platform.application_guid'),'application_key'=>Config::get('platform.application_key','city_epaper'),'product_tenant_guid'=>$fallback,'hostname'=>$host,'status'=>'CANONICAL_FALLBACK','_tenant_info'=>$info];}else throw$e;}
-        if(($d['product_key']??'')!=='EPAPER')throw new \RuntimeException('Domain is not registered for EPAPER');
-        $tenant=(string)($d['product_tenant_guid']??'');if($tenant==='' )throw new \RuntimeException('Resolved domain has no product tenant');
-        if(empty($d['_tenant_info'])){$info=self::tenantInfo($tenant,false);if($info)$d['_tenant_info']=$info;}
-        $domainTtl=max(60,(int)Config::get('platform.domain_cache_ttl',600));RedisStore::setJson('domain:'.$host,$d,$domainTtl);self::fileCacheSet('domain:'.$host,$d,$domainTtl);
-        return self::activate($d,$host,false);
+        $host=Http::host();
+        $cacheKey=self::bindingCacheKey($host);
+        $cache=RedisStore::getJson($cacheKey)?:self::fileCacheGet($cacheKey);
+        if($cache) {
+            $cachedBinding=PlatformBinding::check($cache,$host,self::expectedBinding());
+            if($cachedBinding['ok'])return self::activate($cache,$host,true);
+            RedisStore::del($cacheKey);
+            @unlink(self::fileCachePath($cacheKey));
+        }
+        $canonical=(string)(parse_url((string)Config::get('app.url',''),PHP_URL_HOST)?:'');
+        $fallback=(string)Config::get('platform.default_tenant_guid','');
+        try {
+            $domain=PlatformClient::instance()->resolveDomain($host);
+        } catch(\Throwable $e) {
+            // Never silently route a newly registered EP-DI hostname back to an
+            // old EPAPER fallback tenant. Emergency mode must be enabled and
+            // both product and application identities explicitly pinned.
+            if($fallback!=='' && $host===$canonical
+                && (bool)Config::get('platform.allow_canonical_fallback',false)) {
+                $info=self::remoteTenant($fallback);
+                $domain=[
+                    'ok'=>true,'domain_guid'=>null,
+                    'organisation_guid'=>$info['organisation_guid']??(string)Config::get('platform.default_organisation_guid',''),
+                    'product_guid'=>$info['product_guid']??null,
+                    'product_key'=>$info['product_key']??'',
+                    'application_guid'=>(string)Config::get('platform.application_guid',''),
+                    'application_key'=>(string)Config::get('platform.application_key',''),
+                    'product_tenant_guid'=>$fallback,
+                    'hostname'=>$host,'status'=>'CANONICAL_FALLBACK','_tenant_info'=>$info,
+                ];
+            } else {
+                throw $e;
+            }
+        }
+        $binding=PlatformBinding::check($domain,$host,self::expectedBinding());
+        if(!$binding['ok'])throw new \RuntimeException('PLATFORM_BINDING_'.$binding['code']);
+        $tenant=(string)$domain['product_tenant_guid'];
+        if(empty($domain['_tenant_info'])) {
+            $info=self::tenantInfo($tenant,false);
+            if($info)$domain['_tenant_info']=$info;
+        }
+        $ttl=max(60,(int)Config::get('platform.domain_cache_ttl',600));
+        RedisStore::setJson($cacheKey,$domain,$ttl);
+        self::fileCacheSet($cacheKey,$domain,$ttl);
+        return self::activate($domain,$host,false);
     }
     private static function activate(array $d,string $host,bool $cached): array
     {
