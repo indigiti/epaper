@@ -17,6 +17,9 @@ secrets = {
     "codebase/config/config.php",
     "codebase/config/runtime.php",
     "codebase/storage/installed.lock",
+    "platform/config/config.php",
+    "platform/config/runtime.php",
+    "platform/storage/install.lock",
 }
 exceptions = {".keep", ".gitkeep", ".htaccess"}
 violations = []
@@ -24,7 +27,7 @@ for path in tracked:
     name = pathlib.PurePosixPath(path).name.lower()
     if path in secrets or (name.startswith(".env") and not name.endswith((".example", ".sample", ".template"))):
         violations.append(("secret/runtime config", path))
-    elif path.startswith("codebase/storage/") and name not in exceptions:
+    elif (path.startswith("codebase/storage/") or path.startswith("platform/storage/") or path.startswith("platform/public_html/uploads/") or path.startswith("codebase/public_html/uploads/")) and name not in exceptions:
         violations.append(("customer/generated content", path))
 
 # Include filenames only in a deliberately bounded count; don't print Git blob content.
