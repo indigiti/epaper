@@ -9,7 +9,7 @@ final class Media
     }
     public static function verify(string $token): array
     {
-        [$raw,$sig]=array_pad(explode('.',$token,2),2,'');$calc=rtrim(strtr(base64_encode(hash_hmac('sha256',$raw,(string)Config::get('app.key'),true)),'+/','-_'),'=');if(!$sig||!hash_equals($calc,$sig))throw new \RuntimeException('Invalid media token');$data=json_decode(base64_decode(strtr($raw,'-_','+/')),true);if(!is_array($data)||($data['e']??0)<time())throw new \RuntimeException('Expired media token');if(($data['t']??'')!==RequestContext::tenantGuid())throw new \RuntimeException('Media tenant mismatch');return$data;
+        [$raw,$sig]=array_pad(explode('.',$token,2),2,'');$calc=rtrim(strtr(base64_encode(hash_hmac('sha256',$raw,(string)Config::get('app.key'),true)),'+/','-_'),'=');if(!$sig||!hash_equals($calc,$sig))throw new \RuntimeException('Invalid media token');$data=json_decode(base64_decode(strtr($raw,'-_','+/')),true);if(!is_array($data)||($data['e']??0)<time())throw new \RuntimeException('Expired media token');if((int)($data['e']??0)>time()+3600+max(60,(int)Config::get('media.token_bucket_seconds',300)))throw new \RuntimeException('Media token lifetime exceeds policy');if(($data['t']??'')!==RequestContext::tenantGuid())throw new \RuntimeException('Media tenant mismatch');return$data;
     }
     public static function asset(string $guid): ?array
     {
