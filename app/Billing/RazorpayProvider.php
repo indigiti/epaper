@@ -13,7 +13,7 @@ final class RazorpayProvider implements PaymentProviderInterface
     }
     public function verifyWebhook(string $payload,array $headers): bool
     {
-        $secret=(string)Config::get('billing.razorpay_key_secret','');$sig=$headers['x-razorpay-signature']??'';
+        $secret=(string)Config::get('billing.razorpay_webhook_secret','');$sig=$headers['x-razorpay-signature']??'';
         return $secret!==''&&$sig!==''&&hash_equals(hash_hmac('sha256',$payload,$secret),$sig);
     }
     public function normalizeWebhook(string $payload,array $headers): array{return json_decode($payload,true)?:[];}
