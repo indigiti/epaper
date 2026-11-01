@@ -75,8 +75,7 @@ final class RegistryCleanup
                 'domain'=>'SELECT COUNT(*) FROM domains WHERE product_guid=? AND status<>"REMOVED"',
                 'application'=>'SELECT COUNT(*) FROM applications WHERE product_guid=? AND status<>"REMOVED"',
                 'publisher tenant'=>'SELECT COUNT(*) FROM product_tenants WHERE product_guid=? AND status<>"REMOVED"',
-                'service account'=>'SELECT COUNT(*) FROM service_accounts WHERE product_guid=? AND status<>"REMOVED"',
-                'service account status'=>'SELECT COUNT(*) FROM service_accounts WHERE product_guid=? AND status<>"REMOVED"'
+                'service account'=>'SELECT COUNT(*) FROM service_accounts WHERE product_guid=? AND status<>"REMOVED"'
             ];
             foreach($activeSql as $label=>$sql)
                 if((int)Store::value($sql,[$bin])>0)$blockers[]='A '.$label.' is not archived. Archive all linked '.$label.' records first.';
