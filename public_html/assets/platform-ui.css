@@ -247,3 +247,11 @@ gap:8px;padding:7px 9px;font-size:12px;font-weight:700;height:36px}
 .stage-reset-form{max-width:none;width:100%}
 }
 @media(prefers-reduced-motion:reduce){.platform-action-button,.platform-action-more>summary{transition:none}}
+
+
+.platform-registry-toolbar{display:flex;justify-content:flex-end;align-items:center;gap:9px;margin:0 0 13px}
+.platform-registry-toolbar .button{font-size:12px}
+.platform-form-disclosure>summary{gap:9px;justify-content:flex-start}
+.platform-form-disclosure>summary::after{margin-left:auto}
+.platform-form-disclosure summary .platform-action-svg{flex:0 0 17px}
+.platform-main-column .table-wrap td:last-child{min-width:128px}
