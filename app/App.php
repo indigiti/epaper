@@ -317,12 +317,22 @@ final class App
     }
     private function tenantAccess(string $guid): never
     {
-        $service=ServiceAuth::requireScope('access.read');ServiceAuth::checkTenant($service,$guid);$row=Store::one('SELECT subscription_guid,status,billing_state,service_access_state,current_period_start,current_period_end FROM subscriptions WHERE product_tenant_guid=? ORDER BY created_at DESC LIMIT 1',[Uuid::toBinary($guid)]);if(!$row)Http::json(['ok'=>true,'product_tenant_guid'=>$guid,'subscription'=>null,'service_access_state'=>'BLOCKED']);Http::json(['ok'=>true,'product_tenant_guid'=>$guid,'subscription'=>$row,'service_access_state'=>$row['service_access_state']]);
+        $service=ServiceAuth::requireScope('access.read');$tenant=ServiceAuth::checkTenant($service,$guid);
+        if($tenant['status']!=='ACTIVE'||$tenant['product_status']!=='ACTIVE'||$tenant['organisation_status']!=='ACTIVE')
+            Http::json(['ok'=>true,'product_tenant_guid'=>$guid,'subscription'=>null,'service_access_state'=>'BLOCKED']);
+        $row=Store::one('SELECT subscription_guid,status,billing_state,service_access_state,current_period_start,current_period_end FROM subscriptions WHERE product_tenant_guid=? ORDER BY created_at DESC LIMIT 1',[Uuid::toBinary($guid)]);if(!$row)Http::json(['ok'=>true,'product_tenant_guid'=>$guid,'subscription'=>null,'service_access_state'=>'BLOCKED']);Http::json(['ok'=>true,'product_tenant_guid'=>$guid,'subscription'=>$row,'service_access_state'=>$row['service_access_state']]);
     }
-    private function tenantEntitlements(string $guid): never{$service=ServiceAuth::requireScope('entitlements.read');ServiceAuth::checkTenant($service,$guid);$tenant=Store::one('SELECT product_tenant_guid,status FROM product_tenants WHERE product_tenant_guid=?',[Uuid::toBinary($guid)]);if(!$tenant)Http::json(['ok'=>false,'code'=>'TENANT_NOT_FOUND'],404);Http::json(['ok'=>true,'product_tenant_guid'=>$guid,'entitlements'=>Entitlements::effective($guid)]);}
+    private function tenantEntitlements(string $guid): never{$service=ServiceAuth::requireScope('entitlements.read');$tenant=ServiceAuth::checkTenant($service,$guid);
+        if($tenant['status']!=='ACTIVE'||$tenant['product_status']!=='ACTIVE'||$tenant['organisation_status']!=='ACTIVE')
+            Http::json(['ok'=>true,'product_tenant_guid'=>$guid,'entitlements'=>[],'service_access_state'=>'BLOCKED']);
+        Http::json(['ok'=>true,'product_tenant_guid'=>$guid,'entitlements'=>Entitlements::effective($guid)]);}
     private function verifyMembership(): never
     {
-        $service=ServiceAuth::requireScope('identity.verify');$d=Http::bodyJson();$user=$d['user_guid']??'';$org=$d['organisation_guid']??'';ServiceAuth::checkOrganisation($service,(string)$org);try{$row=Store::one('SELECT membership_guid,organisation_guid,user_guid,role_key,status FROM memberships WHERE user_guid=? AND organisation_guid=? AND status="ACTIVE" LIMIT 1',[Uuid::toBinary($user),Uuid::toBinary($org)]);}catch(\Throwable){$row=null;}if(!$row)Http::json(['ok'=>false,'code'=>'MEMBERSHIP_NOT_ACTIVE'],404);Http::json(['ok'=>true,'membership'=>$row]);
+        $service=ServiceAuth::requireScope('identity.verify');$d=Http::bodyJson();$user=$d['user_guid']??'';$org=$d['organisation_guid']??'';ServiceAuth::checkOrganisation($service,(string)$org);try{$row=Store::one('SELECT m.membership_guid,m.organisation_guid,m.user_guid,m.role_key,m.status
+            FROM memberships m JOIN platform_users u ON u.user_guid=m.user_guid
+            JOIN organisations o ON o.organisation_guid=m.organisation_guid
+            WHERE m.user_guid=? AND m.organisation_guid=? AND m.status="ACTIVE"
+                AND u.status="ACTIVE" AND o.status="ACTIVE" LIMIT 1',[Uuid::toBinary($user),Uuid::toBinary($org)]);}catch(\Throwable){$row=null;}if(!$row)Http::json(['ok'=>false,'code'=>'MEMBERSHIP_NOT_ACTIVE'],404);Http::json(['ok'=>true,'membership'=>$row]);
     }
     private function recordUsage(): never
     {
