@@ -29,6 +29,16 @@ $checks=[
     'onboarding asset fingerprinted' => str_contains($view,"hash_file('sha256'") && str_contains($view,'onboarding.css?v='),
     'responsive onboarding stylesheet' => str_contains($css,'@media(max-width:520px)'),
     'review distinguishes active legacy sites' => str_contains($dashboard,'Active · review'),
+    'reassign route' => str_contains($app,'verify|owner|confirm|reassign'),
+    'reassign action guarded' => str_contains($onboarding,"if (\$type==='reassign') self::reassign(\$d)"),
+    'reassign blocked for app host' => str_contains($onboarding,'canonical ePaper application hostname cannot be reassigned'),
+    'reassign checks destination tenant' => str_contains($onboarding,'pt.product_guid=? AND p.product_key="EPAPER"'),
+    'reassign preserves existing hostname record' => str_contains($onboarding,'UPDATE domains SET organisation_guid=?,product_tenant_guid=?'),
+    'reassign invalidates Platform domain cache' => str_contains($onboarding,"RedisStore::del('domain:'.\$host)"),
+    'reassign requires typed hostname' => str_contains($onboarding,'confirm_hostname'),
+    'reassign resets lifecycle' => str_contains($onboarding,'status="AWAITING_DNS",verified_at=NULL'),
+    'reassign transactionally audited' => str_contains($onboarding,'domain.onboarding.reassign'),
+    'reassign progress visibility' => str_contains($dashboard,'Shared tenant'),
     'no database migration required' => !str_contains($onboarding,'CREATE TABLE'),
 ];
 foreach ($checks as $name=>$ok) {
