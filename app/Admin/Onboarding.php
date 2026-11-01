@@ -47,7 +47,14 @@ final class Onboarding
                 $detail=self::detail($active,$users);
             }
         }
-        View::layout('Publisher Onboarding',OnboardingDashboard::render($rows,$reviews,$users,$tenants,$filter,$q,$detail),[
+        $archived=Store::all('SELECT d.domain_guid,d.hostname,o.display_name organisation_name,pt.display_name tenant_name,
+            d.updated_at FROM domains d JOIN products p ON p.product_guid=d.product_guid
+            JOIN organisations o ON o.organisation_guid=d.organisation_guid
+            JOIN product_tenants pt ON pt.product_tenant_guid=d.product_tenant_guid
+            WHERE p.product_key="EPAPER" AND d.status="REMOVED"
+              AND d.domain_type IN ("CUSTOMER_CUSTOM","CUSTOMER_SUBDOMAIN")
+            ORDER BY d.updated_at DESC LIMIT 100');
+        View::layout('Publisher Onboarding',OnboardingDashboard::render($rows,$reviews,$users,$tenants,$filter,$q,$detail,$archived),[
             'subtitle'=>'Registered domains, launch progress and clear next actions',
         ]);
     }
