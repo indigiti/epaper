@@ -329,7 +329,17 @@ final class App
         if(!RateLimiter::allow($bucket,10,300)){Audit::log('identity.direct_login_rate_limited','product_tenant',$tenantGuid,'DENIED',['application_key'=>$app['application_key']]);Http::json(['ok'=>false,'code'=>'AUTH_RATE_LIMITED','message'=>'Too many sign-in attempts. Try again later.'],429);}
         $user=OAuth::verifyCredentials($email,$password,$totp);
         if(!$user){Audit::log('identity.direct_login_failed','product_tenant',$tenantGuid,'DENIED',['application_key'=>$app['application_key'],'email_hash'=>hash('sha256',$email)]);Http::json(['ok'=>false,'code'=>'AUTH_INVALID','message'=>'Invalid email, password or authenticator code'],401);}
-        $memberships=Store::all('SELECT membership_guid,organisation_guid,role_key,status FROM memberships WHERE user_guid=? AND status="ACTIVE"',[Uuid::toBinary($user['user_guid'])]);
+        $memberships=Store::all('SELECT membership_guid,organisation_guid,role_key,status FROM memberships
+            WHERE user_guid=? AND organisation_guid=? AND status="ACTIVE" LIMIT 1',[
+            Uuid::toBinary($user['user_guid']),Uuid::toBinary($tenant['organisation_guid'])
+        ]);
+        if(!$memberships) {
+            Audit::log('identity.direct_login_denied','product_tenant',$tenantGuid,'DENIED',[
+                'application_key'=>$app['application_key'],'reason'=>'NO_TENANT_MEMBERSHIP'
+            ]);
+            Http::json(['ok'=>false,'code'=>'AUTH_TENANT_MEMBERSHIP_REQUIRED',
+                'message'=>'This account has no active membership for the requested publisher'],403);
+        }
         $identity=['user'=>$user,'memberships'=>$memberships,'authenticated_at'=>gmdate('c'),'assurance'=>!empty($user['mfa_used'])?'PASSWORD_MFA':'PASSWORD','product_tenant_guid'=>$tenantGuid,'application_guid'=>$app['application_guid']];
         unset($identity['user']['mfa_used']);
         Audit::log('identity.direct_login','product_tenant',$tenantGuid,'SUCCESS',['application_key'=>$app['application_key'],'user_guid'=>$user['user_guid']]);
