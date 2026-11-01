@@ -1,6 +1,9 @@
 <?php
 declare(strict_types=1);
 $root=dirname(__DIR__);
+require_once $root.'/app/Core/Config.php';
+require_once $root.'/app/Admin/StagingReset.php';
+require_once $root.'/app/Admin/ActionUi.php';
 require_once $root.'/app/Core/View.php';
 require_once $root.'/app/Admin/Onboarding.php';
 require_once $root.'/app/Admin/OnboardingDashboard.php';
