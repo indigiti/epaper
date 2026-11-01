@@ -29,6 +29,7 @@ permissions:
 jobs:
   onboarding:
     runs-on: ubuntu-24.04
+    timeout-minutes: 15
     services:
       mysql:
         image: mysql:8.0
