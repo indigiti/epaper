@@ -32,8 +32,8 @@ $check(str_contains($view,'frontend-themes.css')&&str_contains($view,'reader-the
 $check(str_contains($view,'ThemeCatalog::previewActive()')&&str_contains($view,'noindex,nofollow,noarchive'),'Preview SEO isolation');
 $gallery=(string)file_get_contents($root.'/app/Services/AppearanceGallery.php');
 $check(str_contains($gallery,'theme_preview')&&str_contains($gallery,'theme_surface')&&str_contains($app,'AppearanceGallery::render'),'Admin appearance gallery provides theme preview links');
-$check(str_contains($app,"Auth::requireAdmin();")&&str_contains($app,'AdminRoutePolicy::enforce($path)')&&str_contains($app,"$path==='/admin/settings'"),'Settings routes protected by the centralized admin policy');
-$check(str_contains($view,'$workspace=$admin||$account')&&str_contains($view,"$account?'Default':ThemeCatalog::resolve('frontend'"),'Account workspace excluded from frontend appearance');
+$check(str_contains($app,"Auth::requireAdmin();")&&str_contains($app,'AdminRoutePolicy::enforce($path)')&&str_contains($app,"\$path==='/admin/settings'"),'Settings routes protected by the centralized admin policy');
+$check(str_contains($view,'$workspace=$admin||$account')&&str_contains($view,"\$account?'Default':ThemeCatalog::resolve('frontend'"),'Account workspace excluded from frontend appearance');
 $check(str_contains($settings,'appearance.frontend_theme'),'Frontend choice managed through validated tenant settings');
 foreach(['newsstand-modern','editorial-portal','classic-newspaper','digital-magazine'] as $slug) {
     $check(str_contains($frontCss,'.public-shell.theme-'.$slug),'Frontend '.$slug.' is styled');
