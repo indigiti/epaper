@@ -14,6 +14,8 @@ on:
       - 'codebase/public_html/assets/reader-ui-visibility.css'
       - 'tests/reader-ui-visibility.php'
       - 'codebase/tests/reader-ui-visibility.php'
+      - 'tests/settings-route-reachability.php'
+      - 'codebase/tests/settings-route-reachability.php'
       - '.github/workflows/epaper-platform-binding.yml'
   pull_request:
     branches: [cw-epaper, main]
@@ -28,6 +30,8 @@ on:
       - 'codebase/public_html/assets/reader-ui-visibility.css'
       - 'tests/reader-ui-visibility.php'
       - 'codebase/tests/reader-ui-visibility.php'
+      - 'tests/settings-route-reachability.php'
+      - 'codebase/tests/settings-route-reachability.php'
       - '.github/workflows/epaper-platform-binding.yml'
   workflow_dispatch:
 
@@ -70,6 +74,12 @@ jobs:
           php -l codebase/app/Core/View.php
           php tests/reader-ui-visibility.php
           php codebase/tests/reader-ui-visibility.php
+      - name: Every admin settings tab has a working GET/POST dispatcher
+        run: |
+          php -l app/Services/SettingsCatalog.php
+          php -l codebase/app/Services/SettingsCatalog.php
+          php tests/settings-route-reachability.php
+          php codebase/tests/settings-route-reachability.php
       - name: WebDesk restricted publishing role and hostile POST request tests
         run: |
           php -l app/Views/WebDeskEditionView.php
