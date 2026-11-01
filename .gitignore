@@ -15,3 +15,12 @@
 *.key
 *.p12
 *.pfx
+
+# Digiti control-plane runtime secrets / uploads
+/platform/config/config.php
+/platform/config/*.local.php
+/platform/storage/*
+/platform/public_html/uploads/
+/platform/.env
+/platform/.env.*
+!/platform/.env.example
