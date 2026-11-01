@@ -16,8 +16,10 @@ $catalog=SettingsCatalog::group('interface');
 assertVisible(count($fields)>=25,'All top navigation, reader tools and archive controls are configurable');
 assertVisible($catalog!==null&&array_keys($catalog['fields'])===array_keys($fields),'Settings catalog exposes exact visibility switches');
 assertVisible(ReaderUiControls::bodyClasses([])==='','Unconfigured publisher retains existing interface');
+$toggles=array_filter($fields,static fn(array $field):bool=>$field[3]===['on','off']);
+assertVisible(count($toggles)>=25,'All registered visibility switches remain default-on');
 $values=[];
-foreach($fields as $key=>$field){
+foreach($toggles as $key=>$field){
     assertVisible($field[1]==='select'&&$field[2]==='on'&&$field[3]===['on','off'],
       "Validated default-on field $key");
     $values[$key]='off';
@@ -29,7 +31,7 @@ foreach($values as $key=>$_){
       "Server sends class for disabled $key");
     assertVisible(str_contains($css,'body.'.$slug),'Disabled control has CSS visibility rule');
 }
-assertVisible(count(array_filter(explode(' ',ReaderUiControls::bodyClasses($values))))===count($fields),
+assertVisible(count(array_filter(explode(' ',ReaderUiControls::bodyClasses($values))))===count($toggles),
     'All independently disabled UI switches are represented');
 assertVisible(ReaderUiControls::bodyClasses(['ui.zoom_in'=>'unexpected'])==='',
     'Unexpected settings values do not inadvertently hide buttons');

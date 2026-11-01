@@ -53,7 +53,9 @@ final class ReaderUiControls
     public static function bodyClasses(array $values): string
     {
         $classes='';
-        foreach(self::fields() as $key=>$_){
+        foreach(self::fields() as $key=>$field){
+            // Only on/off controls produce visibility classes; style choices do not.
+            if($field[3]!==['on','off'])continue;
             if(($values[$key]??'on')!=='off')continue;
             $classes.=' ui-hide-'.str_replace('_','-',substr($key,3));
         }
