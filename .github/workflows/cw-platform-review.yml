@@ -1,0 +1,90 @@
+name: DigiTi Platform Cloudways Review
+
+on:
+  push:
+    branches: [cw-platform]
+  pull_request:
+    branches: [cw-platform]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  platform-code:
+    name: PHP, installer and current-tree security
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: pdo_mysql, mbstring, openssl, curl
+      - name: Block tracked private config and runtime data
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import subprocess,sys
+          paths=[p for p in subprocess.check_output(['git','ls-files','-z']).decode().split('\0') if p]
+          allowed={'storage/.gitkeep','storage/.keep','storage/.htaccess'}
+          blocked=[p for p in paths if (
+              p in ('config/config.php','config/runtime.php','storage/install.lock')
+              or p.startswith('public_html/uploads/')
+              or (p.startswith('storage/') and p not in allowed)
+              or (p.rsplit('/',1)[-1].startswith('.env') and not p.endswith(('.example','.sample','.template')))
+          )]
+          if blocked:
+              print('SECURITY BLOCK: tracked runtime secrets/customer assets: '+str(len(blocked)))
+              sys.exit(1)
+          print('PASS: no tracked runtime secrets or tenant files in Platform source')
+          PY
+      - name: Static PHP syntax
+        run: |
+          set -e
+          find app bin public_html tests -type f -name '*.php' -print0 | xargs -0 -n1 php -l >/tmp/platform-php-lint.txt
+          echo "PASS: all PHP source files parse"
+      - name: Platform contracts, admin permissions and installer security
+        run: |
+          php tests/core-smoke.php
+          php tests/build-guard.php
+          php tests/admin-crud-guard.php
+          php tests/config-private-runtime.php
+          php tests/installer-config-guard.php
+      - name: Release version equals manifest
+        run: |
+          php -r '$v=trim(file_get_contents("VERSION"));$m=json_decode(file_get_contents("manifest.json"),true);if(($m["version"]??null)!==$v){fwrite(STDERR,"Platform VERSION does not match manifest".PHP_EOL);exit(1);}echo "Platform version: ".$v.PHP_EOL;'
+
+  live-public-diagnostics:
+    name: Live health and installer status (advisory only)
+    runs-on: ubuntu-24.04
+    continue-on-error: true
+    steps:
+      - name: Check Cloudways public GET routes without secrets
+        timeout-minutes: 2
+        run: |
+          python3 - <<'PY'
+          import sys,urllib.request,urllib.error
+          base='https://platform.digiti.in'
+          failed=False
+          for path in ['/health/live','/login','/install.php']:
+              req=urllib.request.Request(base+path,headers={'User-Agent':'DigitiPlatformReadOnlyAudit/1.0','Cache-Control':'no-cache'})
+              try:
+                  with urllib.request.urlopen(req,timeout=12) as r:
+                      status=r.status
+                      content_type=r.headers.get('content-type','')
+              except urllib.error.HTTPError as e:
+                  status=e.code
+                  content_type=e.headers.get('content-type','')
+              except Exception as e:
+                  print(path+': UNVERIFIED ('+type(e).__name__+')')
+                  failed=True
+                  continue
+              print(path+': HTTP '+str(status)+' ('+content_type.split(';')[0]+')')
+              if path=='/health/live' and status!=200: failed=True
+              if path=='/install.php' and status==200:
+                  print('SECURITY ALERT: publicly accessible installer may be unlocked')
+                  failed=True
+          if failed:
+              print('Advisory check incomplete or unsafe; not accepted as deployment proof')
+              sys.exit(1)
+          PY
