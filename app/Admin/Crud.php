@@ -157,6 +157,37 @@ final class Crud
         $memberships=Store::all('SELECT m.membership_guid,m.role_key,m.status,o.display_name organisation FROM memberships m JOIN organisations o ON o.organisation_guid=m.organisation_guid WHERE m.user_guid=? ORDER BY o.display_name',[self::guidBin($guid)]);$m='';foreach($memberships as$x)$m.='<tr><td>'.self::e($x['organisation']).'</td><td>'.self::e($x['role_key']).'</td><td>'.self::status($x['status']).'</td></tr>';if(!$m)$m='<tr><td colspan="3" class="muted">No memberships.</td></tr>';
         $body='<section class="card"><h2>Edit global user</h2><form method="post" class="form-grid">'.self::csrf().'<label>Name<input name="display_name" value="'.self::e($r['display_name']).'" required></label><label>Email<input type="email" name="email" value="'.self::e($r['email']).'" required></label><label>Status<select name="status">'.self::option('ACTIVE','ACTIVE',$r['status']).self::option('SUSPENDED','SUSPENDED',$r['status']).'</select></label><label>New password <span class="muted">optional</span><input type="password" name="new_password" minlength="10"></label><div class="form-action"><button class="primary">Update user</button><a class="button" href="/admin/users">Cancel</a></div></form></section><section class="card"><h2>Memberships</h2><div class="table-wrap"><table><thead><tr><th>Organisation</th><th>Role</th><th>Status</th></tr></thead><tbody>'.$m.'</tbody></table></div></section>';View::layout('Edit User',$body,['subtitle'=>$r['email']]);
     }
+    private static function userMembershipRole(string $guid,string $method): never
+    {
+        if($method!=='POST')Http::redirect('/admin/users/'.$guid.'/edit');
+        $admin=\Digiti\Core\Auth::requireAdmin();
+        $role=Store::value('SELECT role_key FROM platform_admins WHERE admin_guid=? AND status="ACTIVE"',
+            [self::guidBin((string)$admin['admin_guid'])]);
+        if($role!=='SUPER_ADMIN')throw new \RuntimeException('Only a Platform super administrator can assign publisher roles.');
+        $memberGuid=(string)($_POST['membership_guid']??'');
+        $selected=strtoupper(trim((string)($_POST['role_key']??'')));
+        $allowed=['OWNER','ADMIN','MANAGER','VIEWER','WEBDESK',
+            'PUBLISHER_ADMIN','EDITOR','OPERATOR'];
+        if(!in_array($selected,$allowed,true))throw new \InvalidArgumentException('Unknown publisher role');
+        Store::tx(static function()use($guid,$memberGuid,$selected):void{
+            $record=Store::one('SELECT m.role_key,m.status,u.status user_status,o.status org_status '
+                .'FROM memberships m JOIN platform_users u ON u.user_guid=m.user_guid '
+                .'JOIN organisations o ON o.organisation_guid=m.organisation_guid '
+                .'WHERE m.membership_guid=? AND m.user_guid=? FOR UPDATE',
+                [self::guidBin($memberGuid),self::guidBin($guid)]);
+            if(!$record||$record['status']!=='ACTIVE'||$record['user_status']!=='ACTIVE'
+                ||$record['org_status']!=='ACTIVE')
+                throw new \InvalidArgumentException('Publisher user and membership must be active');
+            if($record['role_key']===$selected)return;
+            Store::exec('UPDATE memberships SET role_key=?,updated_at=NOW(6) '
+                .'WHERE membership_guid=? AND user_guid=? AND status="ACTIVE"',
+                [$selected,self::guidBin($memberGuid),self::guidBin($guid)]);
+            Audit::log('membership.role_changed','membership',$memberGuid,'SUCCESS',
+                ['previous_role'=>$record['role_key'],'role'=>$selected,'publisher_user_guid'=>$guid]);
+        });
+        self::redirect('/admin/users/'.$guid.'/edit','Publisher role changed. Sign in again for updated access.');
+    }
+
     private static function userStatus(string $guid,string $method): never { if($method!=='POST')Http::redirect('/admin/users');self::ensureNotRemoved('user',$guid);$status=self::allowed($_POST['status']??'SUSPENDED',['ACTIVE','SUSPENDED'],'SUSPENDED');Store::exec('UPDATE platform_users SET status=?,updated_at=NOW(6) WHERE user_guid=?',[$status,self::guidBin($guid)]);Audit::log('user.status','platform_user',$guid);self::redirect('/admin/users','User status updated.'); }
     private static function userRemove(string $guid,string $method): never
     {
