@@ -1,0 +1,56 @@
+name: ePaper Platform Binding Regression (EP-DI)
+
+on:
+  push:
+    branches: [cw-epaper, main]
+    paths:
+      - 'app/**'
+      - 'codebase/app/**'
+      - 'config/**'
+      - 'codebase/config/**'
+      - 'tests/epdi-platform-binding-contract.php'
+      - 'codebase/tests/epdi-platform-binding-contract.php'
+      - '.github/workflows/epaper-platform-binding.yml'
+  pull_request:
+    branches: [cw-epaper, main]
+    paths:
+      - 'app/**'
+      - 'codebase/app/**'
+      - 'config/**'
+      - 'codebase/config/**'
+      - 'tests/epdi-platform-binding-contract.php'
+      - 'codebase/tests/epdi-platform-binding-contract.php'
+      - '.github/workflows/epaper-platform-binding.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  binding:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          coverage: none
+      - name: Enforce no private runtime config or uploaded media
+        run: python3 codebase/tests/security-source-guard.py
+      - name: Cloudways root and codebase runtime parity
+        run: python3 codebase/tests/branch-layout-parity.py
+      - name: PHP syntax validation
+        run: |
+          set -euo pipefail
+          for file in app/Services/PlatformBinding.php app/Services/DomainResolver.php app/App.php config/config.example.php tests/epdi-platform-binding-contract.php codebase/app/Services/PlatformBinding.php codebase/app/Services/DomainResolver.php codebase/app/App.php codebase/config/config.example.php codebase/tests/epdi-platform-binding-contract.php; do
+            php -l "$file"
+          done
+      - name: Production product-key migration and cross-tenant regression
+        run: |
+          php tests/epdi-platform-binding-contract.php
+          php codebase/tests/epdi-platform-binding-contract.php
+      - name: Existing authentication tenant escaping contract
+        run: |
+          php tests/auth-tenant-escaping.php
+          php codebase/tests/auth-tenant-escaping.php
