@@ -199,7 +199,7 @@ foreach([
  'data-confirm="Remove this marked article',
 ] as $token)
  if(!str_contains($ui,$token))throw new RuntimeException('Clip Marking overlay/icon control missing: '.$token);
-if(!str_contains($ui,'if($editable){')||!str_contains($ui,'$closeX=')||
+if(!str_contains($ui,"if(\$editable&&strtoupper(\$role)!=='WEBDESK'){")||!str_contains($ui,'$closeX=')||
    !str_contains($ui,'$closeY=')||
    !str_contains($ui,'class="manual-overlay-remove" data-manual-remove-overlay'))
  throw new RuntimeException('Overlay remove controls must be editor-authorized and independently positioned');
