@@ -32,7 +32,7 @@ $checks=[
     'reassign route' => str_contains($app,'verify|owner|confirm|reassign'),
     'reassign action guarded' => str_contains($onboarding,"if (\$type==='reassign') self::reassign(\$d)"),
     'reassign blocked for app host' => str_contains($onboarding,'canonical ePaper application hostname cannot be reassigned'),
-    'reassign checks destination tenant' => str_contains($onboarding,'pt.product_guid=? AND p.product_key="EPAPER"'),
+    'reassign checks destination tenant' => str_contains($onboarding,'pt.product_guid=? AND p.status="ACTIVE"'),
     'reassign preserves existing hostname record' => str_contains($onboarding,'UPDATE domains SET organisation_guid=?,product_tenant_guid=?'),
     'reassign invalidates Platform domain cache' => str_contains($onboarding,"RedisStore::del('domain:'.\$host)"),
     'reassign requires typed hostname' => str_contains($onboarding,'confirm_hostname'),
