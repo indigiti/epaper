@@ -161,12 +161,27 @@ final class App
     {
         $orgs=Store::all('SELECT organisation_guid,display_name FROM organisations WHERE status="ACTIVE" ORDER BY display_name');$products=Store::all('SELECT product_guid,name FROM products WHERE status="ACTIVE" ORDER BY name');if($method==='POST'){$org=(string)($_POST['organisation_guid']??'');$prod=(string)($_POST['product_guid']??'');$name=trim((string)($_POST['display_name']??''));if($name==='')throw new \InvalidArgumentException('Enter a publisher tenant name.');if(!in_array($org,array_column($orgs,'organisation_guid'),true)||!in_array($prod,array_column($products,'product_guid'),true))throw new \InvalidArgumentException('Choose an active organisation and product.');$this->reuseExisting(Store::one('SELECT product_tenant_guid existing_guid,status FROM product_tenants WHERE organisation_guid=? AND product_guid=? LIMIT 1',[Uuid::toBinary($org),Uuid::toBinary($prod)]),'/admin/product-tenants','Publisher tenant');$guid=Uuid::v7();Store::exec('INSERT INTO product_tenants(product_tenant_guid,organisation_guid,product_guid,external_tenant_reference,display_name,status,created_at,updated_at) VALUES(?,?,?,?,?,"ACTIVE",NOW(6),NOW(6))',[Uuid::toBinary($guid),Uuid::toBinary($_POST['organisation_guid']),Uuid::toBinary($_POST['product_guid']),trim($_POST['external_ref']??'')?:null,trim($_POST['display_name'])]);Audit::log('product_tenant.create','product_tenant',$guid);View::flash('Product tenant created.');Http::redirect('/admin/product-tenants');}
         $history=isset($_GET['history'])&&$_GET['history']==='1';
-        $items=Store::all('SELECT pt.product_tenant_guid,pt.display_name,pt.status,o.display_name organisation,p.name product
+        $items=Store::all('SELECT pt.product_tenant_guid,pt.display_name,pt.status,
+            p.product_guid,p.name product,p.status product_status,p.product_key,
+            o.display_name organisation,o.status organisation_status
             FROM product_tenants pt JOIN organisations o ON o.organisation_guid=pt.organisation_guid
             JOIN products p ON p.product_guid=pt.product_guid '
             .($history?'':'WHERE LEFT(p.product_key,8)<>"RETIRED_" ')
-            .'ORDER BY o.display_name,p.name');$rows=[];foreach($items as$r)$rows[]=[$this->e($r['organisation']),$this->e($r['product']),$this->e($r['display_name']),$this->status($r['status']),'<code>'.$this->e($r['product_tenant_guid']).'</code>',Crud::rowActions('product-tenant',$r['product_tenant_guid'],$r['status'],'/admin/product-tenants')];$form='<section class="card"><h2>Create product tenant</h2><form method="post" class="form-grid">'.$this->csrf().'<label>Organisation'.$this->select('organisation_guid',$orgs,'organisation_guid','display_name').'</label><label>Product'.$this->select('product_guid',$products,'product_guid','name').'</label><label>Display name<input name="display_name" required></label><label>External reference<input name="external_ref"></label><div class="form-action"><button class="primary">Create</button></div></form></section>';View::layout('Product Tenants','<div class="platform-registry-toolbar">'.ActionUi::add('?mode=new#add-record','Add Tenant')
-            .'<a class="button" href="'.($history?'/admin/product-tenants':'/admin/product-tenants?history=1').'">'.($history?'Hide retired history':'Show retired history').'</a></div><section class="card"><h2>Tenants by product</h2>'.$this->table(['Organisation','Product','Tenant','Status','GUID','Actions'],$rows).'</section>'.$this->addRecordForm($form,'Add product tenant'));
+            .'ORDER BY o.display_name,p.name');
+        $rows=[];$blockedCount=0;
+        foreach($items as $r) {
+            if($r['product_status']!=='ACTIVE'||$r['organisation_status']!=='ACTIVE')$blockedCount++;
+            $url='/admin/products/'.rawurlencode($r['product_guid'])
+                .($r['product_status']==='REMOVED'?'/restore':'/edit');
+            $rows[]=[$this->e($r['organisation']),'<a href="'.$this->e($url).'">'.$this->e($r['product']).'</a>',
+                $this->e($r['display_name']),$this->status($r['status']),$this->status($r['product_status']),
+                '<code>'.$this->e($r['product_tenant_guid']).'</code>',
+                Crud::rowActions('product-tenant',$r['product_tenant_guid'],$r['status'],'/admin/product-tenants')];
+        }
+        $dependencyNotice=$blockedCount>0
+            ?'<p class="muted" role="alert">'.$blockedCount.' tenant(s) reference an inactive product or organisation. A tenant can be ACTIVE while its parent product is not. Open the linked Product to restore or activate it.</p>'
+            :'';$form='<section class="card"><h2>Create product tenant</h2><form method="post" class="form-grid">'.$this->csrf().'<label>Organisation'.$this->select('organisation_guid',$orgs,'organisation_guid','display_name').'</label><label>Product'.$this->select('product_guid',$products,'product_guid','name').'</label><label>Display name<input name="display_name" required></label><label>External reference<input name="external_ref"></label><div class="form-action"><button class="primary">Create</button></div></form></section>';View::layout('Product Tenants','<div class="platform-registry-toolbar">'.ActionUi::add('?mode=new#add-record','Add Tenant')
+            .'<a class="button" href="'.($history?'/admin/product-tenants':'/admin/product-tenants?history=1').'">'.($history?'Hide retired history':'Show retired history').'</a></div><section class="card"><h2>Tenants by product</h2>'.$dependencyNotice.$this->table(['Organisation','Product','Tenant','Tenant status','Product status','GUID','Actions'],$rows).'</section>'.$this->addRecordForm($form,'Add product tenant'));
     }
 
     private function domains(string $method): never
