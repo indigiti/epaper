@@ -50,7 +50,7 @@ final class ServiceAuth
         catch(\InvalidArgumentException){Http::json(['ok'=>false,'code'=>'ORGANISATION_INVALID'],400);}
         $allowed=Store::value('SELECT 1 FROM product_tenants pt
             JOIN products p ON p.product_guid=pt.product_guid
-            WHERE pt.organisation_guid=? AND pt.product_guid=? AND p.status="ACTIVE" LIMIT 1',[
+            WHERE pt.organisation_guid=? AND pt.product_guid=? AND pt.status="ACTIVE" AND p.status="ACTIVE" LIMIT 1',[
             $bin,Uuid::toBinary($service['product_guid'])
         ]);
         if(!$allowed)Http::json(['ok'=>false,'code'=>'SERVICE_ORGANISATION_DENIED'],403);
