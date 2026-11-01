@@ -10,7 +10,7 @@ use EpaperSaas\Core\{Auth,Http,RequestContext,Store,Uuid};
  */
 final class ManualClipMarking
 {
-    private const ROLES=['OWNER','ADMIN','PUBLISHER_ADMIN','EDITOR'];
+    private const ROLES=['OWNER','ADMIN','PUBLISHER_ADMIN','EDITOR','WEBDESK'];
     private const UNTITLED_ARTICLE='Untitled article';
 
     /**
