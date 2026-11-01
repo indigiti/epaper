@@ -25,6 +25,13 @@ use Digiti\Admin\CanonicalDomainRegistration as Canonical;
 
 $app=['application_guid'=>'app-epaper','product_guid'=>'prod-epaper'];
 $active=[...$app,'product_key'=>'EPAPER','base_url'=>'https://epaper.digiti.in'];
+$liveProduct=['application_guid'=>'app-ep-di','product_guid'=>'prod-ep-di'];
+$liveApp=[...$liveProduct,'product_key'=>'EP-DI','base_url'=>'https://epaper.digiti.in'];
+auditCheck(Canonical::classifyKnown('epaper.digiti.in',$liveProduct,[$liveApp],true)==='SAAS_DEFAULT',
+    'EP-DI product key is accepted when canonical host matches its application and product GUID');
+auditCheck(Canonical::classifyKnown('epaper.dcnnews.co.in',$liveProduct,[$liveApp],true)==='CUSTOMER_CUSTOM',
+    'EP-DI application permits separate publisher customer hostname');
+
 auditCheck(Canonical::classifyKnown('https://epaper.digiti.in/',$app,[$active],true)==='SAAS_DEFAULT',
     'main EPAPER Base URL registers as canonical application hostname for superadmin');
 auditCheck(Canonical::classifyKnown('epaper.dcnnews.co.in',$app,[$active],false)==='CUSTOMER_CUSTOM',
@@ -54,11 +61,22 @@ $stripe=sourceCode('app/Billing/StripeProvider.php');
 $schema=sourceCode('database/schema.sql');
 
 auditCheck(str_contains($appSource,'CanonicalDomainRegistration::classify($host,$app)') &&
-    str_contains($appSource,'$domainType,$token'),
-    'Domain Registry stores selected SAAS_DEFAULT/CUSTOMER_CUSTOM type');
+    str_contains($appSource,'CanonicalDomainRegistration::insertDomain($guid,$host,$token,$tenant,$app,$domainType)'),
+    'Domain Registry classifies and stores both application/customer hostnames through shared writer');
 auditCheck(str_contains($onboard,'CanonicalDomainRegistration::classify($host,$app)') &&
-    str_contains($onboard,'$domainType,$token'),
-    'Publisher Onboarding uses the same canonical classifier');
+    str_contains($onboard,'CanonicalDomainRegistration::insertDomain($dGuid,$host,$token,'),
+    'Publisher Onboarding uses the same registration classifier and shared domain writer');
+auditCheck(!str_contains($onboard,'WHERE p.product_key="EPAPER"') &&
+    str_contains($onboard,'pt.product_guid=? AND p.status="ACTIVE"'),
+    'Onboarding no longer assumes literal EPAPER product key and scopes tenant by active product GUID');
+auditCheck(str_contains($onboard,"\$domainType==='SAAS_DEFAULT' && \$type==='new'"),
+    'Canonical hostname cannot accidentally create a second publisher account');
+auditCheck(str_contains(sourceCode('app/Admin/Restore.php'),"\$app['product_guid']") &&
+    !str_contains(sourceCode('app/Admin/Restore.php'),"\$app['product_key']!=='EPAPER'"),
+    'Canonical Restore follows linked product/application GUID rather than obsolete product key');
+auditCheck(str_contains($appSource,'product_status') &&
+    str_contains($appSource,"\$dependencyNotice"),
+    'Product Tenant registry shows linked product status, not only tenant status');
 auditCheck(str_contains($onboard,'confirm_canonical') &&
     str_contains($dashboard,'name="confirm_canonical"'),
     'main application hostname requires explicit onboarding confirmation');
