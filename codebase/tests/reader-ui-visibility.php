@@ -59,7 +59,7 @@ assertVisible(str_contains($view,'reader-ui-visibility.css'),
 assertVisible(str_contains($menu,"'/admin/settings/interface'"),
     'Publisher sidebar links to the new visibility page');
 assertVisible(str_contains($app,'SettingsCatalog::group($group)')
-    && str_contains($app,"in_array($value,$field[3],true)"),
+    && str_contains($app,'in_array($value,$field[3],true)'),
     'Existing admin group validates visibility switches server-side');
 foreach(['data-zoom-in','data-zoom-out','data-article-mode','data-reader-text-mode','data-clip','data-fit-page','data-fullscreen'] as $marker)
     assertVisible(str_contains($app,$marker),"Existing reader JS hook remains present: $marker");
