@@ -359,7 +359,7 @@ final class Onboarding
         if($canonicalHost!=='' && strcasecmp($canonicalHost,$hostname)!==0) {
             $sharesMain=(bool)Store::value('SELECT 1 FROM domains
                 WHERE normalized_hostname=? AND product_tenant_guid=? AND status<>"REMOVED" LIMIT 1',[
-                strtolower($canonicalHost),self::gid($d['product_guid']),self::gid($d['product_tenant_guid'])
+                strtolower($canonicalHost),self::gid($d['product_tenant_guid'])
             ]);
         }
         $sharedNotice=$sharesMain
@@ -398,7 +398,7 @@ final class Onboarding
                 JOIN products p ON p.product_guid=pt.product_guid
                 WHERE pt.product_guid=? AND p.status="ACTIVE" AND pt.status="ACTIVE" AND o.status="ACTIVE"
                 AND pt.product_tenant_guid<>? ORDER BY o.display_name,pt.display_name LIMIT 200',[
-                self::gid($d['product_tenant_guid'])
+                self::gid($d['product_guid']),self::gid($d['product_tenant_guid'])
             ]);
             $options='<option value="">Select a separate publisher tenant</option>';
             foreach($destinations as $t) $options.='<option value="'.self::e($t['product_tenant_guid']).'">'.self::e($t['organisation_name'].' / '.$t['display_name']).'</option>';
