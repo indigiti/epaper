@@ -27,12 +27,13 @@ $app=(string)file_get_contents($root.'/app/App.php');
 $settings=(string)file_get_contents($root.'/app/Services/SettingsCatalog.php');
 $frontCss=(string)file_get_contents($root.'/public_html/assets/frontend-themes.css');
 $readerCss=(string)file_get_contents($root.'/public_html/assets/reader-themes.css');
-$check(str_contains($view,"ThemeCatalog::resolve(\$surface,\$savedTheme)"),'Shared View delegates theme resolution');
+$check(str_contains($view,"ThemeCatalog::resolve('reader'")&&str_contains($view,"ThemeCatalog::resolve('admin'")&&str_contains($view,"ThemeCatalog::resolve('frontend'"),'Shared View delegates theme resolution to separate surfaces');
 $check(str_contains($view,'frontend-themes.css')&&str_contains($view,'reader-themes.css'),'Surface-specific CSS linked independently');
 $check(str_contains($view,'ThemeCatalog::previewActive()')&&str_contains($view,'noindex,nofollow,noarchive'),'Preview SEO isolation');
-$check(str_contains($app,'theme_preview')&&str_contains($app,'theme_surface'),'Admin preview links provided');
-$check(str_contains($app,"if((\$path==='/admin/settings'||str_starts_with(\$path,'/admin/settings/'))"),'Settings routes protected independently of navigation');
-$check(str_contains($view,"(\$account?'account':'frontend')"),'Account workspace excluded from frontend theme');
+$gallery=(string)file_get_contents($root.'/app/Services/AppearanceGallery.php');
+$check(str_contains($gallery,'theme_preview')&&str_contains($gallery,'theme_surface')&&str_contains($app,'AppearanceGallery::render'),'Admin appearance gallery provides theme preview links');
+$check(str_contains($app,"Auth::requireAdmin();")&&str_contains($app,'AdminRoutePolicy::enforce($path)')&&str_contains($app,"$path==='/admin/settings'"),'Settings routes protected by the centralized admin policy');
+$check(str_contains($view,'$workspace=$admin||$account')&&str_contains($view,"$account?'Default':ThemeCatalog::resolve('frontend'"),'Account workspace excluded from frontend appearance');
 $check(str_contains($settings,'appearance.frontend_theme'),'Frontend choice managed through validated tenant settings');
 foreach(['newsstand-modern','editorial-portal','classic-newspaper','digital-magazine'] as $slug) {
     $check(str_contains($frontCss,'.public-shell.theme-'.$slug),'Frontend '.$slug.' is styled');
