@@ -1174,6 +1174,10 @@ final class App
 
     private function adminEditions(string $method): never
     {
+        if(strtoupper((string)(Auth::currentMembership()['role_key']??''))==='WEBDESK'){
+            if($method==='POST')$this->createEdition();
+            \EpaperSaas\Views\WebDeskEditionView::index();
+        }
         if($method==='POST'){$this->createEdition();}
         $pubs=TenantData::toGuidRows(Store::all('SELECT publication_guid,name FROM ep_publications WHERE tenant_guid=? AND status="ACTIVE" ORDER BY name',[TenantData::tenantBin()]),['publication_guid']);
         $cities=TenantData::toGuidRows(Store::all('SELECT city_guid,name FROM ep_cities WHERE tenant_guid=? AND status="ACTIVE" ORDER BY name',[TenantData::tenantBin()]),['city_guid']);
