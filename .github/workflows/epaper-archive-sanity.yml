@@ -40,6 +40,8 @@ jobs:
         run: |
           set -euo pipefail
           find app bin tests public_html -type f -name '*.php' -not -path '*/uploads/*' -print0 | xargs -0 -n1 php -l > /tmp/epdi-php-lint.txt
+      - name: Reader interaction JavaScript regression
+        run: node tests/reader-interaction-regression.mjs
       - name: Independent frontend and reader theme regression
         run: php tests/theme-isolation.php
       - name: Four distinct frontend template regression
