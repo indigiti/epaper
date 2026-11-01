@@ -57,6 +57,8 @@ jobs:
         run: php tests/app-connection-setup.php
       - name: Publisher login prerequisite and restricted grant contracts
         run: php tests/publisher-login-check.php
+      - name: Shared ePaper application and existing publisher domain recovery
+        run: php tests/shared-app-recovery.php
       - name: Operator UI behaviour and navigation smoke checks
         run: php tests/operator-ui-checks.php
       - name: Registry icon, restoration and staging reset checks
