@@ -45,7 +45,7 @@ foreach(['/admin/system/infrastructure','/admin/system/recovery','/admin/system/
  if($policy::requiredCapability($route)!=='ADMIN')
   throw new RuntimeException("Stronger infrastructure authorization path was changed: $route");
 $app=(string)file_get_contents($root.'/app/App.php');
-if(!str_contains($app,'AdminRoutePolicy::enforce($path)'))
+if(!str_contains($app,'AdminRoutePolicy::enforce($path,$method)'))
  throw new RuntimeException('Admin route security policy not wired to dispatcher');
 $catalog=\EpaperSaas\Services\AdminFeatureCatalog::class;
 foreach([
