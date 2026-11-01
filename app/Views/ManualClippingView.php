@@ -204,7 +204,7 @@ final class ManualClippingView
           .'<canvas data-manual-crop-preview hidden aria-label="Selected clipping preview"></canvas>'
           .'<div class="manual-form-actions"><button class="btn ghost manual-icon-action" type="button" data-manual-reset title="Clear current selection" aria-label="Clear current selection">'.View::icon('reset').'</button>'
           .'<button class="btn primary manual-icon-action" type="submit" name="action" value="mark" data-manual-submit title="Save article outline (headline optional)" aria-label="Save article outline" disabled>'.View::icon('save').'</button>'
-          .'<button class="btn ghost manual-icon-action" type="submit" name="action" value="private" data-manual-save-private title="Create private clipping now" aria-label="Create private clipping now" disabled>'.View::icon('clip').'</button></div>'
+          . (strtoupper($role)==='WEBDESK'?'':'<button class="btn ghost manual-icon-action" type="submit" name="action" value="private" data-manual-save-private title="Create private clipping now" aria-label="Create private clipping now" disabled>'.View::icon('clip').'</button>') .'</div>'
           .'<p class="manual-map-shortcut">Keyboard: Ctrl/⌘ + S to save, Escape to clear. Use arrow keys to nudge the selection when the newspaper is focused.</p>'
           .'</form></section><section class="panel"><h2>Marked articles</h2>'
           .'<p class="muted">Publisher administrators can approve or withdraw a reusable official clipping. Readers open approved clips directly without creating their own.</p>'
