@@ -23,11 +23,13 @@ A reset button is **not** enabled on \`https://platform.digiti.in/\`. Previous s
 3. In the **private staging** runtime config under \`'app'\`, set:
    \`\`\`php
    'env' => 'staging',
+   'url' => 'https://staging-platform.your-domain.example',
    'allow_staging_reset' => true,
    \`\`\`
 4. Sign in as a Platform administrator on the **staging hostname**. In **Advanced administration**, open **Staging reset** (\`/admin/staging-reset\`).
-5. Only accounts with organisation codes prefixed \`TEST_\` or \`DEMO_\` are eligible. Each domain must be a customer domain and not the canonical application host.
-6. The page previews the matching domains. Enter the exact test hostname and check the acknowledgement to reset **one domain’s onboarding lifecycle**.
+5. Ensure the request hostname exactly matches the private `app.url` hostname. Keep the staging Redis prefix, database and private storage completely separate from production.
+6. Only accounts with organisation codes prefixed \`TEST_\` or \`DEMO_\` are eligible. Each domain must be a customer domain and not the canonical application host.
+7. The page previews the matching domains. Enter the exact test hostname and check the acknowledgement to reset **one domain’s onboarding lifecycle**.
 
 What the reset does: sets \`AWAITING_DNS\`, clears DNS/edge/TLS verification and activation timestamps, clears the Platform domain cache, invalidates prior go-live attestations and records the operator in the audit log.
 
@@ -36,7 +38,7 @@ What it **does not** do: delete tenants, organisation records, users, credential
 The reset endpoint is disabled unless **all** conditions hold:
 - \`app.env\` equals \`staging\`, \`testing\` or \`development\`
 - \`app.allow_staging_reset\` is exactly \`true\`
-- request hostname is present and is **not** \`platform.digiti.in\`, \`epaper.digiti.in\` or \`domains.digiti.in\`
+- request hostname matches the configured `app.url` hostname exactly and is **not** \`platform.digiti.in\`, \`epaper.digiti.in\` or \`domains.digiti.in\`
 - request is authenticated by a Platform administrator
 - an eligible test domain is selected and the operator confirms its hostname.
 
