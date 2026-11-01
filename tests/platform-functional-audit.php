@@ -75,6 +75,16 @@ ok(str_contains($restore,'Restore ePaper application hostname'),'canonical ePape
 ok(str_contains($restore,'confirm_canonical'),'canonical recovery requires extra explicit acknowledgement');
 
 ok(str_contains($restore,'self::dependencyGuide($record)'),'domain Restore displays real parent dependency inventory');
+
+ok(str_contains($restore,'self::freshStartAlternative($record)'),'canonical recovery shows the decline-restore choice');
+ok(str_contains($restore,'I do not want to restore the old product or other records'),'non-restore alternative is plainly labeled');
+ok(str_contains($restore,'Do not restore — leave existing records archived'),'declining recovery navigates without modifying records');
+ok(str_contains($restore,'The EPAPER product key and'),'fresh setup explains the unique product key conflict');
+ok(str_contains($restore,'separate staging Cloudways application'),'fresh setup requires an isolated environment');
+$optOut=methodSource($restore,'freshStartAlternative');
+ok(!str_contains($optOut,'Store::exec(')&&!str_contains($optOut,'Store::tx('),
+    'decline-restore page does not mutate production records');
+
 ok(str_contains($restore,'Repair required records in this order'),'recovery page explains remediation order');
 ok(str_contains($restore,"'/restore':\$url.'/edit'"),'archived parents link to Restore and suspended parents to Edit');
 ok(str_contains($restore,'The linked $label is archived (REMOVED)'),'generic blocker identifies archived parent rather than a vague rejection');
