@@ -301,11 +301,43 @@ final class Onboarding
             .'<button class="primary" type="submit"'.($canApprove?'':' disabled').'>'.($state['live']?'Reconfirm live domain':'Confirm go-live').'</button>'
             .(!$canApprove?'<p class="ob-warning">Complete publisher access, subscription and DNS verification before confirming.</p>':'')
             .'</form>';
+        $reassign='';
+        $canonical=(string)(parse_url((string)($d['application_url']??''),PHP_URL_HOST)?:'');
+        $protected=($canonical!==''&&strcasecmp($canonical,(string)$d['hostname'])===0)
+            || in_array(strtoupper((string)($d['domain_type']??'')),['PLATFORM','PLATFORM_AUTH','SAAS_DEFAULT'],true);
+        if(!$protected) {
+            $destinations=Store::all('SELECT pt.product_tenant_guid,pt.display_name,o.display_name organisation_name
+                FROM product_tenants pt JOIN organisations o ON o.organisation_guid=pt.organisation_guid
+                JOIN products p ON p.product_guid=pt.product_guid
+                WHERE p.product_key="EPAPER" AND pt.status="ACTIVE" AND o.status="ACTIVE"
+                AND pt.product_tenant_guid<>? ORDER BY o.display_name,pt.display_name LIMIT 200',[
+                self::gid($d['product_tenant_guid'])
+            ]);
+            $options='<option value="">Select a separate publisher tenant</option>';
+            foreach($destinations as $t) $options.='<option value="'.self::e($t['product_tenant_guid']).'">'.self::e($t['organisation_name'].' / '.$t['display_name']).'</option>';
+            $reassign='<details class="ob-reassign" id="change-publisher-tenant"><summary>Wrong newspaper showing? Change publisher tenant</summary>'
+                .'<div class="ob-reassign-body"><p><strong>Current publisher:</strong> '.self::e($d['organisation_name'].' / '.$d['tenant_name']).'</p>'
+                .'<p>This operation changes the EXISTING domain record; it does not reinstall ePaper or copy editions. '
+                .'Create a separate organisation and EPAPER product tenant first if this publication needs its own content. '
+                .'The hostname will be placed in AWAITING_DNS and remain unavailable until verification and onboarding are completed. '
+                .'Existing ePaper caches may temporarily continue serving old content until their TTL expires or an administrator clears them.</p>'
+                .'<div class="actions"><a class="button small" href="/admin/organisations">Organisations</a>'
+                .'<a class="button small" href="/admin/product-tenants">Product tenants</a></div>'
+                .'<form method="post" action="/admin/onboarding/'.$guid.'/reassign" class="ob-reassign-form">'.self::csrf()
+                .'<label>New publisher tenant<select name="target_tenant_guid" required>'.$options.'</select></label>'
+                .'<label class="ob-check"><input type="checkbox" name="confirm_content" value="1" required> '
+                .'I reviewed the destination tenant and understand that newspaper content is not transferred automatically</label>'
+                .'<label class="ob-check"><input type="checkbox" name="confirm_tenant_reset" value="1" required> '
+                .'I accept re-verification, temporary downtime and the need to clear ePaper caches</label>'
+                .'<label>Type '.self::e($d['hostname']).' to confirm<input name="confirm_hostname" autocomplete="off" required></label>'
+                .'<button class="danger" type="submit"'.(!$destinations?' disabled':'').'>Reassign existing domain</button>'
+                .'</form></div></details>';
+        }
         return '<section id="domain-review" class="card ob-detail" aria-label="Publisher onboarding tracker"><div class="ob-section-head"><div><span class="ob-eyebrow">DOMAIN TRACKER</span><h2>'.self::e($d['hostname']).'</h2><p class="muted">'.self::e($d['organisation_name']).' · '.self::e($d['tenant_name']).'</p></div><a class="button" href="/admin/onboarding">Close tracker</a></div>'
             .'<div class="ob-detail-grid"><div class="ob-timeline"><ol>'.$steps.'</ol><p class="ob-warning">Current blocker: <strong>'.self::e($state['blocker']).'</strong>'.($state['stalled']?' · Stalled for over 48 hours':'').'</p></div>'
             .'<div class="ob-workspace"><h3>DNS ownership & routing</h3>'.$dns.'<p class="muted">CNAME only works if the configured domain target is routed to the ePaper origin. Also add this hostname to Cloudways domain management and its SSL configuration.</p>'.$verify
             .'<div class="ob-rule"></div><h3>Publisher access</h3><p class="muted">'.((int)$d['owner_count']>0?'An active owner/admin membership is present.':'No active publisher owner yet. Create the user in Users, then assign here.').'</p>'.$assign
             .'<div class="ob-rule"></div><h3>Subscription</h3><p>Current service access: <strong>'.self::e((string)($d['service_access_state']??'NOT CONFIGURED')).'</strong></p><a href="/admin/subscriptions">Manage subscriptions</a>'
-            .'<div class="ob-rule"></div>'.$confirm.'</div></div></section>';
+            .'<div class="ob-rule"></div>'.$confirm.$reassign.'</div></div></section>';
     }
 }
