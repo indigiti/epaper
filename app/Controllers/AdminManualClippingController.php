@@ -302,6 +302,8 @@ final class AdminManualClippingController
             $title=trim((string)($_POST['title']??''));
             if(mb_strlen($title)>180)throw new \InvalidArgumentException('Title is too long');
             if((string)($_POST['action']??'mark')==='private'){
+                if(strtoupper((string)(Auth::currentMembership()['role_key']??''))==='WEBDESK')
+                    throw new \InvalidArgumentException('Only article outlines may be saved by WebDesk');
                 $clip=ClipService::createEditorial(
                     $guid,$box['x'],$box['y'],$box['w'],$box['h'],$title);
                 Http::redirect('/admin/manual-clipping/'.$guid.'?created='.rawurlencode($clip['slug']));
