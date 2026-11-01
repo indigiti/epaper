@@ -11,6 +11,14 @@ on:
       - 'tests/epdi-platform-binding-contract.php'
       - 'codebase/tests/epdi-platform-binding-contract.php'
       - 'public_html/assets/reader-ui-visibility.css'
+      - 'public_html/service-worker.js'
+      - 'codebase/public_html/service-worker.js'
+      - 'public_html/.htaccess'
+      - 'codebase/public_html/.htaccess'
+      - 'public_html/manifest.webmanifest'
+      - 'codebase/public_html/manifest.webmanifest'
+      - 'tests/pwa-manifest-contract.php'
+      - 'codebase/tests/pwa-manifest-contract.php'
       - 'public_html/assets/reader-edge-navigation.js'
       - 'public_html/assets/reader-edge-navigation.css'
       - 'codebase/public_html/assets/reader-edge-navigation.js'
@@ -35,6 +43,14 @@ on:
       - 'tests/epdi-platform-binding-contract.php'
       - 'codebase/tests/epdi-platform-binding-contract.php'
       - 'public_html/assets/reader-ui-visibility.css'
+      - 'public_html/service-worker.js'
+      - 'codebase/public_html/service-worker.js'
+      - 'public_html/.htaccess'
+      - 'codebase/public_html/.htaccess'
+      - 'public_html/manifest.webmanifest'
+      - 'codebase/public_html/manifest.webmanifest'
+      - 'tests/pwa-manifest-contract.php'
+      - 'codebase/tests/pwa-manifest-contract.php'
       - 'public_html/assets/reader-edge-navigation.js'
       - 'public_html/assets/reader-edge-navigation.css'
       - 'codebase/public_html/assets/reader-edge-navigation.js'
@@ -96,6 +112,14 @@ jobs:
           php codebase/tests/reader-edge-navigation-contract.php
           node --check public_html/assets/reader-edge-navigation.js
           node --check codebase/public_html/assets/reader-edge-navigation.js
+      - name: Tenant-specific PWA identity and manifest isolation
+        run: |
+          php -l app/Services/PwaManifest.php
+          php -l codebase/app/Services/PwaManifest.php
+          php tests/pwa-manifest-contract.php
+          php codebase/tests/pwa-manifest-contract.php
+          node --check public_html/service-worker.js
+          node --check codebase/public_html/service-worker.js
       - name: Tenant sign-in visibility and bounded storage checks
         run: |
           php -l app/Core/Auth.php

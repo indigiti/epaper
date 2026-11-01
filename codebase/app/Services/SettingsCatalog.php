@@ -34,6 +34,9 @@ final class SettingsCatalog
                 'description' => 'Tenant-level white-label identity used across the public site, Reader, account and admin.',
                 'fields' => [
                     'brand.site_name' => ['Website name','text','ePaper SaaS',null],
+                    'brand.pwa_name' => ['App install name','text','',null],
+                    'brand.pwa_short_name' => ['Home screen short name','text','',null],
+                    'brand.pwa_description' => ['App description','text','',null],
                     'brand.tagline' => ['Tagline','text','Digital newspaper',null],
                     'brand.logo_path' => ['Logo path / URL','text','',null],
                     'brand.favicon_path' => ['Favicon path / URL','text','',null],
