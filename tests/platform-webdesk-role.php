@@ -8,7 +8,7 @@ function checkWebDesk(bool $ok,string $message):void {
     if(!$ok){fwrite(STDERR,"FAIL: $message\n");exit(1);}
     echo "PASS: $message\n";
 }
-checkWebDesk(str_contains($crud,"'membership-role$#' => 'userMembershipRole'"),
+checkWebDesk(str_contains($crud,"/membership-role$#' => 'userMembershipRole'"),
     'Publisher membership role edit routed before general admin dispatch');
 checkWebDesk(str_contains($crud,"'WEBDESK','PUBLISHER_ADMIN'"),
     'WEBDESK is a valid, selectable membership role for existing users');
