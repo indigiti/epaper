@@ -24,3 +24,23 @@
 /platform/.env
 /platform/.env.*
 !/platform/.env.example
+
+# Cloudways deployment root: keep source synchronized with codebase/
+# without committing server-side config, newspaper files or customer uploads.
+/config/config.php
+/config/runtime.php
+/config/*.local.php
+/config/*.secret.php
+/.env
+/.env.*
+!/.env.example
+/storage/*
+!/storage/.keep
+!/storage/.gitkeep
+!/storage/.htaccess
+/public_html/uploads/
+/public_html/media/
+*.log
+*.bak
+*.bak.*
+*.sql.gz
