@@ -3,7 +3,7 @@ declare(strict_types=1);
 
 namespace Digiti\Admin;
 
-use Digiti\Core\{Audit,Auth,Http,RedisStore,Store,Uuid,View};
+use Digiti\Core\{Audit,Auth,Config,Http,RedisStore,Store,Uuid,View};
 
 /**
  * Explicit recovery for a publisher hostname mistakenly registered as
@@ -79,7 +79,12 @@ final class SharedAppRecovery
         $host=strtolower((string)($domain['hostname']??''));
         $appHost=self::host((string)($domain['base_url']??''));
         $destHost=self::host((string)($target['base_url']??''));
+        // Recovery may target ONLY the configured shared installation; otherwise
+        // a second canonical app could take over the real main ePaper hostname.
+        $trustedSharedHost=self::host((string)Config::get('integrations.epaper_shared_base_url','https://epaper.digiti.in'));
         return $host!=='' && $appHost===$host
+            && $trustedSharedHost!=='' && $destHost===$trustedSharedHost
+            && $host!==$trustedSharedHost
             && $destHost!=='' && $destHost!==$host
             && in_array((string)($domain['domain_type']??''),['SAAS_DEFAULT','CUSTOMER_CUSTOM','CUSTOMER_SUBDOMAIN'],true)
             && (string)($domain['status']??'')!=='REMOVED'
@@ -121,7 +126,7 @@ final class SharedAppRecovery
             .'re-registers the OAuth callback, resets DNS/SSL approval and invalidates Platform domain cache.</p>';
         if(!$targets){
             $body.='<p><strong>No eligible shared application for this product.</strong> '
-                .'Verify the ACTIVE shared application has a registered canonical hostname and the DCN tenant belongs '
+                .'Verify the configured main ePaper installation at '.self::e((string)Config::get('integrations.epaper_shared_base_url','https://epaper.digiti.in')).', its registered canonical hostname, and that the DCN tenant belongs '
                 .'to that same product. Different products cannot be merged through this repair. '
                 .'Do not change GUIDs directly in MariaDB or create duplicate publisher records.</p>'
                 .'<p><a class="button" href="/admin/product-tenants">Inspect product tenants</a> '
