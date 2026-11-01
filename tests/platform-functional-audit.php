@@ -73,11 +73,11 @@ ok(str_contains($restore,'registry.restore'),'restore audit preserved');
 
 ok(str_contains($restore,'Restore ePaper application hostname'),'canonical ePaper recovery has its own guided screen');
 ok(str_contains($restore,'confirm_canonical'),'canonical recovery requires extra explicit acknowledgement');
-ok(str_contains($restore,"$role!=='SUPER_ADMIN'"),'canonical recovery restricted to Platform super administrators');
+ok(str_contains($restore,'$role!==\'SUPER_ADMIN\''),'canonical recovery restricted to Platform super administrators');
 ok(str_contains($restore,'$canonical=self::canonicalDomain($record)'),'archived canonical record classified against application base URL');
 ok(str_contains($restore,'tenant_product_guid')&&str_contains($restore,'application_product_guid'),'canonical recovery checks product/organisation consistency');
-ok(str_contains($restore,"$parents[$name.'_status']!=='ACTIVE'"),'all parent entities must be active before domain restoration');
-ok(str_contains($restore,"'/admin/onboarding?domain='.rawurlencode($guid)"),'restored canonical hostname returns to verification, not unsafe mapping');
+ok(str_contains($restore,'$parents[$name.\'_status\']!==\'ACTIVE\''),'all parent entities must be active before domain restoration');
+ok(str_contains($restore,"'/admin/onboarding?domain='.rawurlencode(\$guid)"),'restored canonical hostname returns to verification, not unsafe mapping');
 
 ok(str_contains($onboarding,"'/admin/domains/'.rawurlencode(\$guid).'/restore'"),'duplicate archived hostname from onboarding goes to recovery');
 ok(str_contains($app,"'/admin/domains/'.rawurlencode(\$existingGuid).'/restore'"),'duplicate archived hostname from domain registry goes to recovery');
