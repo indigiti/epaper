@@ -430,6 +430,45 @@ final class App
 
     private function webhook(string $provider): never
     {
-        $payload=file_get_contents('php://input')?:'';$headers=array_change_key_case(getallheaders()?:[],CASE_LOWER);$adapter=ProviderFactory::make($provider);$guid=Uuid::v7();$data=$adapter->normalizeWebhook($payload,$headers);$ref=$data['id']??($data['event']??null);$verified=$adapter->verifyWebhook($payload,$headers);try{Store::exec('INSERT INTO webhook_events(webhook_event_guid,provider,provider_event_reference,verification_status,processing_status,headers_json,payload,received_at) VALUES(?,?,?,?,"RECEIVED",?,?,NOW(6))',[Uuid::toBinary($guid),$provider,$ref,$verified?'VERIFIED':'INVALID',json_encode($headers),$payload]);}catch(\PDOException$e){if(($e->errorInfo[1]??0)===1062)Http::json(['ok'=>true,'duplicate'=>true]);throw$e;}if(!$verified)Http::json(['ok'=>false,'code'=>'WEBHOOK_SIGNATURE_INVALID'],400);Store::exec('INSERT INTO outbox_events(outbox_event_guid,event_type,payload,status,available_at,created_at) VALUES(?,"payment.webhook.received",?,"PENDING",NOW(6),NOW(6))',[Uuid::toBinary(Uuid::v7()),json_encode(['webhook_event_guid'=>$guid,'provider'=>$provider])]);Http::json(['ok'=>true]);
+        $payload=file_get_contents('php://input')?:'';
+        if(strlen($payload)>1048576)Http::json(['ok'=>false,'code'=>'WEBHOOK_TOO_LARGE'],413);
+        $headers=array_change_key_case(getallheaders()?:[],CASE_LOWER);
+        $adapter=ProviderFactory::make($provider);
+        $verified=$adapter->verifyWebhook($payload,$headers);
+        if(!$verified)Http::json(['ok'=>false,'code'=>'WEBHOOK_SIGNATURE_INVALID'],400);
+        $data=$adapter->normalizeWebhook($payload,$headers);
+        $ref=match($provider){
+            'razorpay'=>(string)($headers['x-razorpay-event-id']??''),
+            'stripe'=>(string)($data['id']??''),
+            default=>'',
+        };
+        // Provider event IDs are unique. A body digest is a safe fallback
+        // for verified but malformed/legacy deliveries; never dedupe by
+        // event TYPE (which would silently drop other payments).
+        if($ref===''||strlen($ref)>190)$ref=hash('sha256',$payload);
+        $sanitized=$headers;
+        foreach(['authorization','cookie','set-cookie','x-api-key','x-digiti-service-token',
+            'stripe-signature','x-razorpay-signature'] as $secretHeader)unset($sanitized[$secretHeader]);
+        $guid=Uuid::v7();
+        try{
+            Store::tx(function()use($guid,$provider,$ref,$sanitized,$payload):void{
+                Store::exec('INSERT INTO webhook_events(webhook_event_guid,provider,provider_event_reference,
+                    verification_status,processing_status,headers_json,payload,received_at)
+                    VALUES(?,?,?,"VERIFIED","RECEIVED",?,?,NOW(6))',[
+                    Uuid::toBinary($guid),$provider,$ref,json_encode($sanitized),$payload
+                ]);
+                Store::exec('INSERT INTO outbox_events(outbox_event_guid,event_type,payload,status,available_at,created_at)
+                    VALUES(?,"payment.webhook.received",?,"PENDING",NOW(6),NOW(6))',[
+                    Uuid::toBinary(Uuid::v7()),
+                    json_encode(['webhook_event_guid'=>$guid,'provider'=>$provider])
+                ]);
+            });
+        }catch(\PDOException $e){
+            if(($e->errorInfo[1]??0)===1062)
+                Http::json(['ok'=>true,'duplicate'=>true,'processing'=>'PENDING']);
+            throw $e;
+        }
+        Http::json(['ok'=>true,'received'=>true,'processing'=>'PENDING']);
     }
+
 }
