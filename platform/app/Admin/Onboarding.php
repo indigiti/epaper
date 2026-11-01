@@ -188,8 +188,9 @@ final class Onboarding
         Http::redirect(self::url($fresh['domain_guid']));
     }
 
-    private static function records(): array
+    private static function records(?string $domainGuid=null): array
     {
+        $where=$domainGuid===null?'':' AND d.domain_guid=?';
         return Store::all('SELECT d.domain_guid,d.organisation_guid,d.product_tenant_guid,d.hostname,d.status,d.verification_token,d.dns_metadata,d.edge_metadata,d.verified_at,d.ssl_ready_at,d.activated_at,d.last_checked_at,d.created_at,d.updated_at,
             o.display_name organisation_name,o.status organisation_status,pt.display_name tenant_name,pt.status tenant_status,
             a.name application_name,a.status application_status,
@@ -200,13 +201,13 @@ final class Onboarding
             JOIN organisations o ON o.organisation_guid=d.organisation_guid
             JOIN product_tenants pt ON pt.product_tenant_guid=d.product_tenant_guid
             JOIN applications a ON a.application_guid=d.application_guid
-            WHERE d.status<>"REMOVED"
-            ORDER BY d.updated_at DESC LIMIT 200');
+            WHERE d.status<>"REMOVED"'.$where.'
+            ORDER BY d.updated_at DESC LIMIT '.($domainGuid===null?200:1),$domainGuid===null?[]:[self::gid($domainGuid)]);
     }
 
     private static function one(string $guid): ?array
     {
-        foreach(self::records() as $r) if($r['domain_guid']===$guid) return $r;
+        foreach(self::records($guid) as $r) if($r['domain_guid']===$guid) return $r;
         return null;
     }
 
