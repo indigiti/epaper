@@ -3,7 +3,7 @@ namespace Digiti;
 
 use Digiti\Core\{Auth,Audit,Config,Crypto,Database,DomainTools,Entitlements,Http,Mfa,OAuth,RateLimiter,RedisStore,ServiceAuth,Store,Uuid,View};
 use Digiti\Billing\ProviderFactory;
-use Digiti\Admin\{Crud,Onboarding,Home,Help,ConnectionSetup,DomainMapping,ActionUi,Restore,StagingReset,RegistryCleanup,CanonicalDomainRegistration};
+use Digiti\Admin\{Crud,Onboarding,Home,Help,ConnectionSetup,PublisherLoginCheck,DomainMapping,ActionUi,Restore,StagingReset,RegistryCleanup,CanonicalDomainRegistration};
 use Digiti\Domain\EdgeProviderFactory;
 
 final class App
@@ -42,6 +42,8 @@ final class App
         if($path==='/admin')Home::index();
         if($path==='/admin/help')Help::index();
         if($path==='/admin/app-connections'&&$method==='GET')ConnectionSetup::index();
+        if($path==='/admin/publisher-login-check'&&in_array($method,['GET','POST'],true))PublisherLoginCheck::index($method);
+        if($path==='/admin/publisher-login-check/grant-direct'&&$method==='POST')PublisherLoginCheck::grant($method);
         if($path==='/admin/onboarding')Onboarding::index($method);
         if(preg_match('#^/admin/onboarding/([0-9a-f-]{36})/(verify|owner|confirm|reassign)$#i',$path,$m))Onboarding::action(strtolower($m[1]),$m[2],$method);
         if($path==='/admin/organisations')$this->organisations($method);
