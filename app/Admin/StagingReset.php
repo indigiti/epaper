@@ -17,7 +17,9 @@ final class StagingReset
         $env=strtolower(trim((string)Config::get('app.env','production')));
         $host=strtolower((string)($_SERVER['HTTP_HOST']??$_SERVER['SERVER_NAME']??''));
         $host=explode(':',$host)[0];
-        return in_array($env,['staging','testing','development'],true)
+        $configuredHost=strtolower((string)(parse_url((string)Config::get('app.url',''),PHP_URL_HOST)?:''));
+        return $configuredHost!=='' && $host===$configuredHost
+            && in_array($env,['staging','testing','development'],true)
             && Config::get('app.allow_staging_reset',false)===true
             && $host!=='' && !in_array($host,['platform.digiti.in','epaper.digiti.in','domains.digiti.in'],true);
     }
