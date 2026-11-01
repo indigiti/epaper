@@ -57,7 +57,7 @@ final class AdminFeatureCatalog
                 ['Plans & Entitlements','/admin/plans','Subscriber capabilities','credit-card'],
             ];
             $groups['SETTINGS'][]=['Publisher Settings','/admin/settings','Brand, SEO, Reader and processing','settings'];
-            $groups['SETTINGS'][]=['Interface Visibility','/admin/settings/interface','Hide or show top navigation, reader tools and archive dates','eye'];
+            $groups['SETTINGS'][]=['Interface Visibility','/admin/settings/interface','Hide or show top navigation, reader tools and archive dates','sliders-horizontal'];
             $groups['SETTINGS'][]=['Background Effects','/admin/settings/effects','Visual effects and homepage animation customizer','palette'];
             $groups['SETTINGS'][]=['Roles & Access','/admin/access','Memberships and permissions','shield-check'];
         }
