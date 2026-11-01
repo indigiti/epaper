@@ -18,6 +18,12 @@ permissions:
   contents: read
 
 jobs:
+  source-security:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify source tree excludes credentials and newspaper media
+        run: python3 codebase/tests/security-source-guard.py
   verify:
     runs-on: ubuntu-24.04
     defaults:
