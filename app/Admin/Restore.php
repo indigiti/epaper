@@ -27,19 +27,53 @@ final class Restore
 
     public static function run(string $type,string $guid,string $method): never
     {
-        if($method!=='POST') Http::redirect('/admin');
         Auth::requireAdmin();
         if(!isset(self::TYPES[$type]) || !preg_match('/^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i',$guid))
             throw new \InvalidArgumentException('Invalid restore request.');
+        if(!in_array($method,['GET','POST'],true)) {
+            http_response_code(405);
+            header('Allow: GET, POST');
+            View::layout('Method not allowed','<section class="card">Use the restore confirmation page.</section>');
+        }
         $cfg=self::TYPES[$type];
         $bin=Uuid::toBinary($guid);
         $table=$cfg['table'];$key=$cfg['key'];
         $record=Store::one("SELECT * FROM $table WHERE $key=?",[$bin]);
-        if(!$record) throw new \InvalidArgumentException('Record not found.');
-        if($record['status']!=='REMOVED') throw new \InvalidArgumentException('Only archived records can be restored.');
+        if(!$record) throw new \InvalidArgumentException('Archived record not found.');
+        if($record['status']!=='REMOVED') {
+            View::flash('This record is not archived. Open its existing record instead.');
+            Http::redirect('/admin/'.$type);
+        }
+        $label=self::recordLabel($type,$record);
+        if($method==='GET') {
+            $blocker=null;
+            try {self::checkDependencies($type,$record);}
+            catch(\InvalidArgumentException $e){$blocker=$e->getMessage();}
+            $target=$type==='domains'?'AWAITING_DNS':($type==='service-accounts'?'REVOKED':'SUSPENDED');
+            $body='<section class="card platform-restore-review"><h2>Recover an existing record</h2>'
+                .'<p>This record already exists. Restore it instead of attempting to add another record with the same identifier.</p>'
+                .'<dl><div><dt>Record</dt><dd>'.View::esc($label).'</dd></div>'
+                .'<div><dt>Current state</dt><dd>Archived (REMOVED)</dd></div>'
+                .'<div><dt>After recovery</dt><dd>'.View::esc($target).'</dd></div></dl>'
+                .'<p class="muted">The original record and history are preserved. Dependent accounts, privileges, DNS and SSL readiness are not silently reactivated.</p>'
+                .($blocker?'<div class="platform-restore-warning" role="alert"><strong>Recovery blocked:</strong> '.View::esc($blocker).'</div>':'')
+                .'<form method="post" action="/admin/'.View::esc($type).'/'.View::esc($guid).'/restore">'
+                .'<input type="hidden" name="_csrf" value="'.View::esc(Http::csrf()).'">'
+                .'<label>Type <strong>'.View::esc($label).'</strong> to confirm'
+                .'<input name="confirm_record" required autocomplete="off" placeholder="'.View::esc($label).'"></label>'
+                .'<label class="platform-restore-check"><input type="checkbox" name="confirm_restore" value="1" required>'
+                .' I understand this reopens the archived record and requires follow-up checks.</label>'
+                .'<div class="form-action"><button type="submit" class="primary"'.($blocker?' disabled':'').'>Restore existing record</button>'
+                .'<a class="button" href="/admin/'.View::esc($type).'">Cancel</a></div></form>'
+                .'</section>';
+            View::layout('Restore archived record',$body,['subtitle'=>$label]);
+        }
+        if(trim((string)($_POST['confirm_record']??''))!==$label
+            ||($_POST['confirm_restore']??'')!=='1')
+            throw new \InvalidArgumentException('Type the exact record name and confirm the recovery.');
         self::checkDependencies($type,$record);
         $target=$type==='domains'?'AWAITING_DNS':($type==='service-accounts'?'REVOKED':'SUSPENDED');
-        Store::tx(function()use($type,$guid,$cfg,$table,$key,$bin,$target,$record):void{
+        Store::tx(function()use($type,$guid,$cfg,$table,$key,$bin,$target):void{
             if($type==='domains') {
                 $affected=Store::exec('UPDATE domains SET status="AWAITING_DNS",is_primary=0,
                     dns_metadata=NULL,edge_metadata=NULL,verified_at=NULL,ssl_ready_at=NULL,
@@ -51,15 +85,36 @@ final class Restore
                 $affected=Store::exec("UPDATE $table SET status=?,updated_at=NOW(6) WHERE $key=? AND status='REMOVED'",[$target,$bin]);
             }
             if($affected!==1)throw new \RuntimeException('The record changed during restore. Reload and retry.');
-            // Keep both the original removal event and this new recovery event.
             Audit::log('registry.restore',$cfg['entity'],$guid,'SUCCESS',[
                 'previous_status'=>'REMOVED','restored_status'=>$target,
                 'dependent_records_restored'=>false
             ]);
         });
         self::invalidate($type,$record,$guid);
-        View::flash('Record restored to '.$target.'. Dependent access, subscriptions and domain readiness were NOT automatically restored.');
-        Http::redirect('/admin/'.$type);
+        View::flash('Restored to '.$target.'. Review the publisher/application link and complete onboarding before publishing.');
+        $next=$type==='domains'
+            ?'/admin/domains/'.rawurlencode($guid).'/edit'
+            :'/admin/'.$type;
+        Http::redirect($next);
+    }
+
+    private static function recordLabel(string $type,array $record): string
+    {
+        $columns=match($type){
+            'domains'=>['hostname'],
+            'organisations'=>['organisation_code','display_name'],
+            'users'=>['email','display_name'],
+            'products'=>['product_key','name'],
+            'applications'=>['application_key','name'],
+            'product-tenants'=>['display_name'],
+            'service-accounts'=>['name'],
+            'commercial/plans'=>['plan_key','name'],
+            default=>['name']
+        };
+        foreach($columns as $column) {
+            if(trim((string)($record[$column]??''))!=='')return (string)$record[$column];
+        }
+        return 'Archived record';
     }
 
     private static function checkDependencies(string $type,array $record): void
