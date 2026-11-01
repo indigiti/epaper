@@ -29,6 +29,7 @@ $domain=[
     'product_guid'=>'01a05e76-d968-7e72-a4ef-aec784cf0002',
     'tenant_product_guid'=>'01a05e76-d968-7e72-a4ef-aec784cf0002',
     'application_product_guid'=>'01a05e76-d968-7e72-a4ef-aec784cf0002',
+    'product_status'=>'ACTIVE',
     'organisation_status'=>'ACTIVE',
     'tenant_status'=>'ACTIVE',
     'application_status'=>'ACTIVE',
@@ -48,6 +49,9 @@ $complete=\Digiti\Admin\Onboarding::state($domain);
 check($complete['done']===6 && $complete['live'],'operator-reviewed ACTIVE site is counted as complete');
 $wrongTenant=$domain;$wrongTenant['tenant_product_guid']='01a05e76-d968-7e72-a4ef-aec784cf9999';
 check(!\Digiti\Admin\Onboarding::state($wrongTenant)['live'],'mismatched product tenant must not be approved');
+$inactiveProduct=$domain;$inactiveProduct['product_status']='REMOVED';
+check(!\Digiti\Admin\Onboarding::state($inactiveProduct)['live'],
+    'archived EPAPER product cannot be approved for go-live');
 
 $stage=(new ReflectionMethod(\Digiti\Admin\OnboardingDashboard::class,'stage'));
 $domain['_shares_default']=true;
