@@ -69,7 +69,7 @@ final class Onboarding
     public static function action(string $guid,string $type,string $method): never
     {
         if ($method!=='POST') Http::redirect(self::url($guid));
-        if (!Uuid::isValid($guid)) throw new \InvalidArgumentException('Invalid domain identifier.');
+        if (!preg_match('/^[a-f0-9-]{36}$/i',$guid)) throw new \InvalidArgumentException('Invalid domain identifier.');
         $d=self::one($guid);
         if (!$d) throw new \RuntimeException('Publisher domain not found.');
         if ($type==='verify') self::verify($d);
@@ -94,7 +94,7 @@ final class Onboarding
                 $name=trim((string)($_POST['organisation_name']??''));
                 $code=strtoupper(preg_replace('/[^A-Z0-9_]+/','_',strtoupper(trim((string)($_POST['organisation_code']??'')))));
                 $code=trim($code,'_');
-                if($name===''||mb_strlen($name)>190||$code===''||strlen($code)>64) throw new \InvalidArgumentException('Enter an organisation name and a unique code (up to 64 characters).');
+                if($name===''||strlen($name)>190||$code===''||strlen($code)>64) throw new \InvalidArgumentException('Enter an organisation name and a unique code (up to 64 characters).');
                 $orgGuid=Uuid::v7();
                 Store::exec('INSERT INTO organisations(organisation_guid,organisation_code,legal_name,display_name,status,created_at,updated_at) VALUES(?,?,?,?,"ACTIVE",NOW(6),NOW(6))',[self::gid($orgGuid),$code,$name,$name]);
                 $tenantGuid=Uuid::v7();
@@ -128,7 +128,7 @@ final class Onboarding
     private static function owner(array $d): never
     {
         $user=(string)($_POST['owner_user_guid']??'');
-        if (!Uuid::isValid($user)||!Store::value('SELECT 1 FROM platform_users WHERE user_guid=? AND status="ACTIVE"',[self::gid($user)])) throw new \InvalidArgumentException('Choose an active Platform user.');
+        if (!preg_match('/^[a-f0-9-]{36}$/i',$user)||!Store::value('SELECT 1 FROM platform_users WHERE user_guid=? AND status="ACTIVE"',[self::gid($user)])) throw new \InvalidArgumentException('Choose an active Platform user.');
         $existing=Store::one('SELECT membership_guid,role_key,status FROM memberships WHERE organisation_guid=? AND user_guid=?',[self::gid($d['organisation_guid']),self::gid($user)]);
         if ($existing && ($existing['status']!=='ACTIVE'||!in_array($existing['role_key'],['OWNER','ADMIN','PUBLISHER_ADMIN'],true))) throw new \InvalidArgumentException('This user has an incompatible membership; edit it in User Management.');
         if (!$existing) Store::exec('INSERT INTO memberships(membership_guid,organisation_guid,user_guid,role_key,status,created_at,updated_at) VALUES(?,?,?,"OWNER","ACTIVE",NOW(6),NOW(6))',[self::gid(Uuid::v7()),self::gid($d['organisation_guid']),self::gid($user)]);
