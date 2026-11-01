@@ -253,6 +253,7 @@ final class ManualClippingView
                   .' data-mark-x="'.(float)$mark['x'].'" data-mark-y="'.(float)$mark['y'].'"'
                   .' data-mark-w="'.(float)$mark['width'].'" data-mark-h="'.(float)$mark['height'].'">'
                   .View::icon('edit').'</button>';
+                if(strtoupper($role)!=='WEBDESK'){
                 $action=$active?'hide':'activate';
                 $h.='<form method="post" action="/admin/manual-clipping/'.View::e($guid).'/marks/'
                  .View::e($id).'/'.$action.'">'
@@ -267,7 +268,9 @@ final class ManualClippingView
                  .'<input type="hidden" name="_csrf" value="'.View::e(Http::csrf()).'">'
                  .'<button class="btn ghost manual-icon-action manual-mark-remove" type="submit"'
                  .' title="Remove marked article" aria-label="Remove marked article: '
-                 .View::e($mark['title']).'">'.View::icon('trash').'</button></form></div>';
+                 .View::e($mark['title']).'">'.View::icon('trash').'</button></form>';
+                }
+                $h.='</div>';
             }
             $h.='</article>';
         }
