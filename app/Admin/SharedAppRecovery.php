@@ -49,7 +49,7 @@ final class SharedAppRecovery
             .'JOIN product_tenants pt ON pt.product_tenant_guid=d.product_tenant_guid '
             .'AND pt.organisation_guid=d.organisation_guid AND pt.product_guid=d.product_guid '
             .'JOIN organisations o ON o.organisation_guid=d.organisation_guid '
-            .'WHERE d.domain_guid=? '.($lock?'FOR UPDATE':'').' LIMIT 1',[self::bin($guid)]);
+            .'WHERE d.domain_guid=? LIMIT 1'.($lock?' FOR UPDATE':''),[self::bin($guid)]);
     }
 
     private static function candidates(array $record): array
