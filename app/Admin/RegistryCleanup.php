@@ -79,11 +79,11 @@ final class RegistryCleanup
             ];
             foreach($activeSql as $label=>$sql)
                 if((int)Store::value($sql,[$bin])>0)$blockers[]='A '.$label.' is not archived. Archive all linked '.$label.' records first.';
-            $openSubs=(int)Store::value('SELECT COUNT(*) FROM subscriptions s JOIN product_tenants pt ON pt.product_tenant_guid=s.product_tenant_guid WHERE pt.product_guid=? AND s.status IN ("ACTIVE","TRIALING","PENDING","PAST_DUE")',[$bin]);
+            $openSubs=(int)Store::value('SELECT COUNT(*) FROM subscriptions s JOIN product_tenants pt ON pt.product_tenant_guid=s.product_tenant_guid WHERE pt.product_guid=? AND UPPER(s.status) NOT IN ("CANCELLED","CANCELED","EXPIRED","ENDED","TERMINATED","REMOVED")',[$bin]);
             if($openSubs)$blockers[]=$openSubs.' subscriptions are still active, pending or past due. Settle/cancel them before cleanup.';
-            $openPayment=(int)Store::value('SELECT COUNT(*) FROM payments p JOIN product_tenants pt ON pt.product_tenant_guid=p.product_tenant_guid WHERE pt.product_guid=? AND p.status IN ("CREATED","PENDING","PROCESSING","AUTHORIZED")',[$bin]);
+            $openPayment=(int)Store::value('SELECT COUNT(*) FROM payments p JOIN product_tenants pt ON pt.product_tenant_guid=p.product_tenant_guid WHERE pt.product_guid=? AND UPPER(p.status) NOT IN ("SUCCEEDED","SUCCESS","FAILED","CANCELLED","CANCELED","REFUNDED","SETTLED","PAID")',[$bin]);
             if($openPayment)$blockers[]=$openPayment.' payments are still pending or processing.';
-            $openRefund=(int)Store::value('SELECT COUNT(*) FROM refunds r JOIN payments p ON p.payment_guid=r.payment_guid JOIN product_tenants pt ON pt.product_tenant_guid=p.product_tenant_guid WHERE pt.product_guid=? AND r.status IN ("REQUESTED","PENDING","PROCESSING")',[$bin]);
+            $openRefund=(int)Store::value('SELECT COUNT(*) FROM refunds r JOIN payments p ON p.payment_guid=r.payment_guid JOIN product_tenants pt ON pt.product_tenant_guid=p.product_tenant_guid WHERE pt.product_guid=? AND UPPER(r.status) NOT IN ("SUCCEEDED","SUCCESS","FAILED","CANCELLED","CANCELED","REFUNDED","SETTLED","PAID")',[$bin]);
             if($openRefund)$blockers[]=$openRefund.' refunds are not yet settled.';
         }
         return [
@@ -112,7 +112,8 @@ final class RegistryCleanup
         if($type==='products' && ($_POST['ack_billing']??'')!=='1')
             throw new \InvalidArgumentException('Confirm that retained billing records remain linked to historical GUIDs.');
         $purgedHostnames=[];
-        Store::tx(function()use($type,$guid,$label,$admin,&$purgedHostnames):void{
+        try {
+            Store::tx(function()use($type,$guid,$label,$admin,&$purgedHostnames):void{
             $check=self::snapshot($type,$guid,true);
             if(!$check['exists'] || $check['blockers'] || $check['label']!==$label)
                 throw new \RuntimeException('Records changed since preview. Reload and review cleanup again.');
@@ -126,7 +127,12 @@ final class RegistryCleanup
                 $impact=self::releaseOrganisation($guid);
             }
             self::audit($admin,$type,$guid,$label,$impact);
-        });
+            });
+        } catch(\PDOException $error) {
+            if($error->getCode()==='23000')
+                throw new \InvalidArgumentException('Other linked records still reference this archived setup. Nothing was deleted. Review the dependencies or contact an administrator.');
+            throw $error;
+        }
         foreach(array_unique($purgedHostnames) as $host)RedisStore::del('domain:'.$host);
         if($type==='products')RedisStore::del('product:'.$guid);
         View::flash($type==='domains'
