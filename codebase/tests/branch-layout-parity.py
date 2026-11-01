@@ -13,9 +13,10 @@ import sys
 
 root=pathlib.Path(__file__).resolve().parents[2]
 prefixes=("app/","public_html/","config/","bin/","database/","ai_processing/")
+metadata={"VERSION","manifest.json","composer.json","composer.lock"}
 tracked=set(filter(None,subprocess.check_output(["git","ls-files","-z"],cwd=root).decode().split("\0")))
-app_files={p for p in tracked if p.startswith(prefixes)}
-code_files={p[len("codebase/"):] for p in tracked if p.startswith("codebase/") and p[len("codebase/"):].startswith(prefixes)}
+app_files={p for p in tracked if p.startswith(prefixes) or p in metadata}
+code_files={p[len("codebase/"):] for p in tracked if p.startswith("codebase/") and (p[len("codebase/"):].startswith(prefixes) or p[len("codebase/"):] in metadata)}
 only_root=sorted(app_files-code_files)
 only_codebase=sorted(code_files-app_files)
 different=[]
