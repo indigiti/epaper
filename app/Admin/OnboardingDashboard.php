@@ -44,7 +44,8 @@ final class OnboardingDashboard
         array $tenants,
         string $filter,
         string $q,
-        string $detail
+        string $detail,
+        array $archived=[]
     ): string {
         $m=['domains'=>count($domains),'approved'=>0,'review'=>0,'pending'=>0,'system'=>0];
         $prepared=[];
@@ -93,11 +94,12 @@ final class OnboardingDashboard
 
         $attention=self::attention($prepared);
         $domainTable=self::domainTable($filtered,$filter,$q,count($prepared));
+        $archivedTable=self::archivedTable($archived);
         $publisherTable=self::publisherTable($tenants);
         $create=self::createPanel($users,$tenants);
         $foot='<p class="ob-footer-note">Statuses reflect current Platform records, not a live Cloudways deployment probe. <a href="/admin/domains">Open advanced domain registry</a>.</p>';
 
-        return '<div class="ob-workbench">'.$hero.$stats.$detail.$attention.$domainTable.$publisherTable.$create.$foot.'</div>';
+        return '<div class="ob-workbench">'.$hero.$stats.$detail.$attention.$domainTable.$archivedTable.$publisherTable.$create.$foot.'</div>';
     }
 
     private static function metric(string $title,int $value,string $note,string $type): string
@@ -173,6 +175,25 @@ final class OnboardingDashboard
             .'<div class="ob-data-scroll"><table class="ob-data-table"><thead><tr><th>Publisher</th><th>Domain</th><th>Status</th><th>Progress</th><th>Next step</th><th>Last update</th><th></th></tr></thead>'
             .'<tbody>'.($rows?:'<tr><td class="ob-empty-row" colspan="7">No matching domains. Clear the search or register a publisher below.</td></tr>').'</tbody></table></div>'
             .'</section>';
+    }
+
+    private static function archivedTable(array $archived): string
+    {
+        if(!$archived)return '';
+        $rows='';
+        foreach($archived as $d) {
+            $guid=rawurlencode((string)$d['domain_guid']);
+            $rows.='<tr><td data-label="Hostname"><strong class="ob-td-title">'.self::e($d['hostname']).'</strong></td>'
+                .'<td data-label="Publisher">'.self::e($d['organisation_name'].' / '.$d['tenant_name']).'</td>'
+                .'<td data-label="State"><span class="ob-status ob-status-pending">Archived</span></td>'
+                .'<td data-label="Next action"><a class="ob-manage" href="/admin/domains/'.$guid.'/restore">'
+                .'Review & restore</a></td></tr>';
+        }
+        return '<details class="ob-panel ob-archived-panel" id="archived-domains">'
+            .'<summary class="ob-archived-summary">Archived domains ('.count($archived).') — recover an existing hostname instead of adding it twice</summary>'
+            .'<div class="ob-data-scroll"><table class="ob-data-table"><thead><tr>'
+            .'<th>Hostname</th><th>Publisher</th><th>State</th><th>Next action</th></tr></thead>'
+            .'<tbody>'.$rows.'</tbody></table></div></details>';
     }
 
     private static function publisherTable(array $tenants): string
