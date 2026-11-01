@@ -248,6 +248,8 @@ final class Onboarding
         $fresh=self::one($d['domain_guid']);
         if (!$fresh) throw new \RuntimeException('Domain no longer exists.');
         if (!in_array((string)$fresh['status'],['ROUTING_VALID','SSL_PROVISIONING','ACTIVE'],true)||empty($fresh['verified_at'])) throw new \RuntimeException('DNS must be verified before go-live approval.');
+        if (!self::state($fresh)['steps'][0]['done'])
+            throw new \RuntimeException('The EPAPER product, application, organisation and tenant must be active and correctly linked before go-live.');
         if ((int)$fresh['owner_count']===0) throw new \RuntimeException('Assign an active publisher OWNER, ADMIN or PUBLISHER_ADMIN before go-live.');
         if ((string)($fresh['service_access_state']??'')!=='FULL') throw new \RuntimeException('Activate a subscription with FULL service access before go-live.');
         $edge=json_decode((string)($fresh['edge_metadata']??''),true)?:[];
@@ -277,6 +279,7 @@ final class Onboarding
         $where=$domainGuid===null?'':' AND d.domain_guid=?';
         return Store::all('SELECT d.domain_guid,d.organisation_guid,d.product_guid,d.domain_type,d.is_primary,d.product_tenant_guid,d.hostname,d.status,d.verification_token,d.dns_metadata,d.edge_metadata,d.verified_at,d.ssl_ready_at,d.activated_at,d.last_checked_at,d.created_at,d.updated_at,
             o.display_name organisation_name,o.status organisation_status,pt.display_name tenant_name,pt.status tenant_status,
+            p.status product_status,
             a.name application_name,a.status application_status,a.base_url application_url,
             a.product_guid application_product_guid,pt.product_guid tenant_product_guid,
             pt.organisation_guid tenant_organisation_guid,
@@ -318,7 +321,7 @@ final class Onboarding
     public static function state(array $d): array
     {
         $reviewed=(bool)($d['reviewed']??false);
-        $tenant=$d['organisation_status']==='ACTIVE'&&$d['tenant_status']==='ACTIVE'&&$d['application_status']==='ACTIVE'
+        $tenant=($d['product_status']??'')==='ACTIVE'&&$d['organisation_status']==='ACTIVE'&&$d['tenant_status']==='ACTIVE'&&$d['application_status']==='ACTIVE'
             && ($d['product_guid']??null)===($d['tenant_product_guid']??null)
             && ($d['product_guid']??null)===($d['application_product_guid']??null)
             && ($d['organisation_guid']??null)===($d['tenant_organisation_guid']??null);
