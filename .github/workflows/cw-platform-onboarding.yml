@@ -25,5 +25,7 @@ jobs:
           coverage: none
       - name: PHP syntax lint
         run: find app public_html tests -type f -name '*.php' -print0 | xargs -0 -n1 php -l
-      - name: Source-contract checks
+      - name: Onboarding contract checks
         run: php tests/onboarding-source-contract.php
+      - name: Operator UI behaviour and navigation smoke checks
+        run: php tests/operator-ui-checks.php
