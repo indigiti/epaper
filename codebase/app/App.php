@@ -1,7 +1,8 @@
 <?php
 namespace EpaperSaas;
 use EpaperSaas\Core\{Auth,Build,Config,Http,RateLimiter,RedisStore,RequestContext,Store,Uuid,View};
-use EpaperSaas\Services\{AnalyticsCatalog,Audit,CacheInspector,ClipService,DomainResolver,DirectRecovery,EditionOperations,EditionManifest,Entitlements,InfrastructureConfig,Media,DesktopAuth,DeviceAuth,MobileAuth,MobileAuthPendingException,MultiLayerCache,OfflineVault,PlatformClient,Processing,ProcessingRecovery,ProductionReadiness,PublicReadCache,FrontendHomeLayouts,ThemeCatalog,PublishingRuntime,PublishingScheduler,QueueService,RecoveryCenter,RabbitMq,ReaderNavigation,ReaderSession,RuntimeCache,SchemaDoctor,SemanticNews,SeoDiscovery,SettingsCatalog,SupervisorRuntime,TenantData,TrustedAppAuth,PerformanceTelemetry};
+use EpaperSaas\Controllers\{StagingAcceptanceController,AdminAiClippingController};
+use EpaperSaas\Services\{AnalyticsCatalog,Audit,CacheInspector,ClipService,DomainResolver,DirectRecovery,EditionOperations,EditionManifest,EditionPageSequence,EditionRemoval,AiEditorialReview,Entitlements,InfrastructureConfig,Media,DesktopAuth,DeviceAuth,MobileAuth,MobileAuthPendingException,MultiLayerCache,OfflineVault,PlatformClient,Processing,ProcessingRecovery,ProductionReadiness,PublicReadCache,FrontendHomeLayouts,ThemeCatalog,AppearanceGallery,PublishingRuntime,PublishingScheduler,QueueService,RecoveryCenter,RabbitMq,ReaderNavigation,ReaderSession,RuntimeCache,SchemaDoctor,SemanticNews,SeoDiscovery,SettingsCatalog,SupervisorRuntime,TenantData,TrustedAppAuth,PerformanceTelemetry};
 final class App
 {
     public function run(): never
@@ -60,6 +61,7 @@ final class App
         if(preg_match('#^/api/v1/reader/([^/]+)/page/(\d+)/state$#',$path,$m))$this->readerState($m[1],(int)$m[2]);
         if(preg_match('#^/api/v1/pages/([0-9a-f-]{36})/tiles$#i',$path,$m))$this->tileManifest($m[1]);
         if(preg_match('#^/api/v1/pages/([0-9a-f-]{36})/tiles/(\d+)/(\d+)/(\d+)\.webp$#i',$path,$m))$this->tile($m[1],(int)$m[2],(int)$m[3],(int)$m[4]);
+        if(preg_match('#^/api/v1/pages/([0-9a-f-]{36})/clip-marks$#i',$path,$m)&&$method==='GET')\EpaperSaas\Services\ManualClipMarking::respond($m[1]);
         if(preg_match('#^/api/v1/pages/([0-9a-f-]{36})/article-at$#i',$path,$m))$this->articleAt($m[1]);
         if(preg_match('#^/api/v1/pages/([0-9a-f-]{36})/text$#i',$path,$m))$this->pageText($m[1]);
         if($path==='/api/v1/search')$this->apiSearch();
@@ -286,8 +288,8 @@ final class App
         $archiveCta='<section class="archive-cta"><div><span class="eyebrow">ARCHIVE</span><h2>Return to any front page.</h2><p>Choose a date to see the editions published that day.</p></div><form action="/archive" method="get" class="archive-cta-form"><label><span>Date</span><input type="date" name="date" value="'.date('Y-m-d').'"></label><button class="btn primary" type="submit">Find editions</button></form></section>';
         $highlights=PublicReadCache::highlights(8);$hi='';if($highlights){$hi='<section class="section public-section" id="highlights"><div class="section-head"><div><span class="eyebrow">HIGHLIGHTS</span><h2>From the newsroom</h2></div></div><div class="highlight-grid">';foreach($highlights as$h){$url=trim((string)($h['target_url']??''));$tag=$url&&str_starts_with($url,'/')?'a':'div';$attrs=$tag==='a'?' href="'.$this->e($url).'"':'';$hi.='<'.$tag.' class="highlight-card"'.$attrs.'><strong>'.$this->e($h['title']).'</strong>'.(!empty($h['summary'])?'<p>'.$this->e($h['summary']).'</p>':'').'</'.$tag.'>';}$hi.='</div></section>';}
         $org=SemanticNews::organization();$website=['@context'=>'https://schema.org','@type'=>'WebSite','@id'=>Http::origin().'/#website','url'=>Http::origin().'/', 'name'=>$this->brandName(),'publisher'=>['@id'=>Http::origin().'/#organization'],'potentialAction'=>['@type'=>'SearchAction','target'=>Http::origin().'/search?q={search_term_string}','query-input'=>'required name=search_term_string']];$homeContent=$resume.$hero.$recent.$pubHtml.$archiveCta.$hi;
-        // Homepage structures use the same effective tenant theme as View, including
-        // an admin-only private preview; Default keeps its historical markup untouched.
+        // Preserve original Default; alternate home structures reuse the same tenant
+        // read models. Previews stay restricted to logged-in publisher managers.
         $selectedHomeTheme=ThemeCatalog::resolve('frontend',(string)TenantData::setting('appearance.frontend_theme','Default'));
         if($selectedHomeTheme!=='Default'){
             $cards=[];
@@ -304,7 +306,8 @@ final class App
                 'highlights'=>$highlights,
             ]);
         }
-        View::layout('Today',$homeContent,['brand'=>$this->brandName(),'canonical_url'=>Http::origin().'/', 'lang'=>(string)TenantData::setting('seo.default_language','en-IN'),'structured_data'=>[$org,$website]]);
+        $homeContent=\EpaperSaas\Services\PublicHalo::decorate($homeContent,$selectedHomeTheme);
+        View::layout('Today',$homeContent,['brand'=>$this->brandName(),'canonical_url'=>Http::origin().'/', 'lang'=>(string)TenantData::setting('seo.default_language','en-IN'),'structured_data'=>[$org,$website], 'home_halo'=>str_contains($homeContent,'data-epaper-halo')]);
     }
 
     private function publication(string $slug): never
@@ -433,7 +436,7 @@ final class App
         .'<aside class="reader-rail"><button data-zoom-in aria-label="Zoom in" title="Zoom In">'.View::icon('plus').'</button><output data-zoom-label>100%</output><button data-zoom-out aria-label="Zoom out" title="Zoom Out">'.View::icon('minus').'</button><span class="rail-sep"></span><button data-scroll-zoom aria-pressed="false" aria-label="Enable mouse scroll zoom" title="Enable scroll to zoom">'.View::icon('mouse').'</button><span class="rail-sep"></span><button data-fit-page aria-label="Fit page" title="Fit Page">'.View::icon('fit').'</button><button data-fit-width aria-label="Fit width" title="Fit Width">'.View::icon('width').'</button><button data-reset-view aria-label="Reset view" title="Reset View">'.View::icon('reset').'</button><button data-fullscreen aria-pressed="false" aria-label="Focus reading" title="Focus / Fullscreen">'.View::icon('fullscreen').'</button><button data-article-mode aria-label="Smart Article" title="Smart Article">'.View::icon('text').'</button><button data-reader-text-mode aria-label="Read page as OCR text" title="Read page text">'.View::icon('book').'</button><span class="rail-sep"></span><button data-clip aria-pressed="false" aria-label="Clip newspaper area" title="Clip">'.View::icon('clip').'</button></aside>'
         .'<div class="article-modal hidden" data-article-modal role="dialog" aria-modal="true" aria-labelledby="reader-article-title"><div class="article-sheet"><div class="article-sheet-head"><strong id="reader-article-title">Smart Article</strong><button class="icon-btn" data-article-close aria-label="Close">'.View::icon('close').'</button></div><article data-article-text></article><div class="article-actions"><button class="btn" data-article-tts>Listen</button><button class="btn" data-article-save>Save Article</button></div></div></div>'
         .'<div class="reader-text-modal hidden" data-reader-text-modal role="dialog" aria-modal="true" aria-labelledby="reader-text-title"><section class="reader-text-sheet"><header class="reader-text-head"><div><span class="eyebrow">ACCESSIBLE EDITION</span><h2 id="reader-text-title">Read page text</h2></div><button class="icon-btn" type="button" data-reader-text-close aria-label="Close text reader">'.View::icon('close').'</button></header><p class="reader-text-status" data-reader-text-status aria-live="polite">OCR text is loaded on demand.</p><article class="reader-text-content" data-reader-text-content tabindex="0"></article></section></div>'
-        .'<div class="clip-create-modal hidden" data-clip-modal role="dialog" aria-modal="true" aria-labelledby="clip-modal-title"><div class="clip-create-sheet"><div class="clip-create-head"><div><span class="eyebrow">CLIPPING</span><h2 id="clip-modal-title">Create clipping</h2></div><button class="icon-btn" type="button" data-clip-modal-close aria-label="Close clipping dialog">'.View::icon('close').'</button></div><div class="clip-create-form" data-clip-form><p class="muted">'.($guestReader?'Create one clipping free without signing in. Sign in to create more and keep clips in your Library.':'Give the clipping a clear title and choose who can open the link.').'</p><label>Title<input type="text" data-clip-title maxlength="180" value="News clipping" autocomplete="off"></label>'.($guestReader?'<select data-clip-visibility hidden aria-hidden="true"><option value="PUBLIC" selected>Public</option></select><div class="guest-free-clip-note"><strong>Your free guest clipping</strong><span>1 clipping · shareable link · expires automatically after 7 days</span></div>':'<label>Visibility<select data-clip-visibility><option value="PRIVATE"'.($clipVisibility==='PRIVATE'?' selected':'').'>Private</option><option value="PUBLIC"'.($clipVisibility==='PUBLIC'?' selected':'').'>Public</option></select></label>').'<div class="clip-expiry-note"><strong>7-day access window</strong><span>Clippings expire automatically seven days after creation. Extension is not available.</span></div><button class="btn primary clip-create-submit" type="button" data-clip-create>Save clipping</button></div><div class="clip-create-progress hidden" data-clip-progress><div class="clip-progress-icon">'.View::icon('download').'</div><div><strong data-clip-progress-title>Creating clipping…</strong><span data-clip-progress-label>Preparing the selected newspaper area</span></div><b data-clip-progress-pct>12%</b><div class="clip-progress-bar"><span data-clip-progress-bar style="width:12%"></span></div></div><div class="clip-create-success hidden" data-clip-success><strong>Clipping ready</strong><p>Your clipping is ready. Share formats will finish preparing on the clipping page.</p><a class="btn primary" data-open-clipping href="#">Open clipping</a></div></div></div></div>';
+        .'<div class="clip-create-modal hidden" data-clip-modal role="dialog" aria-modal="true" aria-labelledby="clip-modal-title"><div class="clip-create-sheet"><div class="clip-create-head"><div><span class="eyebrow">CLIPPING</span><h2 id="clip-modal-title">Create clipping</h2></div><button class="icon-btn" type="button" data-clip-modal-close aria-label="Close clipping dialog">'.View::icon('close').'</button></div><div class="clip-create-form" data-clip-form><p class="muted">'.($guestReader?'Create one clipping free without signing in. Sign in to create more and keep clips in your Library.':'Name your clipping and choose visibility.').'</p><label>Title<input type="text" data-clip-title maxlength="180" value="News clipping" autocomplete="off"></label>'.($guestReader?'<select data-clip-visibility hidden aria-hidden="true"><option value="PUBLIC" selected>Public</option></select><div class="guest-free-clip-note"><strong>Your free guest clipping</strong><span>1 clipping · shareable link · expires automatically after 7 days</span></div>':'<label>Visibility<select data-clip-visibility><option value="PRIVATE"'.($clipVisibility==='PRIVATE'?' selected':'').'>Private</option><option value="PUBLIC"'.($clipVisibility==='PUBLIC'?' selected':'').'>Public</option></select></label>').'<div class="clip-expiry-note" title="Clippings expire automatically after 7 days. No extensions available."><strong>7-day access</strong><span>Expires automatically · No extensions</span></div><button class="btn primary clip-create-submit" type="button" data-clip-create>Save clipping</button></div><div class="clip-create-progress hidden" data-clip-progress><div class="clip-progress-icon">'.View::icon('download').'</div><div><strong data-clip-progress-title>Creating clipping…</strong><span data-clip-progress-label>Preparing the selected newspaper area</span></div><b data-clip-progress-pct>12%</b><div class="clip-progress-bar"><span data-clip-progress-bar style="width:12%"></span></div></div><div class="clip-create-success hidden" data-clip-success><strong>Clipping ready</strong><p>Your clipping is ready. Share formats will finish preparing on the clipping page.</p><a class="btn primary" data-open-clipping href="#">Open clipping</a></div></div></div></div>';
         $body.='<div class="guest-clip-gate hidden" data-guest-clip-gate role="dialog" aria-modal="true" aria-labelledby="guest-clip-gate-title"><div class="guest-clip-gate-card"><button class="icon-btn guest-gate-close" type="button" data-guest-gate-close aria-label="Close">'.View::icon('close').'</button><span class="eyebrow">CLIPPING</span><h2 id="guest-clip-gate-title" data-guest-gate-title>You&rsquo;ve created your free clipping</h2><p data-guest-gate-copy>Sign in to create more clippings, keep them in your Library and access them across devices.</p><div class="guest-gate-benefits"><span>✓ Keep your clipping library</span><span>✓ Create more clippings</span><span>✓ Access across devices</span></div><div class="guest-gate-actions"><a class="btn primary" data-guest-login href="'.$this->e($guestLoginUrl).'">Sign in / Create account</a><a class="btn ghost" data-guest-subscribe href="'.$this->e($subscribeUrl).'">View subscription options</a><button class="btn ghost" type="button" data-guest-gate-later>Not now</button></div></div></div>';
         View::layout('Page '.$pageNo.' · '.$ed['publication_name'],$body,['brand'=>$this->brandName(),'reader'=>true,'navigation_scope'=>['publication_guid'=>$ed['publication_guid']??null,'city_guid'=>$ed['city_guid']??null,'language_guid'=>$ed['language_guid']??null],'og_type'=>'article','og_title'=>$ed['publication_name'].' · Page '.$pageNo,'og_description'=>'Read Page '.$pageNo.' of '.$ed['publication_name'].' · '.date('d M Y',strtotime((string)$ed['edition_date'])),'canonical_url'=>$canonicalUrl,'social_image'=>$socialUrl,'social_image_alt'=>$socialAlt,'reader_edition_strip'=>$readerEditionStrip]);
     }
@@ -442,19 +445,39 @@ final class App
     {
         $publication=(string)($edition['publication_guid']??'');if(!Uuid::isValid($publication))return'';$city=(string)($edition['city_guid']??'');$language=(string)($edition['language_guid']??'');$activeSlug=(string)($edition['slug']??'');$date=(string)($edition['edition_date']??date('Y-m-d'));
         $historyLimit=max(30,min(1000,(int)TenantData::effectiveSetting('reader.edition_history_limit','365',$publication,$readerUser)));
-        $rows=PublicReadCache::readerEditionHistory($publication,Uuid::isValid($city)?$city:null,Uuid::isValid($language)?$language:null,$historyLimit);if(count($rows)<2)return'';
+        $rows=\EpaperSaas\Services\ReaderEditionChoices::withCurrent(
+            PublicReadCache::readerEditionHistory($publication,Uuid::isValid($city)?$city:null,Uuid::isValid($language)?$language:null,$historyLimit),
+            $edition
+        );
+        $hasAlternates=count($rows)>1;
+        // Keep the calendar discoverable even if no other matching edition exists.
+        $archiveUrl='/archive?'.http_build_query(['publication'=>$publication,'month'=>substr($date,0,7)],
+            '','&',PHP_QUERY_RFC3986);
         $current=\DateTimeImmutable::createFromFormat('!Y-m-d',$date)?:new \DateTimeImmutable('today');$months=[];foreach($rows as$row){$d=\DateTimeImmutable::createFromFormat('!Y-m-d',(string)$row['edition_date']);if(!$d)continue;$months[$d->format('Y-m')][]=['date'=>$d,'row'=>$row];}
-        $html='<div class="reader-edition-menu-control" data-reader-edition-menu><button class="reader-header-tool reader-edition-trigger" type="button" data-reader-edition-trigger aria-haspopup="dialog" aria-expanded="false" aria-label="Choose back edition" title="Choose edition date">'.View::icon('calendar').'<span class="reader-edition-full-date">'.$this->e($current->format('d M Y')).'</span><span class="reader-edition-short-date">'.$this->e($current->format('d M')).'</span><span class="reader-edition-chevron">'.View::icon('chev-down').'</span></button><div class="reader-edition-menu hidden" data-reader-edition-panel role="dialog" aria-label="Back editions"><div class="reader-edition-menu-head"><div><span class="eyebrow">BACK EDITIONS</span><strong>'.$this->e((string)($edition['publication_name']??'Edition')).'</strong></div><a href="/archive">Full archive</a></div><div class="reader-edition-menu-scroll">';
+        $html='<div class="reader-edition-menu-control" data-reader-edition-menu><button class="reader-header-tool reader-edition-trigger" type="button" data-reader-edition-trigger aria-haspopup="dialog" aria-expanded="false" aria-label="Choose back edition" title="Choose edition date">'.View::icon('calendar').'<span class="reader-edition-full-date">'.$this->e($current->format('d M Y')).'</span><span class="reader-edition-short-date">'.$this->e($current->format('d M')).'</span><span class="reader-edition-chevron">'.View::icon('chev-down').'</span></button><div class="reader-edition-menu hidden" data-reader-edition-panel role="dialog" aria-label="Back editions"><div class="reader-edition-menu-head"><div><span class="eyebrow">BACK EDITIONS</span><strong>'.$this->e((string)($edition['publication_name']??'Edition')).'</strong></div><a href="'.$this->e($archiveUrl).'">Publication archive</a></div><div class="reader-edition-menu-scroll">';
         $first=true;foreach($months as$ym=>$items){$month=$items[0]['date'];$hasActive=false;foreach($items as$item)if((string)$item['row']['slug']===$activeSlug){$hasActive=true;break;}$html.='<section class="reader-edition-month'.($hasActive?' active':'').'"><div class="reader-edition-month-label">'.$this->e($month->format('F Y')).'</div><div class="reader-edition-date-list">';foreach($items as$item){$d=$item['date'];$row=$item['row'];$active=(string)$row['slug']===$activeSlug;$html.='<a class="reader-edition-choice'.($active?' active':'').'" href="/edition/'.$this->e((string)$row['slug']).'/page/1"'.($active?' aria-current="date"':'').' title="'.$this->e($d->format('l, d F Y')).'"><time datetime="'.$this->e($d->format('Y-m-d')).'"><strong>'.$this->e($d->format('d')).'</strong><span>'.$this->e($d->format('D')).'</span></time></a>';}$html.='</div></section>';$first=false;}
-        return$html.'</div><div class="reader-edition-menu-foot"><span>Exact publication + city + language</span><a href="/archive">Older editions →</a></div></div></div>';
+        if(!$hasAlternates){
+            $html.='<p class="reader-edition-empty">No other published dates found for this edition variant. '
+                .'Browse the publication archive for more editions.</p>';
+        }
+        return$html.'</div><div class="reader-edition-menu-foot"><span>Exact publication + city + language</span>'
+            .'<a href="'.$this->e($archiveUrl).'">Browse archive →</a></div></div></div>';
     }
 
     private function readerEditionStrip(array $edition): string
     {
         $publication=(string)($edition['publication_guid']??'');if(!Uuid::isValid($publication))return'';$city=(string)($edition['city_guid']??'');$language=(string)($edition['language_guid']??'');$date=(string)($edition['edition_date']??date('Y-m-d'));
-        $rows=PublicReadCache::readerEditionCalendar($date,$publication,Uuid::isValid($city)?$city:null,Uuid::isValid($language)?$language:null,45);if(count($rows)<2)return'';
+        $rows=\EpaperSaas\Services\ReaderEditionChoices::withCurrent(
+            PublicReadCache::readerEditionCalendar($date,$publication,Uuid::isValid($city)?$city:null,Uuid::isValid($language)?$language:null,45),
+            $edition,true
+        );
+        $hasAlternates=count($rows)>1;
+        $archiveUrl='/archive?'.http_build_query(['publication'=>$publication,'month'=>substr($date,0,7)],
+            '','&',PHP_QUERY_RFC3986);
         $activeSlug=(string)($edition['slug']??'');$labelDate=\DateTimeImmutable::createFromFormat('!Y-m-d',$date)?:new \DateTimeImmutable('today');$html='<div class="reader-edition-switcher" data-reader-edition-switcher><div class="reader-edition-switcher-inner"><button class="reader-edition-scroll" type="button" data-edition-strip-scroll="-1" aria-label="Earlier editions">'.View::icon('chev-left').'</button><div class="reader-edition-context"><span>EDITION</span><strong>'.$this->e(strtoupper($labelDate->format('M Y'))).'</strong></div><nav class="reader-edition-dates" data-edition-date-rail aria-label="Switch edition date">';
         foreach($rows as$row){$d=\DateTimeImmutable::createFromFormat('!Y-m-d',(string)$row['edition_date']);if(!$d)continue;$active=(string)$row['slug']===$activeSlug;$html.='<a class="reader-edition-date'.($active?' active':'').'" href="/edition/'.$this->e((string)$row['slug']).'/page/1"'.($active?' aria-current="date"':'').' title="'.$this->e($d->format('l, d F Y')).'"><span>'.$this->e(strtoupper($d->format('D'))).'</span><strong>'.$this->e($d->format('d')).'</strong><small>'.$this->e(strtoupper($d->format('M'))).'</small></a>';}
+        if(!$hasAlternates)$html.='<a class="reader-edition-archive" href="'.$this->e($archiveUrl).'"'
+            .' title="Browse other editions of this publication">Archive →</a>';
         return$html.'</nav><button class="reader-edition-scroll" type="button" data-edition-strip-scroll="1" aria-label="Later editions">'.View::icon('chev-right').'</button></div></div>';
     }
 
@@ -520,7 +543,7 @@ final class App
     }
     private function publicClipImage(string $slug): never
     {
-        $c=$this->clipOr404($slug);if(strtoupper((string)$c['visibility'])==='PRIVATE')Http::privateNoStore();$full=ClipService::previewPath($c);if(!is_file($full))$this->notFound('Clip image unavailable');header('Content-Type: image/webp');header('Content-Length: '.filesize($full));header('Content-Disposition: inline; filename="epaper-clip-'.$this->e($slug).'.webp"');header('Cache-Control: '.(strtoupper((string)$c['visibility'])==='PRIVATE'?'private, no-store':'public, max-age=3600'));readfile($full);exit;
+        $c=$this->clipOr404($slug);if(in_array(strtoupper((string)$c['visibility']),['PRIVATE','OFFICIAL'],true))Http::privateNoStore();$full=ClipService::previewPath($c);if(!is_file($full))$this->notFound('Clip image unavailable');header('Content-Type: image/webp');header('Content-Length: '.filesize($full));header('Content-Disposition: inline; filename="epaper-clip-'.$this->e($slug).'.webp"');header('Cache-Control: '.(in_array(strtoupper((string)$c['visibility']),['PRIVATE','OFFICIAL'],true)?'private, no-store':'public, max-age=3600'));readfile($full);exit;
     }
     private function clipDownload(string $slug,string $format): never
     {
@@ -531,18 +554,40 @@ final class App
         $c=$this->clipOr404($slug);$private=strtoupper((string)$c['visibility'])==='PRIVATE';$guestClip=empty($c['platform_user_guid']);Http::privateNoStore();Store::exec('UPDATE ep_clips SET view_count=view_count+1 WHERE tenant_guid=? AND clip_guid=?',[TenantData::tenantBin(),Uuid::toBinary($c['clip_guid'])]);$c['view_count']=(int)$c['view_count']+1;
         $stats=ClipService::stats($c);$formats=ClipService::formatStatus($c);$manage=ClipService::canManage($c);$url=Http::origin().'/c/'.$slug;$encodedUrl=rawurlencode($url);$shareText=rawurlencode(($c['title']?:'Newspaper clipping').' · '.$c['publication_name']);$ready=0;$supported=0;foreach($formats as$f){if($f['supported']){$supported++;if($f['ready'])$ready++;}}$pct=$supported?round($ready*100/$supported):100;
         $logo=trim((string)TenantData::setting('brand.logo_path',''));$brand=$this->brandName();$sourceUrl=ClipService::sourcePageUrl($c);$visibility=$private?'PRIVATE':'PUBLIC';
-        $formatIcons=['original'=>'▧','pdf'=>'PDF','instagram-portrait'=>'IG','instagram-landscape'=>'IG','facebook'=>'f','x'=>'X','whatsapp'=>'WA','webp'=>'W','avif'=>'A'];$downloadCards='';foreach($formats as$key=>$f){$cls=$f['ready']?'ready':($f['supported']?'preparing':'unsupported');$downloadCards.='<a class="clip-format-card '.$cls.'" data-clip-format="'.$this->e($key).'" href="'.($f['ready']?$this->e($f['download']):'#').'"'.($f['ready']?' download':' aria-disabled="true"').'><span class="clip-format-icon">'.$this->e($formatIcons[$key]??'↓').'</span><strong>'.$this->e($f['label']).'</strong><small data-format-state>'.($f['ready']?'Ready':($f['supported']?'Preparing…':'Unavailable')).'</small><span class="clip-format-download">'.View::icon('download').'</span></a>';}
+        $formatIcons=['original'=>'▧','pdf'=>'PDF','instagram-portrait'=>'IG','instagram-landscape'=>'IG','facebook'=>'f','x'=>'X','whatsapp'=>'WA','webp'=>'W','avif'=>'A'];
+        $downloadCards='';
+        foreach($formats as $key=>$f){
+            $cls=$f['ready']?'ready':($f['supported']?'preparing':'unsupported');
+            $state=$f['ready']?'Ready':($f['supported']?'Preparing':'Unavailable');
+            $name=(string)$f['label'];
+            $hint=$name.' — '.$state.($f['ready']?' · Download':'');
+            $downloadCards.='<a class="clip-format-card '.$cls.'" data-clip-format="'.$this->e($key).'"'
+                .' href="'.($f['ready']?$this->e($f['download']):'#').'"'
+                .' title="'.$this->e($hint).'" aria-label="'.$this->e($hint).'"'
+                .($f['ready']?' download':' aria-disabled="true"').'>'
+                .'<span class="clip-format-icon" aria-hidden="true">'.$this->e($formatIcons[$key]??'↓').'</span>'
+                .'<span class="clip-sr-only">'.$this->e($name).'</span>'
+                .'<small class="clip-sr-only" data-format-state>'.$this->e($state).'</small>'
+                .'<span class="clip-format-download" aria-hidden="true">'.View::icon('download').'</span></a>';
+        }
         $formatsJson=htmlspecialchars(json_encode($formats,JSON_UNESCAPED_SLASHES),ENT_QUOTES|ENT_SUBSTITUTE,'UTF-8');
         $guestClaim=$guestClip?'<section class="guest-claim-banner"><div><span class="eyebrow">YOUR FREE CLIPPING</span><strong>Sign in to keep this clipping in your Library</strong><p>This guest clipping remains available for 7 days. After sign-in it will be attached to your account automatically.</p></div><a class="btn primary" href="'.$this->e($this->guestClipLoginUrl('/c/'.$slug)).'">Sign in &amp; save</a></section>':'';$html=$guestClaim.'<section class="clip-showcase" data-clip-page data-clip-slug="'.$this->e($slug).'" data-clip-url="'.$this->e($url).'" data-can-manage="'.($manage?'1':'0').'" data-clip-formats="'.$formatsJson.'">'
         .'<div class="clip-preview-column"><div class="clip-preview-card"><div class="clip-preview-brand">'.($logo?'<img src="'.$this->e($logo).'" alt="">':'<span class="clip-brand-mark">'.strtoupper($this->e(mb_substr($brand,0,1))).'</span>').'<div><strong>'.$this->e($brand).'</strong><span>'.$this->e($c['publication_name']).'</span></div><div class="clip-preview-meta"><b>'.$this->e(date('d M Y',strtotime((string)$c['edition_date']))).'</b><span>Page '.(int)$c['page_number'].'</span></div></div><div class="clip-preview-image"><img src="/c/'.$this->e($slug).'/image.webp" alt="'.$this->e($c['title']?:'Newspaper clipping').'" decoding="async"></div><div class="clip-preview-footer"><div><span class="eyebrow">SOURCE EDITION</span><strong>'.$this->e($c['publication_name']).'</strong></div><span>'.$this->e(date('Y-m-d',strtotime((string)$c['edition_date']))).' · Page '.(int)$c['page_number'].'</span></div></div></div>'
         .'<aside class="clip-control-panel"><div class="clip-control-head"><div class="clip-badges"><span class="clip-visibility-badge '.strtolower($visibility).'">'.$visibility.' CLIP</span><span class="clip-ready-badge"><i></i>Ready</span></div><h1>'.$this->e($c['title']?:'News clipping').'</h1><a class="clip-source-context" href="'.$this->e($sourceUrl).'"><span>Source page</span><strong>'.$this->e($c['publication_name']).' · '.$this->e(date('d M Y',strtotime((string)$c['edition_date']))).' · Page '.(int)$c['page_number'].'</strong></a></div>'
         .'<div class="clip-stat-grid"><div><span class="stat-icon">◉</span><strong data-clip-views>'.(int)$stats['views'].'</strong><small>Views</small></div><div><span class="stat-icon">↗</span><strong data-clip-shares>'.(int)$stats['shares'].'</strong><small>Shares</small></div><div><span class="stat-icon">↓</span><strong data-clip-downloads>'.(int)$stats['downloads'].'</strong><small>Downloads</small></div></div>'
-        .'<section class="clip-panel-section"><span class="eyebrow">SHARE</span><h2>Share this clipping</h2><div class="clip-share-grid"><a data-clip-share="whatsapp" target="_blank" rel="noopener" href="https://wa.me/?text='.$shareText.'%20'.$encodedUrl.'"><span class="share-icon whatsapp">WA</span><strong>WhatsApp</strong></a><a data-clip-share="facebook" target="_blank" rel="noopener" href="https://www.facebook.com/sharer/sharer.php?u='.$encodedUrl.'"><span class="share-icon facebook">f</span><strong>Facebook</strong></a><a data-clip-share="x" target="_blank" rel="noopener" href="https://twitter.com/intent/tweet?url='.$encodedUrl.'&text='.$shareText.'"><span class="share-icon x">X</span><strong>X</strong></a><a data-clip-share="telegram" target="_blank" rel="noopener" href="https://t.me/share/url?url='.$encodedUrl.'&text='.$shareText.'"><span class="share-icon telegram">➤</span><strong>Telegram</strong></a><button type="button" data-clip-copy><span class="share-icon copy">▣</span><strong>Copy link</strong></button></div></section>'
+        .'<section class="clip-panel-section"><span class="eyebrow">SHARE</span><h2>Share this clipping</h2>'
+        .'<nav class="clip-share-grid clip-icon-rail" aria-label="Share clipping">'
+        .'<a data-clip-share="whatsapp" aria-label="Share on WhatsApp" title="Share on WhatsApp" target="_blank" rel="noopener" href="https://wa.me/?text='.$shareText.'%20'.$encodedUrl.'"><span class="share-icon whatsapp" aria-hidden="true">WA</span><span class="clip-sr-only">WhatsApp</span></a>'
+        .'<a data-clip-share="facebook" aria-label="Share on Facebook" title="Share on Facebook" target="_blank" rel="noopener" href="https://www.facebook.com/sharer/sharer.php?u='.$encodedUrl.'"><span class="share-icon facebook" aria-hidden="true">f</span><span class="clip-sr-only">Facebook</span></a>'
+        .'<a data-clip-share="x" aria-label="Share on X" title="Share on X / Twitter" target="_blank" rel="noopener" href="https://twitter.com/intent/tweet?url='.$encodedUrl.'&text='.$shareText.'"><span class="share-icon x" aria-hidden="true">X</span><span class="clip-sr-only">X / Twitter</span></a>'
+        .'<a data-clip-share="telegram" aria-label="Share on Telegram" title="Share on Telegram" target="_blank" rel="noopener" href="https://t.me/share/url?url='.$encodedUrl.'&text='.$shareText.'"><span class="share-icon telegram" aria-hidden="true">'.View::icon('send').'</span><span class="clip-sr-only">Telegram</span></a>'
+        .'<button type="button" data-clip-copy aria-label="Copy clipping link" title="Copy clipping link"><span class="share-icon copy" aria-hidden="true">'.View::icon('pages').'</span><span class="clip-sr-only">Copy link</span></button>'
+        .'</nav></section>'
         .'<section class="clip-format-progress" data-format-progress><div class="format-progress-head"><div><span class="format-progress-icon">'.View::icon('download').'</span><div><strong>Share formats ready</strong><small data-format-summary>'.$ready.' of '.$supported.' formats ready</small></div></div><b data-format-percent>'.$pct.'%</b></div><div class="format-progress-bar"><span data-format-bar style="width:'.$pct.'%"></span></div><div class="format-progress-foot"><span data-format-message>'.($pct>=100?'Ready to share':'Preparing optimized formats…').'</span><span>'.($manage?'Keep this page open while preparation finishes':($guestClip?'Sign in to unlock all prepared formats':'Prepared by the clipping owner')).'</span></div></section>'
-        .'<section class="clip-panel-section clip-download-section"><span class="eyebrow">DOWNLOAD</span><div class="clip-section-title"><h2>Choose a format</h2><small>Optimized for each platform</small></div><div class="clip-format-grid">'.$downloadCards.'</div></section>'
+        .'<section class="clip-panel-section clip-download-section"><span class="eyebrow">DOWNLOAD</span><div class="clip-section-title"><h2>Choose a format</h2><small>Scroll for more →</small></div><div class="clip-format-grid clip-icon-rail" role="group" aria-label="Clipping download formats" tabindex="0">'.$downloadCards.'</div></section>'
         .'<section class="clip-qr-section"><div><span class="qr-icon">⌗</span><div><strong>Scan to open</strong><p>'.($private?'Sign in with the clipping owner account on another device.':'Share this clipping from any device.').'</p></div></div><div class="clip-qr" data-clip-qr data-url="'.$this->e($url).'" aria-label="QR code for clipping"></div></section>'
         .'<div class="clip-panel-footer"><a href="/edition/'.$this->e($c['edition_slug']).'/page/'.(int)$c['page_number'].'">→ Open original page</a><span>'.$this->e($url).'</span></div></aside></section>';
-        $clipSocial=$private?'':Http::origin().'/c/'.rawurlencode($slug).'/image.webp';View::layout('Clipping · '.$c['title'],$html,['brand'=>$brand,'og_type'=>'article','og_title'=>$c['title']?:'News clipping','og_description'=>$c['publication_name'].' · '.date('d M Y',strtotime((string)$c['edition_date'])).' · Page '.(int)$c['page_number'],'canonical_url'=>$url,'social_image'=>$clipSocial,'social_image_alt'=>($c['title']?:'News clipping').' · '.$c['publication_name'],'robots'=>$guestClip?'noindex,nofollow':null]);
+        $clipSocial=$private?'':Http::origin().'/c/'.rawurlencode($slug).'/image.webp';View::layout('Clipping · '.$c['title'],$html,['brand'=>$brand,'clip_ui'=>true,'og_type'=>'article','og_title'=>$c['title']?:'News clipping','og_description'=>$c['publication_name'].' · '.date('d M Y',strtotime((string)$c['edition_date'])).' · Page '.(int)$c['page_number'],'canonical_url'=>$url,'social_image'=>$clipSocial,'social_image_alt'=>($c['title']?:'News clipping').' · '.$c['publication_name'],'robots'=>$guestClip?'noindex,nofollow':null]);
     }
     private function clipFormatPrepare(string $slug,string $format): never
     {
@@ -558,8 +603,8 @@ final class App
     }
     private function apiClip(): never
     {
-        Http::verifyCsrf();if((string)TenantData::setting('clipping.enabled','on')==='off')Http::json(['ok'=>false,'code'=>'CLIPPING_DISABLED','message'=>'Clipping is not available for this publication'],403);$d=Http::bodyJson();$u=Auth::user();if(!$u){if($this->guestClipUsed()){Audit::log('guest_clip.limit_reached','clip',null,'DENIED',['reason'=>'guest_quota_used']);Http::json(['ok'=>false,'code'=>'GUEST_CLIP_LIMIT','message'=>'You have already created your free clipping. Sign in to create more.','login_url'=>$this->guestClipLoginUrl(),'subscribe_url'=>$this->clippingSubscribeUrl()],403);} $ip=(string)($_SERVER['REMOTE_ADDR']??'unknown');if(!RateLimiter::allow('guest-clip-ip:'.RequestContext::tenantGuid().':'.hash('sha256',$ip),3,86400))Http::json(['ok'=>false,'code'=>'GUEST_CLIP_RATE_LIMIT','message'=>'Guest clipping is temporarily limited on this network. Sign in to continue.','login_url'=>$this->guestClipLoginUrl()],429);try{$c=ClipService::create((string)($d['page_guid']??''),(float)($d['x']??0),(float)($d['y']??0),(float)($d['width']??0),(float)($d['height']??0),isset($d['title'])?(string)$d['title']:null,'PUBLIC');$this->guestClipMarkUsed((string)$c['slug']);Audit::log('guest_clip.created','clip',(string)$c['clip_guid'],'SUCCESS',['expires_at'=>$c['expires_at']??null,'quota_remaining'=>0]);Http::json(['ok'=>true,'guest'=>true,'quota_remaining'=>0]+$c);}catch(\Throwable$e){Http::json(['ok'=>false,'code'=>'CLIP_INVALID','message'=>$e->getMessage()],422);}}
-        if(!Entitlements::has('EPAPER.CLIPPING',true)){Audit::log('clip.entitlement.required','clip',null,'DENIED',['platform_user_guid'=>$u['user_guid']??null]);Http::json(['ok'=>false,'code'=>'ENTITLEMENT_REQUIRED','message'=>'Clipping is not included in your current subscription.','subscribe_url'=>$this->clippingSubscribeUrl()],403);}try{$c=ClipService::create((string)($d['page_guid']??''),(float)($d['x']??0),(float)($d['y']??0),(float)($d['width']??0),(float)($d['height']??0),isset($d['title'])?(string)$d['title']:null,(string)($d['visibility']??'PRIVATE'));Http::json(['ok'=>true]+$c);}catch(\Throwable$e){Http::json(['ok'=>false,'code'=>'CLIP_INVALID','message'=>$e->getMessage()],422);}
+        Http::verifyCsrf();if((string)TenantData::setting('clipping.enabled','on')==='off')Http::json(['ok'=>false,'code'=>'CLIPPING_DISABLED','message'=>'Clipping is not available for this publication'],403);$d=Http::bodyJson();$u=Auth::user();if(!$u){if($this->guestClipUsed()){Audit::log('guest_clip.limit_reached','clip',null,'DENIED',['reason'=>'guest_quota_used']);Http::json(['ok'=>false,'code'=>'GUEST_CLIP_LIMIT','message'=>'You have already created your free clipping. Sign in to create more.','login_url'=>$this->guestClipLoginUrl(),'subscribe_url'=>$this->clippingSubscribeUrl()],403);} $ip=(string)($_SERVER['REMOTE_ADDR']??'unknown');if(!RateLimiter::allow('guest-clip-ip:'.RequestContext::tenantGuid().':'.hash('sha256',$ip),3,86400))Http::json(['ok'=>false,'code'=>'GUEST_CLIP_RATE_LIMIT','message'=>'Guest clipping is temporarily limited on this network. Sign in to continue.','login_url'=>$this->guestClipLoginUrl()],429);try{$c=ClipService::create((string)($d['page_guid']??''),(float)($d['x']??0),(float)($d['y']??0),(float)($d['width']??0),(float)($d['height']??0),isset($d['title'])?(string)$d['title']:null,'PUBLIC',false,isset($d['mark_guid'])?(string)$d['mark_guid']:null);$this->guestClipMarkUsed((string)$c['slug']);Audit::log('guest_clip.created','clip',(string)$c['clip_guid'],'SUCCESS',['expires_at'=>$c['expires_at']??null,'quota_remaining'=>0]);Http::json(['ok'=>true,'guest'=>true,'quota_remaining'=>0]+$c);}catch(\Throwable$e){Http::json(['ok'=>false,'code'=>'CLIP_INVALID','message'=>$e->getMessage()],422);}}
+        if(!Entitlements::has('EPAPER.CLIPPING',true)){Audit::log('clip.entitlement.required','clip',null,'DENIED',['platform_user_guid'=>$u['user_guid']??null]);Http::json(['ok'=>false,'code'=>'ENTITLEMENT_REQUIRED','message'=>'Clipping is not included in your current subscription.','subscribe_url'=>$this->clippingSubscribeUrl()],403);}try{$c=ClipService::create((string)($d['page_guid']??''),(float)($d['x']??0),(float)($d['y']??0),(float)($d['width']??0),(float)($d['height']??0),isset($d['title'])?(string)$d['title']:null,(string)($d['visibility']??'PRIVATE'),false,isset($d['mark_guid'])?(string)$d['mark_guid']:null);Http::json(['ok'=>true]+$c);}catch(\Throwable$e){Http::json(['ok'=>false,'code'=>'CLIP_INVALID','message'=>$e->getMessage()],422);}
     }
     private function apiBookmark(): never
     {
@@ -614,16 +659,40 @@ final class App
     }
     private function accountOverview(array $u): never
     {
-        $uid=Uuid::toBinary($u['user_guid']);OfflineVault::expireOld($uid);$metrics=$this->accountOverviewMetrics($uid,(string)$u['user_guid']);
-        $resume=Store::one('SELECT h.page_number,h.last_viewed_at,e.edition_guid,e.slug,e.edition_date,e.page_count,e.title,p.name publication_name,a.asset_guid thumb_asset_guid FROM ep_history h JOIN ep_editions e ON e.tenant_guid=h.tenant_guid AND e.edition_guid=h.edition_guid JOIN ep_publications p ON p.tenant_guid=e.tenant_guid AND p.publication_guid=e.publication_guid LEFT JOIN ep_pages pg ON pg.tenant_guid=h.tenant_guid AND pg.edition_guid=h.edition_guid AND pg.page_number=h.page_number LEFT JOIN ep_page_assets a ON a.tenant_guid=pg.tenant_guid AND a.page_guid=pg.page_guid AND a.asset_type="THUMB" WHERE h.tenant_guid=? AND h.platform_user_guid=? ORDER BY h.last_viewed_at DESC LIMIT 1',[TenantData::tenantBin(),$uid]);
-        $html='<section class="reader-os-hero"><div><span class="eyebrow">READER OS · '.OfflineVault::VERSION.'</span><h1>Reader OS</h1><p>Your reading, saved content, encrypted offline editions, notifications and preferences in one place.</p></div><div class="reader-os-hero-actions"><button class="btn ghost hidden" type="button" data-pwa-install>Install app</button><span class="reader-os-version">v2.0</span></div></section>';
-        if($resume){$page=max(1,(int)$resume['page_number']);$total=max(1,(int)$resume['page_count']);$img=$this->assetUrlFromBinary($resume['thumb_asset_guid']??null);$html.='<section class="continue-reading-feature"><div class="continue-cover">'.($img?'<img src="'.$this->e($img).'" alt="" loading="eager" decoding="async">':'').'</div><div class="continue-copy"><span class="eyebrow">CONTINUE READING</span><h2>'.$this->e($resume['title']?:$resume['publication_name'].' · '.date('d M Y',strtotime($resume['edition_date']))).'</h2><p>Page '.$page.' of '.$total.' · Last read '.date('d M, H:i',strtotime($resume['last_viewed_at'])).'</p></div><a class="btn primary" href="/edition/'.$this->e($resume['slug']).'/page/'.$page.'">Continue →</a></section>';}
-        else $html.='<section class="continue-reading-feature empty"><div class="continue-copy"><span class="eyebrow">START READING</span><h2>Your latest edition is ready</h2><p>Open an edition and Reader OS will remember where you stopped.</p></div><a class="btn primary" href="/">Read latest →</a></section>';
-        $stats=[['Bookmarks',(int)$metrics['bookmarks'],'/account/bookmarks'],['Saved articles',(int)$metrics['saved_articles'],'/account/saved-articles'],['Clippings',(int)$metrics['clips'],'/account/clips'],['Offline editions',(int)$metrics['offline'],'/account/offline'],['Unread alerts',(int)$metrics['notifications'],'/account/notifications']];$html.='<div class="reader-os-stats">';foreach($stats as[$label,$value,$href])$html.='<a href="'.$href.'"><strong>'.$value.'</strong><span>'.$this->e($label).'</span></a>';$html.='</div>';
-        $cap=[['Smart Discovery',true],['Smart Article',Entitlements::has('EPAPER.ARTICLE_MODE',false)],['OCR Search',Entitlements::has('EPAPER.OCR_SEARCH',false)],['Cross-device Resume',true],['Bookmarks',true],['Clipping',Entitlements::has('EPAPER.CLIPPING',true)],['Offline Editions',Entitlements::has('EPAPER.OFFLINE',true)],['Personalization',true],['Listen / TTS',Entitlements::has('EPAPER.TTS',false)],['Translation',Entitlements::has('EPAPER.TRANSLATION',false)]];
-        $html.='<div class="reader-os-grid"><section class="reader-os-panel"><div class="section-head"><div><span class="eyebrow">YOUR READER</span><h2>Capabilities</h2></div><a href="/account/subscription">Manage plan</a></div><div class="capability-grid">';foreach($cap as[$label,$enabled])$html.='<div class="capability '.($enabled?'enabled':'disabled').'"><span class="capability-mark">'.($enabled?'✓':'—').'</span><div><strong>'.$this->e($label).'</strong><small>'.($enabled?'Available':'Not in current plan').'</small></div></div>';$html.='</div></section>';
-        $recent=Store::all('SELECT h.page_number,h.last_viewed_at,e.slug,e.edition_date,e.title,p.name publication_name FROM ep_history h JOIN ep_editions e ON e.tenant_guid=h.tenant_guid AND e.edition_guid=h.edition_guid JOIN ep_publications p ON p.tenant_guid=e.tenant_guid AND p.publication_guid=e.publication_guid WHERE h.tenant_guid=? AND h.platform_user_guid=? ORDER BY h.last_viewed_at DESC LIMIT 5',[TenantData::tenantBin(),$uid]);$html.='<section class="reader-os-panel"><div class="section-head"><div><span class="eyebrow">RECENT</span><h2>Reading history</h2></div><a href="/account/history">View all</a></div><div class="reader-history-list">';if($recent){foreach($recent as$r)$html.='<a href="/edition/'.$this->e($r['slug']).'/page/'.max(1,(int)$r['page_number']).'"><strong>'.$this->e($r['title']?:$r['publication_name']).'</strong><span>'.$this->e(date('d M Y',strtotime($r['edition_date']))).' · Page '.max(1,(int)$r['page_number']).'</span></a>';}else$html.='<p class="muted">No recent reading yet.</p>';$html.='</div></section></div>';
-        View::layout('Reader OS',$html,['brand'=>$this->brandName(),'account'=>true]);
+        $uid=Uuid::toBinary($u['user_guid']);
+        OfflineVault::expireOld($uid);
+        $metrics=$this->accountOverviewMetrics($uid,(string)$u['user_guid']);
+
+        // One bounded, tenant-scoped read supplies both resume and recent cards,
+        // replacing two nearly identical history queries in the old dashboard.
+        $recent=Store::all('SELECT h.page_number,h.last_viewed_at,e.edition_guid,e.slug,e.edition_date,e.page_count,e.title,p.name publication_name,a.asset_guid thumb_asset_guid
+            FROM ep_history h
+            JOIN ep_editions e ON e.tenant_guid=h.tenant_guid AND e.edition_guid=h.edition_guid
+            JOIN ep_publications p ON p.tenant_guid=e.tenant_guid AND p.publication_guid=e.publication_guid
+            LEFT JOIN ep_pages pg ON pg.tenant_guid=h.tenant_guid AND pg.edition_guid=h.edition_guid AND pg.page_number=h.page_number
+            LEFT JOIN ep_page_assets a ON a.tenant_guid=pg.tenant_guid AND a.page_guid=pg.page_guid AND a.asset_type="THUMB"
+            WHERE h.tenant_guid=? AND h.platform_user_guid=?
+            ORDER BY h.last_viewed_at DESC LIMIT 5',[TenantData::tenantBin(),$uid]);
+        foreach($recent as &$entry){
+            $entry['thumb_url']=$this->assetUrlFromBinary($entry['thumb_asset_guid']??null);
+            unset($entry['thumb_asset_guid']);
+        }
+        unset($entry);
+        $resume=$recent[0]??null;
+        $capabilities=[
+            ['Smart Discovery',true],
+            ['Smart Article',Entitlements::has('EPAPER.ARTICLE_MODE',false)],
+            ['OCR Search',Entitlements::has('EPAPER.OCR_SEARCH',false)],
+            ['Cross-device Resume',true],
+            ['Bookmarks',true],
+            ['Clipping',Entitlements::has('EPAPER.CLIPPING',true)],
+            ['Offline Editions',Entitlements::has('EPAPER.OFFLINE',true)],
+            ['Personalization',true],
+            ['Listen / TTS',Entitlements::has('EPAPER.TTS',false)],
+            ['Translation',Entitlements::has('EPAPER.TRANSLATION',false)],
+        ];
+        $html=\EpaperSaas\Services\ReaderHub::render($metrics,$resume,$recent,$capabilities);
+        View::layout('My Reading',$html,['brand'=>$this->brandName(),'account'=>true]);
     }
 
     private function accountLibrary(array $u): never
@@ -738,22 +807,23 @@ final class App
 
     private function runAdmin(string $path,string $method): never
     {
-        $membership=Auth::requireAdmin();if($method==='POST')Http::verifyCsrf();
-        // Publisher-level theme and configuration writes must not be reachable by
-        // editors/operators through a guessed URL when the nav entry is hidden.
-        if(($path==='/admin/settings'||str_starts_with($path,'/admin/settings/'))
-            && !in_array(strtoupper((string)($membership['role_key']??'')),['OWNER','ADMIN','PUBLISHER_ADMIN'],true)){
-            http_response_code(403);
-            View::layout('Access denied','<section class="empty-state"><h1>Publisher settings restricted</h1><p>Your publisher membership cannot modify appearance or platform settings.</p></section>',['brand'=>$this->brandName(),'admin'=>true]);
-        }
+        Auth::requireAdmin();if($method==='POST')Http::verifyCsrf();
+        \EpaperSaas\Services\AdminRoutePolicy::enforce($path);
+        if($path==='/admin/system/testing'||$path==='/admin/system/testing.json'||$path==='/admin/system/testing/run')StagingAcceptanceController::dispatch($path,$method);
+        if($path==='/admin/manual-clipping'||str_starts_with($path,'/admin/manual-clipping/'))\EpaperSaas\Controllers\AdminManualClippingController::dispatch($path,$method);
+        if($path==='/admin/ai-clipping'&&$method==='GET')AdminAiClippingController::index();
+        if($path==='/admin/ai-clipping/action'&&$method==='POST')AdminAiClippingController::action();
         if(preg_match('#^/admin/editions/([0-9a-f-]{36})/(trash|delete|cancel|recover|process-immediately)$#i',$path,$m)&&$method==='POST')$this->adminEditionRecovery($m[1],$m[2]);
+        if(preg_match('#^/admin/editions/([0-9a-f-]{36})/pages$#i',$path,$m))EditionPageSequence::route($m[1],$method);
+        if(preg_match('#^/admin/editions/([0-9a-f-]{36})/owner-remove$#i',$path,$m)&&$method==='POST')EditionRemoval::remove($m[1]);
+        if($path==='/admin/ai-review'||str_starts_with($path,'/admin/ai-review/'))AiEditorialReview::route($path,$method);
         if($path==='/admin/preferences/theme'&&$method==='POST')$this->adminThemePreference();
         if($path==='/admin')$this->adminDashboard();if($path==='/admin/navigation')$this->adminNavigation();if($path==='/admin/navigation/scope/create'&&$method==='POST')$this->adminNavigationCreateScope();if(preg_match('#^/admin/navigation/([0-9a-f-]{36})/header$#i',$path,$m)&&$method==='POST')$this->adminNavigationHeader($m[1]);if(preg_match('#^/admin/navigation/([0-9a-f-]{36})/item/add$#i',$path,$m)&&$method==='POST')$this->adminNavigationAddItem($m[1]);if(preg_match('#^/admin/navigation/([0-9a-f-]{36})/item/([0-9a-f-]{36})/(delete|toggle|up|down)$#i',$path,$m)&&$method==='POST')$this->adminNavigationItemAction($m[1],$m[2],$m[3]);if(preg_match('#^/admin/navigation/([0-9a-f-]{36})/publish$#i',$path,$m)&&$method==='POST')$this->adminNavigationPublish($m[1]);if(preg_match('#^/admin/navigation/([0-9a-f-]{36})/restore/(\d+)$#i',$path,$m)&&$method==='POST')$this->adminNavigationRestore($m[1],(int)$m[2]);if($path==='/admin/publications')$this->adminPublications($method);if(preg_match('#^/admin/publications/([0-9a-f-]{36})/(update|status|delete)$#i',$path,$m)&&$method==='POST')$this->adminPublicationAction($m[1],$m[2]);if($path==='/admin/highlights')$this->adminHighlights($method);if(preg_match('#^/admin/highlights/([0-9a-f-]{36})/(update|status|delete)$#i',$path,$m)&&$method==='POST')$this->adminHighlightAction($m[1],$m[2]);if($path==='/admin/articles')$this->adminArticles($method);if(preg_match('#^/admin/articles/([0-9a-f-]{36})/(update|publish|unpublish|delete)$#i',$path,$m)&&$method==='POST')$this->adminArticleAction($m[1],$m[2]);if($path==='/admin/authors')$this->adminAuthors($method);if(preg_match('#^/admin/authors/([0-9a-f-]{36})/(update|status|delete)$#i',$path,$m)&&$method==='POST')$this->adminAuthorAction($m[1],$m[2]);if($path==='/admin/topics')$this->adminTopics($method);if(preg_match('#^/admin/topics/([0-9a-f-]{36})/(update|status|delete)$#i',$path,$m)&&$method==='POST')$this->adminTopicAction($m[1],$m[2]);if($path==='/admin/entities')$this->adminEntities($method);if(preg_match('#^/admin/entities/([0-9a-f-]{36})/(update|status|delete)$#i',$path,$m)&&$method==='POST')$this->adminEntityAction($m[1],$m[2]);if($path==='/admin/master-data')$this->adminMasterData($method);if(preg_match('#^/admin/master-data/(city|language|section)/([0-9a-f-]{36})/(update|status|delete)$#i',$path,$m)&&$method==='POST')$this->adminMasterAction($m[1],$m[2],$m[3]);if($path==='/admin/editions')$this->adminEditions($method);if(preg_match('#^/admin/editions/([0-9a-f-]{36})/(update|archive|restore)$#i',$path,$m)&&$method==='POST')$this->adminEditionAction($m[1],$m[2]);
         if(preg_match('#^/admin/editions/([0-9a-f-]{36})/process-now$#i',$path,$m)&&$method==='POST')$this->adminProcessNow($m[1]);if(preg_match('#^/admin/editions/([0-9a-f-]{36})/reprocess$#i',$path,$m)&&$method==='POST')$this->adminReprocess($m[1]);if(preg_match('#^/admin/editions/([0-9a-f-]{36})/publish$#i',$path,$m)&&$method==='POST')$this->adminPublish($m[1]);if(preg_match('#^/admin/editions/([0-9a-f-]{36})/schedule$#i',$path,$m)&&$method==='POST')$this->adminSchedule($m[1]);if(preg_match('#^/admin/editions/([0-9a-f-]{36})/unschedule$#i',$path,$m)&&$method==='POST')$this->adminUnschedule($m[1]);
         if($path==='/admin/processing')$this->adminProcessing();if(preg_match('#^/admin/processing/([0-9a-f-]{36})$#i',$path,$m))$this->adminProcessingDetail($m[1]);if($path==='/admin/processing/repair-queue'&&$method==='POST')$this->adminProcessingRepairQueue();
         if($path==='/admin/subscribers')$this->adminSubscribers();if($path==='/admin/plans')$this->adminPlans();if(preg_match('#^/admin/subscribers/([0-9a-f-]{36})/status$#i',$path,$m)&&$method==='POST')$this->adminSubscriberStatus($m[1]);
-        if($path==='/admin/system/upgrade')$this->adminSystemUpgrade($method);if($path==='/admin/settings')$this->adminSettings($method);if(preg_match('#^/admin/settings/(appearance|brand|seo|trust|access|reader|processing|clipping)$#',$path,$m))$this->adminSettingsGroup($m[1],$method);
-        if($path==='/admin/access')$this->adminAccess();if($path==='/admin/audit')$this->adminAudit();if($path==='/admin/errors')$this->adminErrors();if($path==='/admin/storage')$this->adminStorage();if($path==='/admin/performance')$this->adminPerformance();if($path==='/admin/performance/cache-action'&&$method==='POST')$this->adminCacheAction();if($path==='/admin/system/health')$this->adminHealth();if($path==='/admin/system/readiness.json')$this->adminReadinessJson();if($path==='/admin/system/recovery')$this->adminRecovery();if($path==='/admin/system/recovery.json')$this->adminRecoveryJson();if($path==='/admin/system/recovery/scheduler-run'&&$method==='POST')$this->adminRecoverySchedulerRun();if($path==='/admin/system/recovery/reconcile'&&$method==='POST')$this->adminRecoveryReconcile();if($path==='/admin/system/recovery/repair-missing'&&$method==='POST')$this->adminRecoveryRepairMissing();if($path==='/admin/system/recovery/redis-baseline'&&$method==='POST')$this->adminRecoveryRedisBaseline();if($path==='/admin/system/release-audit')$this->adminReleaseAudit();
+        if($path==='/admin/system/upgrade')$this->adminSystemUpgrade($method);if($path==='/admin/settings')$this->adminSettings($method);if(preg_match('#^/admin/settings/(appearance|effects|brand|seo|trust|access|reader|processing|clipping)$#',$path,$m))$this->adminSettingsGroup($m[1],$method);
+        if($path==='/admin/access')$this->adminAccess();if($path==='/admin/audit')\EpaperSaas\Controllers\AdminAuditController::index($method);if($path==='/admin/errors')$this->adminErrors();if($path==='/admin/storage')$this->adminStorage();if($path==='/admin/performance')$this->adminPerformance();if($path==='/admin/performance/cache-action'&&$method==='POST')$this->adminCacheAction();if($path==='/admin/system/health')$this->adminHealth();if($path==='/admin/system/readiness.json')$this->adminReadinessJson();if($path==='/admin/system/recovery')$this->adminRecovery();if($path==='/admin/system/recovery.json')$this->adminRecoveryJson();if($path==='/admin/system/recovery/scheduler-run'&&$method==='POST')$this->adminRecoverySchedulerRun();if($path==='/admin/system/recovery/reconcile'&&$method==='POST')$this->adminRecoveryReconcile();if($path==='/admin/system/recovery/repair-missing'&&$method==='POST')$this->adminRecoveryRepairMissing();if($path==='/admin/system/recovery/redis-baseline'&&$method==='POST')$this->adminRecoveryRedisBaseline();if($path==='/admin/system/release-audit')$this->adminReleaseAudit();
         if($path==='/admin/system/infrastructure'&&$method==='GET')$this->adminInfrastructure();if($path==='/admin/system/infrastructure/supervisor'&&$method==='GET')$this->adminSupervisorSetup();if($path==='/admin/system/infrastructure/supervisor.conf'&&$method==='GET')$this->adminSupervisorConfigDownload();if($path==='/admin/system/infrastructure/rabbitmq/save'&&$method==='POST')$this->adminInfrastructureSave();if($path==='/admin/system/infrastructure/media/save'&&$method==='POST')$this->adminInfrastructureMediaSave();if($path==='/admin/system/infrastructure/rabbitmq/test'&&$method==='POST')$this->adminInfrastructureRabbitTest();if($path==='/admin/system/infrastructure/probe'&&$method==='POST')$this->adminInfrastructureProbe();if($path==='/admin/system/infrastructure/probe-status'&&$method==='GET')$this->adminInfrastructureProbeStatus();if($path==='/admin/account')$this->adminAccount();
         http_response_code(404);View::layout('Not Found','<section class="empty-state"><h1>Admin page not found</h1></section>',['brand'=>$this->brandName(),'admin'=>true]);
     }
@@ -771,48 +841,98 @@ final class App
     private function adminDashboard(): never
     {
         $runtime=PublishingRuntime::snapshot();$tb=TenantData::tenantBin();
-        $totals=Store::all('SELECT status,COUNT(*) n FROM ep_editions WHERE tenant_guid=? GROUP BY status',[$tb]);$counts=array_column($totals,'n','status');
-        $html='<div class="publishing-desk"><section class="desk-header"><div><span class="eyebrow">PUBLISHER WORKSPACE</span><h1>Publishing desk</h1><p>Manage today’s editions and the next publishing action.</p></div><div class="desk-header-actions"><a class="btn ghost" href="/" target="_blank" rel="noopener">View website</a><a class="btn primary" href="/admin/editions?create=1">+ Add edition</a></div></section>';
-        $html.='<nav class="desk-metrics" aria-label="Publishing overview">';
-        foreach([['Needs attention','NEEDS_ATTENTION','Review and retry','danger'],['Processing','PROCESSING','View active editions','info'],['Ready to publish','READY','Review finished editions','success'],['Scheduled','SCHEDULED','Upcoming publications','info']] as[$label,$state,$detail,$tone]){
-            $html.='<a class="desk-metric '.$tone.'" href="/admin/editions?status='.$state.'"><span>'.$label.'</span><strong>'.(int)($counts[$state]??0).'</strong><small>'.$detail.' →</small></a>';
-        }$html.='</nav>';
+        $totals=Store::all('SELECT status,COUNT(*) n FROM ep_editions WHERE tenant_guid=? GROUP BY status',[$tb]);
+        $counts=array_column($totals,'n','status');
+        $membership=Auth::currentMembership();$role=strtoupper((string)($membership['role_key']??'VIEWER'));
+        $canonical=parse_url((string)Config::get('app.url',''),PHP_URL_HOST);
+        $infra=(bool)($canonical && strcasecmp((string)$canonical,Http::host())===0 && $membership
+            && in_array($role,Config::get('auth.infrastructure_roles',['OWNER','ADMIN']),true));
+        $aiEnabled=\EpaperSaas\Services\AiCandidatePipeline::enabled();
+        $groups=\EpaperSaas\Services\AdminFeatureCatalog::groups($role,$aiEnabled,$infra);
+        $canCreate=in_array($role,['OWNER','ADMIN','PUBLISHER_ADMIN','EDITOR'],true);
+        $scope=hash('sha256',RequestContext::tenantGuid().'|'.$role.'|'.(string)(Auth::user()['user_guid']??''));
+        $html='<div class="publishing-desk studio-desk">';
+        $html.='<section class="studio-hero" aria-labelledby="studio-hero-title"><div class="studio-hero-copy">'
+            .'<span class="studio-eyebrow">EPAPER PUBLISHING STUDIO</span>'
+            .'<h1 id="studio-hero-title">Your publishing desk.</h1>'
+            .'<p>Manage editions, editorial decisions and publishing priorities in one clear workspace.</p>'
+            .'<div class="studio-hero-actions">'
+            .($canCreate?'<a class="studio-button studio-button-primary" href="/admin/editions?create=1">'.View::icon('plus').'Create edition</a>':'')
+            .($canCreate?'<a class="studio-button studio-button-soft" href="/admin/manual-clipping">'.View::icon('scan-text').'Clip Marking</a>':'')
+            .($canCreate&&$aiEnabled?'<a class="studio-button studio-button-soft" href="/admin/ai-review">'.View::icon('scan-text').'Review AI clippings</a>':'')
+            .'<a class="studio-button studio-button-soft" href="/" target="_blank" rel="noopener">'.View::icon('external').'View website</a>'
+            .'</div></div><div class="studio-hero-aside" aria-label="Workspace focus">'
+            .'<span class="studio-hero-kicker">TODAY’S FOCUS</span>'
+            .($canCreate?'<a href="/admin/editions?status=NEEDS_ATTENTION">':'<div class="studio-focus-row">').'<strong>'.(int)($counts['NEEDS_ATTENTION']??0).'</strong><span>Editions needing attention '.View::icon('chev-right').'</span>'.($canCreate?'</a>':'</div>')
+            .($canCreate?'<a href="/admin/editions?status=READY">':'<div class="studio-focus-row">').'<strong>'.(int)($counts['READY']??0).'</strong><span>Ready to publish '.View::icon('chev-right').'</span>'.($canCreate?'</a>':'</div>')
+            .'</div></section>';
+        $html.='<nav class="desk-metrics studio-metrics" aria-label="Publishing overview">';
+        foreach([
+            ['Needs attention','NEEDS_ATTENTION','Review or recover','danger','activity'],
+            ['Processing','PROCESSING','Active edition pipeline','info','refresh'],
+            ['Ready to publish','READY','Review finished editions','success','pages'],
+            ['Scheduled','SCHEDULED','Upcoming publications','info','calendar']
+        ] as [$label,$state,$detail,$tone,$icon]){
+            $html.=($canCreate?'<a class="desk-metric '.$tone.'" href="/admin/editions?status='.$state.'">':'<div class="desk-metric '.$tone.'">')
+                .'<span class="studio-metric-label">'.View::icon($icon).$this->e($label).'</span>'
+                .'<strong>'.(int)($counts[$state]??0).'</strong>'
+                .'<small>'.$this->e($detail).' <span aria-hidden="true">→</span></small>'.($canCreate?'</a>':'</div>');
+        }
+        $html.='</nav>';
+        $html.=\EpaperSaas\Services\AdminDashboardVisuals::pipeline($counts,$canCreate);
+        $editorial=(new \EpaperSaas\Services\EditorialActionCenter(
+            new \EpaperSaas\Repositories\SqlEditorialActionRepository()
+        ))->snapshot($tb,$counts,$role,$aiEnabled);
+        $html.=\EpaperSaas\Services\EditorialActionView::render($editorial);
+        $html.='<div class="studio-content-grid"><section class="panel desk-editions">'
+            .'<div class="section-head"><div><span class="studio-section-kicker">YOUR PUBLICATIONS</span><h2>Recent editions</h2>'
+            .'<p class="muted">Follow each edition from upload through publication.</p></div>'
+            .($canCreate?'<a class="btn ghost" href="/admin/editions">Manage editions →</a>':'').'</div>'
+            .($canCreate?$this->editionTable(TenantData::editionsForAdmin('e.status NOT IN ("ARCHIVED","TRASHED")',[],8)):'<p class="muted">Edition editing tools are available to publisher editors and administrators.</p>')
+            .'</section>';
         $attention=$runtime['attention']??[];
-        $html.='<section class="desk-attention"><div class="section-head"><h2>Needs your attention</h2><a class="text-btn" href="/admin/system/health">System health →</a></div>';
-        if(!$attention)$html.='<p class="desk-clear">No actionable warnings in this snapshot.</p>';
-        foreach(array_slice($attention,0,3) as$a){$href=(string)($a['href']??'/admin/system/health');if(!str_starts_with($href,'/admin/'))$href='/admin/system/health';$html.='<a class="desk-alert" href="'.$this->e($href).'"><div><strong>'.$this->e($a['title']).'</strong><p>'.$this->e($a['detail']).'</p></div><span>Review →</span></a>';}
-        if(count($attention)>3)$html.='<details class="desk-more"><summary>'.(count($attention)-3).' more notices</summary>';foreach(array_slice($attention,3) as$a)$html.='<p><strong>'.$this->e($a['title']).'</strong> — '.$this->e($a['detail']).'</p>';if(count($attention)>3)$html.='</details>';
-        $html.='</section><section class="panel desk-editions"><div class="section-head"><div><h2>Recent editions</h2><p class="muted">Processing and publishing in one place.</p></div><a class="btn ghost" href="/admin/editions">Manage all editions →</a></div>'.$this->editionTable(TenantData::editionsForAdmin('e.status NOT IN ("ARCHIVED","TRASHED")',[],8)).'</section>';
-        $scheduled=TenantData::editionsForAdmin('e.publish_mode="SCHEDULED" AND e.status NOT IN ("ARCHIVED","TRASHED")',[],50);usort($scheduled,fn($a,$b)=>strcmp((string)$a['scheduled_at'],(string)$b['scheduled_at']));
-        $html.='<div class="desk-bottom"><section class="panel"><div class="section-head"><h2>Upcoming publishing</h2><a class="text-btn" href="/admin/editions?status=SCHEDULED">View scheduled →</a></div>';
+        $available=array_column(\EpaperSaas\Services\AdminFeatureCatalog::flatten($groups),1);
+        $html.='<section class="panel desk-attention" aria-labelledby="studio-attention-heading">'
+            .'<div class="section-head"><div><span class="studio-section-kicker">OPERATIONS</span>'
+            .'<h2 id="studio-attention-heading">System alerts</h2>'
+            .'<p class="muted">Only items requiring a closer look.</p></div>'
+            .'<a class="text-btn" href="/admin/system/health">Health →</a></div>';
+        if(!$attention)$html.='<p class="desk-clear">'.View::icon('activity').'No operational warnings in the current snapshot.</p>';
+        foreach(array_slice($attention,0,3) as $a){
+            $href=(string)($a['href']??'/admin/system/health');
+            if(!str_starts_with($href,'/admin/')||!in_array($href,$available,true))$href='/admin/system/health';
+            $html.='<a class="desk-alert" href="'.$this->e($href).'"><div>'
+                .'<strong>'.$this->e($a['title']??'Attention required').'</strong>'
+                .'<p>'.$this->e($a['detail']??'').'</p></div><span>Review →</span></a>';
+        }
+        if(count($attention)>3){
+            $html.='<details class="desk-more"><summary>'.(count($attention)-3).' more notices</summary>';
+            foreach(array_slice($attention,3) as $a)
+                $html.='<p><strong>'.$this->e($a['title']??'Notice').'</strong> — '.$this->e($a['detail']??'').'</p>';
+            $html.='</details>';
+        }
+        $html.='</section></div>';
+        $scheduled=Store::all('SELECT e.edition_date,e.scheduled_at,e.schedule_timezone,e.title,e.publish_mode,p.name publication_name
+            FROM ep_editions e JOIN ep_publications p ON p.tenant_guid=e.tenant_guid AND p.publication_guid=e.publication_guid
+            WHERE e.tenant_guid=? AND e.publish_mode="SCHEDULED" AND e.status NOT IN ("ARCHIVED","TRASHED") AND e.scheduled_at IS NOT NULL
+            ORDER BY e.scheduled_at ASC LIMIT 4',[$tb]);
+        $html.='<div class="desk-bottom"><section class="panel"><div class="section-head"><div>'
+            .'<span class="studio-section-kicker">COMING UP</span><h2>Upcoming publishing</h2></div>'
+            .'<a class="text-btn" href="/admin/editions?status=SCHEDULED">View scheduled →</a></div>';
         if(!$scheduled)$html.='<p class="muted">No editions scheduled. Open a ready edition to choose a publishing time.</p>';
-        foreach(array_slice($scheduled,0,4) as$e)$html.='<a class="desk-schedule-row" href="/admin/editions?date='.$this->e($e['edition_date']).'"><strong>'.$this->e($e['title']?:$e['publication_name']).'</strong>'.$this->editionSchedulePresentation($e).'</a>';
-        $html.='</section><section class="panel"><div class="section-head"><h2>Workspace shortcuts</h2></div><nav class="desk-shortcuts"><a href="/admin/publications">Publications →</a><a href="/admin/navigation">Reader navigation →</a><a href="/admin/settings">Settings →</a><a href="/admin/processing">Processing center →</a></nav><p class="desk-checked">Status snapshot: '.$this->e($runtime['generated_at']??'').'</p></section></div></div>';
+        foreach(array_slice($scheduled,0,4) as $e)
+            $html.='<a class="desk-schedule-row" href="/admin/editions?date='.$this->e($e['edition_date']).'">'
+                .'<strong>'.$this->e($e['title']?:$e['publication_name']).'</strong>'
+                .$this->editionSchedulePresentation($e).'</a>';
+        $html.='</section><section class="panel studio-secondary-links"><div class="section-head"><div>'
+            .'<span class="studio-section-kicker">FAST ACCESS</span><h2>Useful shortcuts</h2></div></div>'
+            .'<nav class="desk-shortcuts">'.\EpaperSaas\Services\AdminWorkspace::shortcuts($groups).'</nav>'
+            .'<p class="desk-checked">Operational snapshot: '.$this->e($runtime['generated_at']??'').'</p></section></div>';
+        $html.=\EpaperSaas\Services\AdminWorkspace::render($groups,$scope);
+        $html.='</div>';
         View::layout('Publishing desk',$html,['brand'=>$this->brandName(),'admin'=>true]);
     }
 
-    private function adminDashboardMetrics(): array
-    {
-        $key='dashboard:v2:'.RequestContext::tenantGuid();
-        $cached=RedisStore::getJson($key);
-        if(is_array($cached))return $cached;
-        $tb=TenantData::tenantBin();
-        $row=Store::one('SELECT
-            (SELECT COUNT(*) FROM ep_editions WHERE tenant_guid=? AND status="PUBLISHED") AS published_editions,
-            (SELECT COUNT(*) FROM ep_publications WHERE tenant_guid=? AND status="ACTIVE") AS publications,
-            (SELECT COUNT(*) FROM ep_processing_jobs WHERE tenant_guid=? AND status IN ("QUEUED","RUNNING")) AS processing,
-            (SELECT COUNT(*) FROM ep_editions WHERE tenant_guid=? AND status="NEEDS_ATTENTION") AS needs_attention,
-            (SELECT COUNT(*) FROM ep_editions WHERE tenant_guid=? AND publish_mode="SCHEDULED" AND scheduled_at IS NOT NULL AND status<>"ARCHIVED") AS scheduled',[$tb,$tb,$tb,$tb,$tb])?:[];
-        $metrics=[
-            'published_editions'=>(int)($row['published_editions']??0),
-            'publications'=>(int)($row['publications']??0),
-            'processing'=>(int)($row['processing']??0),
-            'needs_attention'=>(int)($row['needs_attention']??0),
-            'scheduled'=>(int)($row['scheduled']??0),
-        ];
-        RedisStore::setJson($key,$metrics,RedisStore::ttlWithJitter(10,2));
-        return $metrics;
-    }
     private function requireNavigationEditor(): void
     {
         $m=Auth::currentMembership();$role=strtoupper((string)($m['role_key']??''));
@@ -1056,6 +1176,10 @@ final class App
                 if((int)($r['processing_active_count']??0)===0)$actions.='<button class="btn small" type="button" data-open-editor-target="reprocess-'.$guid.'">Reprocess</button>';
             }
             if(in_array($status,['PROCESSING','NEEDS_ATTENTION'],true))$actions.='<form class="inline" method="post" action="/admin/editions/'.$guid.'/process-immediately">'.$this->csrf().'<button class="console-icon-action is-process" title="Process immediately" aria-label="Process immediately">'.View::icon('play').'</button></form>';
+            if(in_array($status,['PUBLISHED','READY','ARCHIVED','SCHEDULED','DRAFT','NEEDS_ATTENTION'],true)&&((int)($r['page_count']??0)>0))$actions.='<a class="console-icon-action is-edit" href="/admin/editions/'.$guid.'/pages" title="Arrange pages" aria-label="Arrange pages in '.$this->e($title).'">'.View::icon('list-ordered').'</a>';
+            if(strtoupper((string)(Auth::currentMembership()['role_key']??''))==='OWNER'&&!in_array($status,['TRASHED','PROCESSING'],true)){
+                $actions.='<button class="console-icon-action is-delete" type="button" data-open-editor-target="owner-remove-'.$guid.'" title="Remove edition" aria-label="Remove '.$this->e($title).'">'.View::icon('trash').'</button>';
+            }
             if(!in_array($status,['PUBLISHED','SCHEDULED','TRASHED'],true))$actions.='<form class="inline" method="post" action="/admin/editions/'.$guid.'/trash" data-confirm="Move this edition to Trash? Active work will be cancelled safely. Files are retained for Restore.">'.$this->csrf().'<button class="console-icon-action is-delete" title="Move to Trash" aria-label="Move to Trash">'.View::icon('trash').'</button></form>';
             $manage='';
             if($status==='READY')$manage.='<button type="button" class="record-action" data-open-editor-target="reprocess-'.$guid.'">Reprocess edition</button>';
@@ -1063,8 +1187,12 @@ final class App
             if($manage!=='')$actions.=$this->recordMenu($manage);
             $actions.='</div>';
             $editForm='<form id="edit-'.$guid.'" method="post" action="/admin/editions/'.$guid.'/update" class="record-form editor-source" data-editor-title="Edit '.$this->e($title).'">'.$this->csrf().'<label>Title<input name="title" value="'.$this->e($title).'" required></label><label>Edition date<input type="date" name="edition_date" value="'.$this->e($r['edition_date']).'" required></label><div class="drawer-actions"><button type="button" class="btn ghost" data-close-record-editor>Cancel</button><button class="btn primary">Save metadata</button></div></form>';
+            $removeForm='';
+            if(strtoupper((string)(Auth::currentMembership()['role_key']??''))==='OWNER'&&!in_array($status,['TRASHED','PROCESSING'],true)){
+                $removeForm='<form id="owner-remove-'.$guid.'" method="post" action="/admin/editions/'.$guid.'/owner-remove" class="record-form editor-source" data-editor-title="Remove edition">'.$this->csrf().'<p>Remove this edition from public access and move it to recoverable Trash. No database records, PDFs or media are deleted.</p><p><strong>'. $this->e($title).'</strong></p><label>Type exact edition slug<input name="confirm_slug" required autocomplete="off" placeholder="'.$this->e((string)$r['slug']).'"></label><label><input type="checkbox" name="confirm_remove" value="yes" required> I understand readers will lose access to this edition.</label><div class="drawer-actions"><button class="btn ghost" type="button" data-close-record-editor>Cancel</button><button class="btn danger" type="submit">Move to Trash</button></div></form>';
+            }
             $reprocess=$this->editionReprocessForm($r,$error);$publishForm=$this->editionPublishForm($r);$rowClass=$status==='NEEDS_ATTENTION'?' edition-row-attention':'';
-            $h.='<tr class="'.$rowClass.'"><td data-label="Edition"><div class="edition-identity"><strong>'.$this->e($title).'</strong><small>'.$this->e($sub).'</small><span>'.(int)($r['page_count']??0).' pages'.((int)($r['processing_run_count']??0)>0?' · '.(int)$r['processing_run_count'].' processing run'.((int)$r['processing_run_count']===1?'':'s'):'').'</span></div></td><td data-label="Date">'.$this->e(date('d M Y',strtotime((string)$r['edition_date']))).'</td><td data-label="Processing"><span class="status '.$this->e($process['class']).'">'.$this->e($process['label']).'</span><small class="edition-status-note">'.$this->e($process['note']).'</small>'.($error!==''&&$status==='NEEDS_ATTENTION'?'<button type="button" class="edition-error-link" data-open-editor-target="reprocess-'.$guid.'">View issue</button>':'').'</td><td data-label="Publish"><span class="status '.$this->e($publish['class']).'">'.$this->e($publish['label']).'</span><small class="edition-status-note">'.$this->e($publish['note']).'</small></td><td data-label="Schedule">'.$schedule.'</td><td data-label="Actions" class="table-actions">'.$actions.$editForm.$reprocess.$publishForm.'</td></tr>';
+            $h.='<tr class="'.$rowClass.'"><td data-label="Edition"><div class="edition-identity"><strong>'.$this->e($title).'</strong><small>'.$this->e($sub).'</small><span>'.(int)($r['page_count']??0).' pages'.((int)($r['processing_run_count']??0)>0?' · '.(int)$r['processing_run_count'].' processing run'.((int)$r['processing_run_count']===1?'':'s'):'').'</span></div></td><td data-label="Date">'.$this->e(date('d M Y',strtotime((string)$r['edition_date']))).'</td><td data-label="Processing"><span class="status '.$this->e($process['class']).'">'.$this->e($process['label']).'</span><small class="edition-status-note">'.$this->e($process['note']).'</small>'.($error!==''&&$status==='NEEDS_ATTENTION'?'<button type="button" class="edition-error-link" data-open-editor-target="reprocess-'.$guid.'">View issue</button>':'').'</td><td data-label="Publish"><span class="status '.$this->e($publish['class']).'">'.$this->e($publish['label']).'</span><small class="edition-status-note">'.$this->e($publish['note']).'</small></td><td data-label="Schedule">'.$schedule.'</td><td data-label="Actions" class="table-actions">'.$actions.$editForm.$reprocess.$publishForm.$removeForm.'</td></tr>';
         }
         if(!$rows)$h.='<tr><td colspan="6"><div class="master-empty"><strong>No editions match this view</strong><p>Change the filters or add a new edition.</p></div></td></tr>';
         return$h.'</tbody></table></div>';
@@ -1314,7 +1442,10 @@ final class App
 
     private function adminSettings(string $method): never
     {
-        if($method==='POST'){$u=Auth::user();foreach(SettingsCatalog::keys() as$key){$raw=$this->postedSetting($key,null,$present);if(!$present)continue;TenantData::setSetting($key,trim((string)$raw),$u['user_guid']??null);}Audit::log('settings.legacy.updated','settings',RequestContext::tenantGuid());Http::redirect('/admin/settings/appearance?saved=1');}Http::redirect('/admin/settings/appearance');
+        // Preserve the former /admin/settings POST endpoint without allowing it
+        // to bypass bounded effect settings or any other group-level validation.
+        if($method==='POST')$this->adminSettingsGroup('appearance',$method);
+        Http::redirect('/admin/settings/appearance');
     }
 
 
@@ -1370,29 +1501,58 @@ $h.='<section class="panel processing-settings-card processing-recovery-card"><d
         View::layout('Processing',$h,['brand'=>$this->brandName(),'admin'=>true]);
     }
 
+    private function adminEffectsSettings(string $method): never
+    {
+        // runAdmin already verified publisher membership, role and POST CSRF.
+        $editor=\EpaperSaas\Services\BackgroundEffects::class;
+        if($method==='POST'){
+            $input=[];
+            foreach($editor::defaults() as $key=>$default){
+                $value=$this->postedSetting($key,null,$present);
+                if(!$present)$this->adminError('Missing required background field: '.$key);
+                $input[$key]=$value;
+            }
+            try{
+                $validated=$editor::normalize($input);
+            }catch(\InvalidArgumentException $e){
+                $this->adminError($e->getMessage());
+            }
+            $guid=Auth::user()['user_guid']??null;
+            foreach($validated as $key=>$value){
+                TenantData::setSetting($key,$value,$guid);
+            }
+            Audit::log('settings.background-effects.updated','settings','effects','SUCCESS',[
+                'effect'=>$validated['appearance.home_background_effect'],
+                'field_count'=>count($validated)
+            ]);
+            Http::redirect('/admin/settings/effects?saved=1');
+        }
+        $h=\EpaperSaas\Services\BackgroundEffectsStudio::render(
+            $editor::saved(),$this->csrf(),!empty($_GET['saved'])
+        );
+        View::layout('Background Effects',$h,['brand'=>$this->brandName(),'admin'=>true]);
+    }
+
     private function adminSettingsGroup(string $group,string $method): never
     {
-        if($group==='brand')$this->adminBrandSettings($method);if($group==='processing')$this->adminProcessingSettings($method);$cfg=SettingsCatalog::group($group);if(!$cfg)$this->notFound('Settings group unavailable');$u=Auth::user();
+        if($group==='effects')$this->adminEffectsSettings($method);if($group==='brand')$this->adminBrandSettings($method);if($group==='processing')$this->adminProcessingSettings($method);$cfg=SettingsCatalog::group($group);if(!$cfg)$this->notFound('Settings group unavailable');$u=Auth::user();
         if($method==='POST'){foreach($cfg['fields'] as$key=>$field){$raw=$this->postedSetting($key,null,$present);if(!$present)continue;$value=trim((string)$raw);if($field[1]==='number'&&!is_numeric($value))$this->adminError($field[0].' must be numeric');if($field[1]==='select'&&is_array($field[3])&&!in_array($value,$field[3],true))$this->adminError('Invalid value for '.$field[0]);TenantData::setSetting($key,$value,$u['user_guid']??null);}if(in_array($group,['seo','trust'],true)){RuntimeCache::broadcast(RequestContext::tenantGuid(),['seo']);RuntimeCache::queueWarm(RequestContext::tenantGuid(),null,['seo'=>true]);}Audit::log('settings.group.updated','settings',$group,'SUCCESS',['keys'=>array_keys($cfg['fields'])]);Http::redirect('/admin/settings/'.$group.'?saved=1');}
         $tabs='';foreach(SettingsCatalog::groups() as$key=>$g)$tabs.='<a class="settings-tab '.($key===$group?'active':'').'" href="/admin/settings/'.$this->e($key).'">'.$this->e($g['label']).'</a>';
         $h='<section class="admin-head"><div><span class="eyebrow">PUBLISHER CONTROL</span><h1>'.$this->e($cfg['label']).'</h1><p class="muted">'.$this->e($cfg['description']).'</p></div></section><nav class="settings-tabs">'.$tabs.'</nav>'.(!empty($_GET['saved'])?'<div class="alert success">Settings saved.</div>':'').'<form method="post" class="panel settings-form">'.$this->csrf().'<div class="form-grid">';
         foreach($cfg['fields'] as$key=>$field){[$label,$type,$default,$options]=$field;$value=TenantData::setting($key,$default);$h.='<label>'.$this->e($label);if($type==='select'){$h.='<select name="settings['.$this->e($key).']">';foreach($options as$o)$h.='<option value="'.$this->e($o).'"'.((string)$value===(string)$o?' selected':'').'>'.$this->e(ucwords(str_replace(['_','-'],' ',$o))).'</option>';$h.='</select>';}elseif($type==='textarea')$h.='<textarea name="settings['.$this->e($key).']" rows="4">'.$this->e($value).'</textarea>';elseif($type==='fixed'){$fixedNote=$key==='clipping.expiry_days'?'Fixed product policy · extension unavailable':'Publisher identity is included on every shareable clipping';$h.='<div class="fixed-setting"><strong>'.$this->e($default).'</strong><span>'.$this->e($fixedNote).'</span></div>'; }else $h.='<input type="'.$this->e($type).'" name="settings['.$this->e($key).']" value="'.$this->e($value).'">';$h.='<small><code>'.$this->e($key).'</code></small></label>';}$h.='</div><div class="form-actions"><button class="btn primary">Save '.$this->e($cfg['label']).'</button></div></form>';
         if($group==='access'){$effective=MobileAuth::channels(true);$infra=(array)Config::get('auth.mobile.channels',['sms']);$h.='<section class="panel"><h2>Effective reader identity policy</h2><p class="muted">Infrastructure permits: <strong>'.$this->e($infra?implode(', ',array_map('strtoupper',$infra)):'none').'</strong>. Effective tenant verification methods: <strong>'.$this->e($effective?implode(', ',array_map('strtoupper',$effective)):'none').'</strong>.</p><p class="muted">When the effective method list is empty and Temporary device account fallback is ON, the Android app creates a <code>LOCAL_DEVICE</code> reader using a random installation UUID. EP-DI stores only an HMAC of that UUID; IMEI, SIM ID, serial number and MAC address are never used.</p><p class="muted">Trusted-app desktop login: <strong>'.(DesktopAuth::appApprovalEnabled()?'ON':'OFF').'</strong> · FCM server delivery: <strong>'.(\EpaperSaas\Services\FcmPush::configured()?'CONFIGURED':'NOT CONFIGURED').'</strong> · active session policy: <strong>1 mobile app + 1 desktop</strong> per verified local reader.</p></section>';}
         if($group==='appearance'){
-            $latest=TenantData::editionsWithCovers('e.status="PUBLISHED"',[],1);
-            $readerPath=$latest?'/edition/'.rawurlencode((string)$latest[0]['slug']).'/page/1':null;
-            $h.='<section class="panel"><h2>Theme preview studio</h2><p class="muted">Previews are private to publisher admins and never change the live design. Select and save a theme above to publish it; the previous choices stay available for rollback.</p>';
-            foreach(['frontend'=>['Frontend designs','/'],'reader'=>['Reader designs',$readerPath]] as $surface=>[$heading,$path]){
-                $h.='<h3>'.$this->e($heading).'</h3><div class="theme-preview-row">';
-                foreach(\EpaperSaas\Services\ThemeCatalog::options($surface) as $name){
-                    $active=(string)TenantData::setting('appearance.'.$surface.'_theme',\EpaperSaas\Services\ThemeCatalog::default($surface))===$name;
-                    $url=$path!==null?$path.'?'.http_build_query(['theme_surface'=>$surface,'theme_preview'=>$name]):null;
-                    $h.='<div class="theme-preview"><strong>'.$this->e($name).'</strong><small>'.($active?'Currently published':'Alternative design').'</small>'.($url!==null?'<a class="btn ghost" target="_blank" rel="noopener noreferrer" href="'.$this->e($url).'">Preview</a>':'<span class="muted">Publish an edition to preview</span>').'</div>';
-                }
-                $h.='</div>';
+            $h.='<section class="panel"><h3>Homepage background effects</h3><p class="muted">Animated homepage effects are managed independently of publication, Admin, Reader and Authentication themes.</p><p><a class="btn ghost" href="/admin/settings/effects">Open Background Effects studio →</a></p></section>';
+            $latestPublished=TenantData::editionsWithCovers('e.status="PUBLISHED"',[],1);
+            $editionPath=$latestPublished?'/edition/'.rawurlencode((string)$latestPublished[0]['slug']).'/page/1':null;
+            $saved=[];
+            foreach(['frontend','admin','reader','auth'] as $surface){
+                $saved[$surface]=(string)TenantData::setting('appearance.'.$surface.'_theme',
+                    ThemeCatalog::default($surface));
             }
-            $h.='</section>';
-        }if($group==='reader')$h.='<section class="panel"><h2>Edition navigation</h2><p class="muted">Choose Dropdown, Strip or Off. Dropdown sits between Download and Share, collapses to a calendar icon when toolbar space is tight, stays within the exact publication + city + language variant, and opens page 1 when changing edition.</p></section>';
+            $h.=AppearanceGallery::render($saved,$editionPath);
+        }
+        if($group==='reader')$h.='<section class="panel"><h2>Edition navigation</h2><p class="muted">Choose Dropdown, Strip or Off. Dropdown sits between Download and Share, collapses to a calendar icon when toolbar space is tight, stays within the exact publication + city + language variant, and opens page 1 when changing edition.</p></section>';
         View::layout($cfg['label'],$h,['brand'=>$this->brandName(),'admin'=>true]);
     }
     private function adminAccess(): never
@@ -1450,28 +1610,129 @@ $h.='<section class="panel processing-settings-card processing-recovery-card"><d
         Auth::requireInfrastructureAdmin();
         $notice='';$result=null;
         if($method==='POST'){
-            if((string)($_POST['confirm']??'')!=='1')$this->adminError('Confirm the database repair before applying schema changes.');
+            if((string)($_POST['confirm']??'')!=='1')
+                $this->adminError('Confirm the database repair and backup before applying schema changes.');
+            $target=(string)($_POST['repair_target']??'all');
+            if(!in_array($target,['all','clip-marking'],true))
+                $this->adminError('Unknown database repair target.');
             try{
-                $u=Auth::user();$result=SchemaDoctor::repair($u['user_guid']??null);
-                // Schema repair must not be converted into a 500 by a secondary audit failure.
-                try{Audit::log('system.schema.repair','system',null,'SUCCESS',['resource_ref'=>'schema-v2','version'=>$this->version(),'actions'=>$result['actions']??[]]);}catch(\Throwable){}
-                $notice='<div class="alert success"><strong>Database repair completed.</strong><p>'.($result['ok']?'All v2 schema checks now pass.':'Some checks still need review.').'</p></div>';
+                $u=Auth::user();
+                $actor=$u['user_guid']??null;
+                $result=$target==='clip-marking'
+                    ?SchemaDoctor::repairClipMarking($actor)
+                    :SchemaDoctor::repair($actor);
+                try{
+                    Audit::log('system.schema.repair','system',null,'SUCCESS',[
+                        'resource_ref'=>'schema-v2','target'=>$target,
+                        'version'=>$this->version(),'actions'=>$result['actions']??[],
+                    ]);
+                }catch(\Throwable){}
+                $notice='<div class="alert success" role="status"><strong>Database repair completed.</strong>'
+                    .'<p>'.(!empty($result['ok'])
+                        ?'All required database checks now pass.'
+                        :'The selected repair completed; review any other outstanding checks below.')
+                    .'</p></div>';
             }catch(\Throwable $e){
-                try{Audit::log('system.schema.repair','system',null,'FAILED',['resource_ref'=>'schema-v2','version'=>$this->version(),'message'=>$e->getMessage()]);}catch(\Throwable){}
-                $notice='<div class="alert"><strong>Repair stopped.</strong><p>'.$this->e($e->getMessage()).'</p></div>';
+                try{
+                    Audit::log('system.schema.repair','system',null,'FAILED',[
+                        'resource_ref'=>'schema-v2','target'=>$target,
+                        'version'=>$this->version(),'message'=>$e->getMessage(),
+                    ]);
+                }catch(\Throwable){}
+                $notice='<div class="alert danger" role="alert"><strong>Repair stopped.</strong>'
+                    .'<p>'.$this->e($e->getMessage()).'</p></div>';
             }
         }
-        $report=SchemaDoctor::report(true);$checks=$report['checks']??[];$pending=(array)($report['pending']??[]);$lastRepair=SchemaDoctor::lastRepair();
-        $h='<section class="admin-head"><div><span class="eyebrow">SYSTEM MAINTENANCE</span><h1>Upgrade Center</h1><p class="muted">Checks the installed database against the current EP-DI build and applies only known, missing v2 migration steps.</p></div><span class="pill">'.$this->e($this->version()).'</span></section>'.$notice;
-        if($lastRepair){$actions=is_array($lastRepair['actions']??null)?$lastRepair['actions']:[];$h.='<div class="alert success"><strong>Previous schema repair recorded.</strong><p>'.($this->e((string)($lastRepair['version']??'v2'))).' · '.$this->e((string)($lastRepair['at']??'time unavailable')).' · '.count($actions).' action'.(count($actions)===1?'':'s').'. This confirms the migration transaction reached the repair-record step even if a previous browser request ended with an audit/UI error.</p></div>'; }
-        $h.='<section class="panel"><div class="section-head"><div><h2>Schema status</h2><p class="muted">Database '.$this->e((string)($report['database']??'unknown')).' · checked '.$this->e((string)($report['checked_at']??'')).'</p></div><span class="status '.($report['ok']?'active':'inactive').'">'.($report['ok']?'Ready':'Repair required').'</span></div>';
-        $h.='<div class="record-stack">';foreach($checks as$c){$ok=!empty($c['ok']);$h.='<div class="record-row"><div><strong>'.($ok?'✓ ':'× ').$this->e((string)$c['label']).'</strong><p>'.$this->e((string)$c['detail']).'</p></div><span class="status '.($ok?'active':'inactive').'">'.($ok?'PASS':(!empty($c['repairable'])?'FIXABLE':'REVIEW')).'</span></div>';}$h.='</div></section>';
-        if($result&&($result['actions']??[])){$h.='<section class="panel"><h2>Actions performed</h2><div class="record-stack">';foreach($result['actions'] as$a)$h.='<div class="record-row"><div><strong>✓ '.$this->e((string)$a).'</strong></div></div>';$h.='</div></section>';}
-        if($pending){
-            $h.='<section class="panel upgrade-action"><span class="eyebrow">SAFE REPAIR</span><h2>Apply missing v2 database changes</h2><p>This action is idempotent for the known alpha.1/alpha.2 migrations. It will not recreate an unknown base database. Take a database backup or Cloudways on-demand backup before applying changes on production.</p><form method="post" action="/admin/system/upgrade">'.$this->csrf().'<label class="check"><input type="checkbox" name="confirm" value="1" required> I have a current backup and authorize repair of the missing EP-DI v2 schema changes.</label><div class="form-actions"><button class="btn primary" type="submit">Run checks & repair missing changes</button><a class="btn ghost" href="/admin/system/upgrade">Re-run checks only</a></div></form></section>';
-        }else{
-            $h.='<section class="panel"><div class="empty-inline"><strong>EP-DI database is aligned.</strong><p>No known v2 schema migration is pending.</p><div class="form-actions"><a class="btn primary" href="/admin">Return to dashboard</a><a class="btn ghost" href="/admin/navigation">Open Reader Navigation</a></div></div></section>';
+        $report=SchemaDoctor::report(true);
+        $checks=(array)($report['checks']??[]);
+        $pending=(array)($report['pending']??[]);
+        $lastRepair=SchemaDoctor::lastRepair();
+        $failed=[];$passed=[];
+        foreach($checks as $c){
+            if(!empty($c['ok']))$passed[]=$c;else $failed[]=$c;
         }
+        $baseOk=!empty($report['base_ok']);
+        $ready=empty($failed)&&!empty($report['ok']);
+        $h='<section class="admin-head"><div><span class="eyebrow">SYSTEM MAINTENANCE</span>'
+            .'<h1>Upgrade Center</h1><p class="muted">Fix only missing database migrations.'
+            .' Completed checks are grouped below to keep this workspace easy to use.</p></div>'
+            .'<span class="pill">'.$this->e($this->version()).'</span></section>'.$notice;
+        if($lastRepair){
+            $actions=is_array($lastRepair['actions']??null)?$lastRepair['actions']:[];
+            $h.='<div class="alert success"><strong>Last database repair recorded.</strong><p>'
+                .$this->e((string)($lastRepair['version']??'v2')).' · '
+                .$this->e((string)($lastRepair['at']??'time unavailable'))
+                .' · '.count($actions).' action'.(count($actions)===1?'':'s').'.</p></div>';
+        }
+        $h.='<section class="panel upgrade-checks"><div class="section-head"><div>'
+            .'<h2>Database status</h2><p class="muted">Database '
+            .$this->e((string)($report['database']??'unknown'))
+            .' · checked '.$this->e((string)($report['checked_at']??'')).'</p></div>'
+            .'<span class="status '.($ready?'active':'inactive').'">'
+            .($ready?'Ready':($pending?'Action required':'Review required')).'</span></div>';
+        if($failed){
+            $h.='<h3>Needs attention</h3><div class="record-stack">';
+            foreach($failed as $c){
+                $repairable=!empty($c['repairable']);
+                $clipIssue=($c['id']??'')==='migration:clip-marking:table';
+                $h.='<div class="record-row upgrade-issue"><div><strong>× '
+                    .$this->e((string)$c['label']).'</strong><p>'.$this->e((string)$c['detail']).'</p>';
+                if($clipIssue&&$repairable&&$baseOk){
+                    $h.='<form method="post" action="/admin/system/upgrade" class="upgrade-target-repair">'
+                        .$this->csrf()
+                        .'<input type="hidden" name="repair_target" value="clip-marking">'
+                        .'<label class="check"><input type="checkbox" name="confirm" value="1" required>'
+                        .' I have a current Cloudways or database backup and authorize creation of the missing Clip Marking table.</label>'
+                        .'<button class="btn primary" type="submit">Repair Clip Marking table</button>'
+                        .'</form>';
+                }elseif($clipIssue&&!$baseOk){
+                    $h.='<p class="muted">Repair unavailable until the base database is healthy.</p>';
+                }
+                $h.='</div><span class="status inactive">'
+                    .($repairable?'FIXABLE':'REVIEW').'</span></div>';
+            }
+            $h.='</div>';
+        }
+        if($passed){
+            $h.='<details class="upgrade-passed-details"><summary>'
+                .count($passed).' passed checks — show details</summary><div class="record-stack">';
+            foreach($passed as $c){
+                $h.='<div class="record-row"><div><strong>✓ '.$this->e((string)$c['label'])
+                    .'</strong><p>'.$this->e((string)$c['detail'])
+                    .'</p></div><span class="status active">PASS</span></div>';
+            }
+            $h.='</div></details>';
+        }
+        $h.='</section>';
+        if($result&&!empty($result['actions'])){
+            $h.='<section class="panel"><h2>Actions performed</h2><div class="record-stack">';
+            foreach($result['actions'] as $action)
+                $h.='<div class="record-row"><div><strong>✓ '
+                    .$this->e((string)$action).'</strong></div></div>';
+            $h.='</div></section>';
+        }
+        $otherPending=array_values(array_filter($pending,
+            static fn(string $id):bool=>$id!=='migration:clip-marking:table'));
+        if($otherPending&&$baseOk){
+            $h.='<section class="panel upgrade-action"><span class="eyebrow">OTHER DATABASE MIGRATIONS</span>'
+                .'<h2>Repair remaining missing schema changes</h2>'
+                .'<p>This uses the existing cumulative v2 repair for other known missing migrations.'
+                .' It will not recreate the base database. Verify a backup first.</p>'
+                .'<form method="post" action="/admin/system/upgrade">'.$this->csrf()
+                .'<input type="hidden" name="repair_target" value="all">'
+                .'<label class="check"><input type="checkbox" name="confirm" value="1" required>'
+                .' I have a current database backup and authorize the remaining safe v2 migrations.</label>'
+                .'<div class="form-actions"><button class="btn primary" type="submit">'
+                .'Repair remaining schema changes</button></div></form></section>';
+        }elseif(!$failed){
+            $h.='<section class="panel"><div class="empty-inline"><strong>'
+                .'Database schema checks passed.</strong><p>No database migrations are pending.</p>'
+                .'<div class="form-actions"><a class="btn primary" href="/admin">Return to dashboard</a>'
+                .'<a class="btn ghost" href="/admin/manual-clipping">Open Clip Marking</a>'
+                .'</div></div></section>';
+        }
+        $h.='<p class="muted"><a href="/admin/system/upgrade">Re-run checks only</a>'
+            .' — this does not modify your database.</p>';
         View::layout('Upgrade Center',$h,['brand'=>$this->brandName(),'admin'=>true]);
     }
 
@@ -1532,15 +1793,18 @@ $h.='<section class="panel processing-settings-card processing-recovery-card"><d
         Http::redirect('/admin/plans');
     }
 
-    private function adminAudit(): never
-    {
-        $rows=Store::all('SELECT * FROM ep_audit_events WHERE tenant_guid=? ORDER BY occurred_at DESC LIMIT 200',[TenantData::tenantBin()]);$h='<section class="admin-head"><div><span class="eyebrow">SECURITY</span><h1>Audit</h1></div></section><div class="panel"><div class="table-wrap"><table><thead><tr><th>Time</th><th>Action</th><th>Resource</th><th>Result</th><th>Request</th></tr></thead><tbody>';foreach($rows as$r)$h.='<tr><td>'.$this->e($r['occurred_at']).'</td><td>'.$this->e($r['action']).'</td><td>'.$this->e($r['resource_type']).'</td><td>'.$this->e($r['result']).'</td><td><code>'.$this->e($this->guid($r['request_guid'])).'</code></td></tr>';$h.='</tbody></table></div></div>';View::layout('Audit',$h,['brand'=>$this->brandName(),'admin'=>true]);
-    }
     private function adminErrors(): never
     {
-        $tb=TenantData::tenantBin();$rows=Store::all('SELECT * FROM ep_error_events WHERE tenant_guid=? ORDER BY occurred_at DESC LIMIT 200',[$tb]);$last24=0;$requests=[];$fingerprints=[];foreach($rows as$r){if(strtotime((string)$r['occurred_at'])>=time()-86400)$last24++;$requests[$this->guid($r['request_guid'])]=true;$fp=(string)($r['fingerprint']??'');if($fp!=='')$fingerprints[$fp]=($fingerprints[$fp]??0)+1;}
+        $tb=TenantData::tenantBin();
+        // Keep diagnostics bounded and never load potentially sensitive metadata_json.
+        $rows=Store::all('SELECT error_guid,occurred_at,request_guid,correlation_guid,exception_class,message,fingerprint
+            FROM ep_error_events WHERE tenant_guid=? ORDER BY occurred_at DESC LIMIT 75',[$tb]);
+        $last24=(int)Store::value('SELECT COUNT(*) FROM ep_error_events
+            WHERE tenant_guid=? AND occurred_at >= DATE_SUB(NOW(6),INTERVAL 24 HOUR)',[$tb]);
+        $requests=[];$fingerprints=[];
+        foreach($rows as$r){$requests[$this->guid($r['request_guid'])]=true;$fp=(string)($r['fingerprint']??'');if($fp!=='')$fingerprints[$fp]=($fingerprints[$fp]??0)+1;}
         $jobs=Store::all('SELECT j.job_guid,j.edition_guid,j.job_type,j.status,j.error_message,j.updated_at,e.edition_date,p.name publication_name FROM ep_processing_jobs j LEFT JOIN ep_editions e ON e.tenant_guid=j.tenant_guid AND e.edition_guid=j.edition_guid LEFT JOIN ep_publications p ON p.tenant_guid=e.tenant_guid AND p.publication_guid=e.publication_guid WHERE j.tenant_guid=? AND j.status="FAILED" ORDER BY j.updated_at DESC LIMIT 50',[$tb]);
-        $h='<section class="admin-head"><div><span class="eyebrow">OPERATIONS</span><h1>Error Center</h1><p class="muted">Correlate request failures with processing failures using stable request, correlation, job and edition references.</p></div><div class="page-head-actions"><a class="btn ghost" href="/admin/system/health">Production readiness</a><a class="btn ghost" href="/admin/processing">Processing Center</a></div></section><div class="error-summary"><div class="kpi"><span>Application incidents</span><strong>'.count($rows).'</strong><small>Newest 200 displayed</small></div><div class="kpi"><span>Last 24 hours</span><strong>'.$last24.'</strong><small>Recent request failures</small></div><div class="kpi"><span>Request chains</span><strong>'.count($requests).'</strong><small>Distinct request references</small></div><div class="kpi"><span>Failed processing</span><strong>'.count($jobs).'</strong><small>Newest 50 failed jobs</small></div></div>';
+        $h='<section class="admin-head"><div><span class="eyebrow">OPERATIONS</span><h1>Error Center</h1><p class="muted">Correlate request failures with processing failures using stable request, correlation, job and edition references.</p></div><div class="page-head-actions"><a class="btn ghost" href="/admin/system/health">Production readiness</a><a class="btn ghost" href="/admin/processing">Processing Center</a></div></section><div class="error-summary"><div class="kpi"><span>Application incidents</span><strong>'.count($rows).'</strong><small>Newest 75 displayed</small></div><div class="kpi"><span>Last 24 hours</span><strong>'.$last24.'</strong><small>Recent request failures</small></div><div class="kpi"><span>Request chains</span><strong>'.count($requests).'</strong><small>Distinct request references</small></div><div class="kpi"><span>Failed processing</span><strong>'.count($jobs).'</strong><small>Newest 50 failed jobs</small></div></div>';
         $h.='<section class="panel"><div class="section-head"><div><span class="eyebrow">APPLICATION INCIDENTS</span><h2>Recent request errors</h2><p class="muted">Fingerprint groups repeated exceptions without exposing stack traces to operators.</p></div></div><div class="table-wrap"><table><thead><tr><th>Time</th><th>Error ID</th><th>Message</th><th>Fingerprint</th><th>Request / correlation</th></tr></thead><tbody>';
         foreach($rows as$r){$fp=(string)($r['fingerprint']??'');$req=$this->guid($r['request_guid']);$corr=$this->guid($r['correlation_guid']);$h.='<tr><td>'.$this->e($r['occurred_at']).'</td><td><code>'.$this->e($this->guid($r['error_guid'])).'</code></td><td class="error-message-cell"><strong>'.$this->e($r['exception_class']??'Application error').'</strong><br>'.$this->e($r['message']).'</td><td>'.($fp!==''?'<code>'.$this->e(substr($fp,0,12)).'</code><br><small>'.(int)($fingerprints[$fp]??1).' shown occurrence'.(((int)($fingerprints[$fp]??1))===1?'':'s').'</small>':'—').'</td><td><code>'.$this->e($req).'</code>'.($corr?'<br><small>corr '.$this->e($corr).'</small>':'').'</td></tr>';}
         if(!$rows)$h.='<tr><td colspan="5"><div class="empty-inline">No application errors recorded for this tenant.</div></td></tr>';$h.='</tbody></table></div></section>';
@@ -1560,7 +1824,7 @@ $h.='<section class="panel processing-settings-card processing-recovery-card"><d
         $h.='<section class="readiness-overview readiness-'.$tone.'"><div><span class="eyebrow">CURRENT STATE</span><h2>'.$this->e($headline).'</h2><p>'.$this->e($sub).'</p><div class="readiness-summary"><span><strong>'.(int)($summary['ready']??0).'</strong> Ready</span><span><strong>'.(int)($summary['degraded']??0).'</strong> Degraded</span><span><strong>'.(int)($summary['action_required']??0).'</strong> Action required</span><span><strong>'.(int)($summary['review']??0).'</strong> Manual review</span></div></div><span class="readiness-state state-'.strtolower(str_replace('_','-',$status)).'">'.$this->e(str_replace('_',' ',$status)).'</span></section>';
         $groups=[];foreach(($report['checks']??[]) as$c)$groups[(string)($c['category']??'OTHER')][]=$c;
         foreach($groups as$label=>$checks){$h.='<section class="readiness-group"><div class="section-head"><div><span class="eyebrow">'.$this->e($label).'</span><h2>'.$this->e(ucwords(strtolower(str_replace('&','&',$label)))).'</h2></div></div><div class="readiness-list">';foreach($checks as$c){$st=(string)($c['status']??'REVIEW');$class=strtolower(str_replace('_','-',$st));$action=trim((string)($c['action']??''));$h.='<article class="readiness-row status-'.$this->e($class).'"><span class="readiness-dot" aria-hidden="true"></span><div class="readiness-copy"><strong>'.$this->e((string)$c['name']).'</strong><p>'.$this->e((string)$c['detail']).'</p>'.($action!==''?'<small><b>Next:</b> '.$this->e($action).'</small>':'').'</div><span class="readiness-badge">'.$this->e(str_replace('_',' ',$st)).'</span></article>';}$h.='</div></section>';}
-        $h.='<section class="panel readiness-actions"><div class="section-head"><div><span class="eyebrow">OPERATOR PATH</span><h2>Diagnostics & recovery</h2><p class="muted">Open the authoritative subsystem instead of applying broad “repair everything” actions.</p></div></div><div class="diagnostic-actions">'.(Auth::canInfrastructureAdmin()?'<a class="btn primary" href="/admin/system/recovery">Web Recovery Center</a>':'').'<a class="btn" href="/admin/processing">Processing Center</a><a class="btn" href="/admin/system/infrastructure">RabbitMQ & Supervisor</a><a class="btn" href="/admin/performance">Performance & Cache</a><a class="btn" href="/admin/errors">Error Center</a><a class="btn" href="/admin/storage">Storage & Backups</a><a class="btn" href="/admin/system/upgrade">Upgrade Center</a><a class="btn" href="/admin/system/release-audit">Release Audit</a></div></section>';
+        $h.='<section class="panel readiness-actions"><div class="section-head"><div><span class="eyebrow">OPERATOR PATH</span><h2>Diagnostics & recovery</h2><p class="muted">Open the authoritative subsystem instead of applying broad “repair everything” actions.</p></div></div><div class="diagnostic-actions">'.(Auth::canInfrastructureAdmin()?'<a class="btn primary" href="/admin/system/recovery">Web Recovery Center</a>':'').'<a class="btn" href="/admin/processing">Processing Center</a><a class="btn" href="/admin/system/infrastructure">RabbitMQ & Supervisor</a><a class="btn" href="/admin/performance">Performance & Cache</a><a class="btn" href="/admin/errors">Error Center</a><a class="btn" href="/admin/storage">Storage & Backups</a><a class="btn" href="/admin/system/upgrade">Upgrade Center</a><a class="btn" href="/admin/system/release-audit">Release Audit</a><a class="btn" href="/admin/system/testing">Testing &amp; QA</a></div></section>';
         View::layout('Production Readiness',$h,['brand'=>$this->brandName(),'admin'=>true]);
     }
 
