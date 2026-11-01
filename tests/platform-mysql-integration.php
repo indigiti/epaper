@@ -356,6 +356,10 @@ try{
         "ACTIVE",NOW(6),NOW(6))',[
         Uuid::toBinary($userGuid),password_hash('ci-only-test-password',PASSWORD_DEFAULT)
     ]);
+    Store::exec('INSERT INTO memberships(membership_guid,organisation_guid,user_guid,role_key,
+        status,created_at,updated_at) VALUES(?,?,?,"OWNER","ACTIVE",NOW(6),NOW(6))',[
+        Uuid::toBinary(Uuid::v7()),Uuid::toBinary($newOrgGuid),Uuid::toBinary($userGuid)
+    ]);
     Store::exec('UPDATE applications SET oauth_client_id=? WHERE application_guid=?',[
         $oauthClient,Uuid::toBinary($newAppGuid)
     ]);
@@ -376,6 +380,9 @@ try{
     try{\Digiti\Core\OAuth::exchange($code,$verifier,$oauthClient);}
     catch(\RuntimeException){$replayRejected=true;}
     checkDb($replayRejected,'second exchange of the same code is rejected');
+    checkDb(count($identity['memberships'])===1 &&
+        $identity['memberships'][0]['organisation_guid']===$newOrgGuid,
+        'OAuth response exposes only membership in its selected active application product');
 
     $code2=rtrim(strtr(base64_encode(random_bytes(32)),'+/','-_'),'=');
     Store::exec('INSERT INTO auth_codes(auth_code_guid,code_hash,user_guid,application_guid,
