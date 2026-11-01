@@ -22,6 +22,7 @@ final class PlatformClient
             'SERVICE_PRODUCT_INACTIVE'=>'SERVICE_PRODUCT_INACTIVE',
             'SERVICE_PRODUCT_MISMATCH'=>'SERVICE_PRODUCT_MISMATCH',
             'DOMAIN_NOT_ACTIVE'=>'DOMAIN_NOT_ACTIVE',
+            'DOMAIN_SETUP_PENDING'=>'DOMAIN_SETUP_PENDING',
             default=>'PLATFORM_RESOLVE_FAILED',
         };
     }

@@ -74,12 +74,16 @@ check(PlatformClient::diagnosticCode(new RuntimeException('SERVICE_AUTH_INVALID'
     'invalid service token is surfaced as a distinct actionable diagnostic');
 check(PlatformClient::diagnosticCode(new RuntimeException('SERVICE_SCOPE_DENIED',403))==='SERVICE_SCOPE_DENIED',
     'missing domains.resolve permission is distinguished from bad credentials');
+check(PlatformClient::diagnosticCode(new RuntimeException('DOMAIN_SETUP_PENDING',409))==='DOMAIN_SETUP_PENDING',
+    'pending publisher DNS verification has an actionable code without bypassing routing');
 check(PlatformClient::diagnosticCode(new RuntimeException('Service account not found',404))==='PLATFORM_RESOLVE_FAILED',
     'unknown remote exception is safely normalized without exposing raw details');
 
 $resolver=file_get_contents(dirname(__DIR__).'/app/Services/DomainResolver.php');
 $app=file_get_contents(dirname(__DIR__).'/app/App.php');
 $config=file_get_contents(dirname(__DIR__).'/config/config.example.php');
+check(str_contains($resolver,'DOMAIN_SETUP_PENDING') && str_contains($app,'DOMAIN_SETUP_PENDING'),
+    'pending publisher DNS setup gives actionable reader and health-page diagnostics');
 check(str_contains($resolver,'domain:binding-v4:'),
     'rotated-credential namespace skips old cached domain-to-tenant mappings');
 check(str_contains($resolver,"hash('sha256',(string)Config::get('platform.service_token',''))"),
