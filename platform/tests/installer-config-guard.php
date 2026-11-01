@@ -19,11 +19,13 @@ $check(str_contains($installer,'is_file($lock)')&&str_contains($installer,'is_fi
 $check(str_contains($installer,"is_file(\$root.'/config/config.php')"),'Default runtime config also blocks reinstall');
 $check(str_contains($config,'DIGITI_PRIVATE_CONFIG_DIR'),'External private configuration loader available');
 $check(str_contains($installer,'DIGITI_PRIVATE_CONFIG_DIR'),'Installer inspects private configuration path');
+$check(str_contains($installer,'DIGITI_INSTALL_ENABLED'),'Installer is disabled unless specifically enabled for one-time setup');
 $dir=sys_get_temp_dir().'/platform-installer-guard-'.bin2hex(random_bytes(6));
 if(!mkdir($dir,0700,true))throw new RuntimeException('Unable to create test directory');
 file_put_contents($dir.'/config.php',"<?php return ['test'=>true];\n");
 $simulate=static function(string $target)use($root):array{
-    $script='putenv('.var_export('DIGITI_PRIVATE_CONFIG_DIR='.$target,true).');'
+    $script='putenv("DIGITI_INSTALL_ENABLED=1");'
+           .'putenv('.var_export('DIGITI_PRIVATE_CONFIG_DIR='.$target,true).');'
            .'$_SERVER["REQUEST_METHOD"]="GET";'
            .'require '.var_export($root.'/public_html/install.php',true).';';
     $process=proc_open([PHP_BINARY,'-r',$script],[1=>['pipe','w'],2=>['pipe','w']],$pipes);
@@ -34,6 +36,13 @@ $simulate=static function(string $target)use($root):array{
     return [proc_close($process),$out,$err];
 };
 try{
+    $lockedByDefault='putenv('.var_export('DIGITI_PRIVATE_CONFIG_DIR='.$dir,true).');'
+        .'$_SERVER["REQUEST_METHOD"]="GET";'
+        .'require '.var_export($root.'/public_html/install.php',true).';';
+    $proc=proc_open([PHP_BINARY,'-r',$lockedByDefault],[1=>['pipe','w'],2=>['pipe','w']],$p);
+    $disabled=(string)stream_get_contents($p[1]);fclose($p[1]);fclose($p[2]);
+    $exitCode=proc_close($proc);
+    $check($exitCode===0&&str_contains($disabled,'Installer disabled'),'Installer is inaccessible by default even if setup lock is lost');
     [$code,$output,$error]=$simulate($dir);
     $check($code===0&&str_contains($output,'Installer locked')&&!str_contains($output,'<form'),'Lost installer lock cannot reinitialize configured Platform');
     [$code,$output,$error]=$simulate($root.'/public_html');
