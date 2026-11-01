@@ -3,7 +3,7 @@ namespace Digiti;
 
 use Digiti\Core\{Auth,Audit,Config,Crypto,Database,DomainTools,Entitlements,Http,Mfa,OAuth,RateLimiter,RedisStore,ServiceAuth,Store,Uuid,View};
 use Digiti\Billing\ProviderFactory;
-use Digiti\Admin\{Crud,Onboarding,Home,Help};
+use Digiti\Admin\{Crud,Onboarding,Home,Help,DomainMapping};
 use Digiti\Domain\EdgeProviderFactory;
 
 final class App
@@ -44,6 +44,7 @@ final class App
         if($path==='/admin/applications')$this->applications($method);
         if($path==='/admin/product-tenants')$this->productTenants($method);
         if($path==='/admin/domains')$this->domains($method);
+        if(preg_match('#^/admin/domains/([0-9a-f-]{36})/mapping$#i',$path,$m))DomainMapping::save(strtolower($m[1]),$method);
         if(preg_match('#^/admin/domains/([0-9a-f-]{36})/verify$#',$path,$m)&&$method==='POST')$this->verifyDomain($m[1]);
         if(preg_match('#^/admin/domains/([0-9a-f-]{36})/activate$#',$path,$m)&&$method==='POST')$this->activateDomain($m[1]);
         if($path==='/admin/service-accounts')$this->serviceAccounts($method);
