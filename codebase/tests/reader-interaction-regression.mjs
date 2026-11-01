@@ -19,4 +19,16 @@ assert.match(reader,/closest\?\.\('input,textarea,select,/,'Reader must guard in
 assert.match(flip,/closest\?\.\('input,textarea,select,/,'Flip keyboard must guard input focus');
 assert.doesNotMatch(flip,/best\.intersectionRatio<\.55/,'Continuous pages must not need 55% viewport visibility');
 assert.match(prefetch,/if\(q!=='low'\)\{warm\(c\+1/,'Low Data must not automatically prefetch adjacent previews');
+assert.match(reader,/effectiveQuality\(\)==='low'\|\|scale<threshold/,'Low Data must disable tiles');
+assert.match(reader,/function selectionNormalized\(\)/,'Clipping must normalize coordinates');
+assert.match(reader,/selection\.addEventListener\('pointerdown'/,'Clipping handles must support resizing');
+assert.match(reader,/\[data-reader-text-mode\]/,'OCR reader mode must be accessible');
+assert.match(flip,/continuous\.addEventListener\('scroll'/,'Continuous mode must track scrolled page');
+assert.match(prefetch,/decodePreview:q!=='low'/,'Gesture prediction must honor Low Data mode');
+const php=readFileSync(new URL('../app/App.php',import.meta.url),'utf8');
+const media=readFileSync(new URL('../app/Services/Media.php',import.meta.url),'utf8');
+assert.match(php,/private function pageText\(string \$pageGuid\)/,'OCR API endpoint required');
+assert.match(php,/e\.status="PUBLISHED"/,'Reader media must respect publication status');
+assert.match(media,/function safeStoragePath/,'Media must confine storage paths');
+assert.match(media,/Auth::currentMembership\(\)/,'Private media must require active membership');
 console.log('Reader interaction source regression checks passed');
