@@ -25,44 +25,25 @@ final class Onboarding
         $selected=(string)($_GET['domain']??'');
         $filter=(string)($_GET['filter']??'all');
         $q=trim((string)($_GET['q']??''));
-        $summary=['total'=>count($rows),'live'=>0,'action'=>0,'stalled'=>0];
-        $cards='';
-        $active=null;
-        foreach ($rows as $d) {
-            $d['reviewed']=isset($reviews[$d['domain_guid']]);
-            $state=self::state($d);
-            if ($state['live']) $summary['live']++;
-            else $summary['action']++;
-            if ($state['stalled']) $summary['stalled']++;
-            if ($selected!=='' && $d['domain_guid']===$selected) $active=$d;
-            if ($q!=='' && stripos($d['hostname'].' '.$d['organisation_name'].' '.$d['tenant_name'],$q)===false) continue;
-            if ($filter==='live'&&!$state['live']) continue;
-            if ($filter==='action'&&$state['live']) continue;
-            if ($filter==='stalled'&&!$state['stalled']) continue;
-            $cards.=self::card($d,$state);
-        }
-        if ($active===null&&$selected!=='' && !empty($rows)) {
-            // Unknown/removed IDs must not reveal a different publisher's private details.
-            $selected='';
-        }
-        $stats='<div class="ob-stats">'
-            .self::metric('Total domains',$summary['total'],'All EPAPER publisher domains')
-            .self::metric('Live & reviewed',$summary['live'],'Confirmed go-live')
-            .self::metric('Pending action',$summary['action'],'Onboarding or review outstanding')
-            .self::metric('Stalled 48h+',$summary['stalled'],'No recent status update')
-            .'</div>';
+        if (!in_array($filter,['all','pending','review','live'],true)) $filter='all';
+        if (strlen($q)>120) $q=substr($q,0,120);
         $users=Store::all('SELECT user_guid,display_name,email FROM platform_users WHERE status="ACTIVE" ORDER BY display_name ASC LIMIT 150');
-        $tenants=Store::all('SELECT pt.product_tenant_guid,pt.display_name,o.display_name organisation_name FROM product_tenants pt JOIN products p ON p.product_guid=pt.product_guid JOIN organisations o ON o.organisation_guid=pt.organisation_guid WHERE p.product_key="EPAPER" AND pt.status="ACTIVE" AND o.status="ACTIVE" ORDER BY o.display_name LIMIT 200');
-        $form=self::createForm($users,$tenants);
-        $filterOptions=['all'=>'All','action'=>'Needs action','stalled'=>'Stalled','live'=>'Live'];
-        $filters='';
-        foreach ($filterOptions as $key=>$label) $filters.='<a class="ob-tab'.($filter===$key?' active':'').'" href="/admin/onboarding?filter='.$key.'">'.self::e($label).'</a>';
-        $search='<form class="ob-search" method="get" action="/admin/onboarding"><label for="onboarding-search" class="ob-sr-only">Search publishers</label><input id="onboarding-search" type="search" name="q" value="'.self::e($q).'" placeholder="Search publisher or domain"><button type="submit">Search</button><a class="button" href="/admin/onboarding">Refresh</a></form>';
-        $list='<section class="card ob-registry"><div class="ob-section-head"><div><h2>Publisher pipeline</h2><p class="muted">Every domain shows its current blocker and next step.</p></div><span class="ob-count">'.self::e((string)$summary['total']).' registered</span></div><div class="ob-toolbar"><nav class="ob-tabs" aria-label="Filter onboarding records">'.$filters.'</nav>'.$search.'</div><div class="ob-cards">'.($cards?:'<div class="ob-empty">No domains match the selected filter. Create a publisher above or clear the search.</div>').'</div></section>';
-        $review=$active!==null?self::detail($active,$users):'';
-        $intro='<div class="ob-intro"><div><span class="ob-eyebrow">CUSTOMER ACTIVATION</span><h2>From new publisher to live domain.</h2><p>One place for registration, DNS, access, subscription, TLS readiness and final approval. No duplicate application installation is needed.</p></div><div class="ob-intro-actions"><a class="button primary" href="#new-publisher">Add publisher</a><a class="button" href="/admin/domains">Domain registry</a></div></div>';
-        View::layout('Publisher Onboarding',$intro.$stats.$review.$form.$list,[
-            'subtitle'=>'Track every step, identify blockers and confirm go-live safely',
+        $tenants=Store::all('SELECT pt.product_tenant_guid,pt.display_name,o.display_name organisation_name,
+            (SELECT COUNT(*) FROM domains d WHERE d.product_tenant_guid=pt.product_tenant_guid AND d.status<>"REMOVED") domain_count,
+            (SELECT COUNT(*) FROM memberships m JOIN platform_users u ON u.user_guid=m.user_guid WHERE m.organisation_guid=pt.organisation_guid AND m.status="ACTIVE" AND u.status="ACTIVE" AND m.role_key IN ("OWNER","ADMIN","PUBLISHER_ADMIN")) owner_count,
+            (SELECT s.service_access_state FROM subscriptions s WHERE s.product_tenant_guid=pt.product_tenant_guid ORDER BY s.created_at DESC LIMIT 1) service_access_state
+            FROM product_tenants pt JOIN products p ON p.product_guid=pt.product_guid JOIN organisations o ON o.organisation_guid=pt.organisation_guid
+            WHERE p.product_key="EPAPER" AND pt.status<>"REMOVED" AND o.status<>"REMOVED" ORDER BY o.display_name LIMIT 200');
+        $detail='';
+        if($selected!=='' && preg_match('/^[0-9a-f-]{36}$/i',$selected)) {
+            $active=self::one($selected);
+            if($active!==null) {
+                $active['reviewed']=isset($reviews[$active['domain_guid']]);
+                $detail=self::detail($active,$users);
+            }
+        }
+        View::layout('Publisher Onboarding',OnboardingDashboard::render($rows,$reviews,$users,$tenants,$filter,$q,$detail),[
+            'subtitle'=>'Registered domains, launch progress and clear next actions',
         ]);
     }
 
@@ -218,7 +199,7 @@ final class Onboarding
         return $out;
     }
 
-    private static function state(array $d): array
+    public static function state(array $d): array
     {
         $reviewed=(bool)($d['reviewed']??false);
         $tenant=$d['organisation_status']==='ACTIVE'&&$d['tenant_status']==='ACTIVE'&&$d['application_status']==='ACTIVE';
@@ -239,7 +220,7 @@ final class Onboarding
         $block='';$link=self::url($d['domain_guid']);
         if (in_array($d['status'],['REVALIDATION_FAILED','SUSPENDED'],true)) { $block='Domain suspended or requires revalidation'; }
         else foreach($steps as $step) if(!$step['done']) { $block=$step['pending'];$link=$step['url'];break; }
-        $age=strtotime((string)$d['updated_at']);$stalled=!$live&&$age!==false&&$age<time()-48*3600;
+        $age=strtotime((string)$d['updated_at']);$stalled=!$live&&$d['status']!=='ACTIVE'&&$age!==false&&$age<time()-48*3600;
         return ['steps'=>$steps,'done'=>count(array_filter($steps,fn($s)=>$s['done'])),'live'=>$live,'stalled'=>$stalled,'blocker'=>$block?:'Ready','link'=>$link];
     }
 
@@ -301,7 +282,7 @@ final class Onboarding
             .'<button class="primary" type="submit"'.($canApprove?'':' disabled').'>'.($state['live']?'Reconfirm live domain':'Confirm go-live').'</button>'
             .(!$canApprove?'<p class="ob-warning">Complete publisher access, subscription and DNS verification before confirming.</p>':'')
             .'</form>';
-        return '<section class="card ob-detail" aria-label="Publisher onboarding tracker"><div class="ob-section-head"><div><span class="ob-eyebrow">DOMAIN TRACKER</span><h2>'.self::e($d['hostname']).'</h2><p class="muted">'.self::e($d['organisation_name']).' · '.self::e($d['tenant_name']).'</p></div><a class="button" href="/admin/onboarding">Close tracker</a></div>'
+        return '<section id="domain-review" class="card ob-detail" aria-label="Publisher onboarding tracker"><div class="ob-section-head"><div><span class="ob-eyebrow">DOMAIN TRACKER</span><h2>'.self::e($d['hostname']).'</h2><p class="muted">'.self::e($d['organisation_name']).' · '.self::e($d['tenant_name']).'</p></div><a class="button" href="/admin/onboarding">Close tracker</a></div>'
             .'<div class="ob-detail-grid"><div class="ob-timeline"><ol>'.$steps.'</ol><p class="ob-warning">Current blocker: <strong>'.self::e($state['blocker']).'</strong>'.($state['stalled']?' · Stalled for over 48 hours':'').'</p></div>'
             .'<div class="ob-workspace"><h3>DNS ownership & routing</h3>'.$dns.'<p class="muted">CNAME only works if the configured domain target is routed to the ePaper origin. Also add this hostname to Cloudways domain management and its SSL configuration.</p>'.$verify
             .'<div class="ob-rule"></div><h3>Publisher access</h3><p class="muted">'.((int)$d['owner_count']>0?'An active owner/admin membership is present.':'No active publisher owner yet. Create the user in Users, then assign here.').'</p>'.$assign
