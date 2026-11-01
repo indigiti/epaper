@@ -159,3 +159,28 @@ html{scroll-behavior:smooth}
 .platform-form-disclosure>summary::-webkit-details-marker{display:none}
 .platform-form-disclosure-body{border-top:1px solid var(--border);padding:18px 20px 22px}
 .platform-form-disclosure-body>p{margin:0 0 16px;font-size:12px;line-height:1.6}
+
+
+/* Existing domain editor: clear account/application choices */
+.domain-mapping-panel{border:1px solid var(--border);border-radius:16px;background:var(--surface);padding:23px;margin-bottom:16px}
+.domain-mapping-heading{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:17px}
+.domain-mapping-heading h2{font-size:19px;letter-spacing:-.02em;margin:0 0 7px}
+.domain-mapping-heading p{font-size:12px;line-height:1.55;margin:0;max-width:740px}
+.domain-mapping-heading .button{font-size:11px;flex-shrink:0}
+.domain-mapping-current{display:flex;align-items:center;gap:8px 18px;flex-wrap:wrap;border:1px solid var(--border);background:var(--surface2);padding:12px 14px;border-radius:11px;margin-bottom:17px}
+.domain-mapping-current span{color:var(--muted);font-size:12px}
+.domain-mapping-current strong{color:var(--text)}
+.domain-mapping-form{display:grid;gap:15px}
+.domain-mapping-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:15px}
+.domain-mapping-fields label{display:flex;flex-direction:column;gap:8px;font-weight:750;font-size:13px}
+.domain-mapping-fields select{width:100%;min-height:44px}
+.domain-mapping-fields small{font-size:11px;line-height:1.5;color:var(--muted);font-weight:450}
+.domain-mapping-confirm{border-top:1px solid var(--border);padding-top:17px;display:grid;gap:11px}
+.domain-mapping-confirm h3{margin:0;font-size:14px}
+.domain-mapping-confirm p{margin:0 0 4px;color:var(--muted);font-size:12px;line-height:1.55}
+.domain-mapping-confirm label:not(.domain-mapping-checkbox){display:flex;flex-direction:column;gap:8px;font-size:12px}
+.domain-mapping-confirm label:not(.domain-mapping-checkbox) input{max-width:390px}
+.domain-mapping-checkbox{display:flex;align-items:flex-start;gap:9px;font-size:12px;font-weight:500;line-height:1.5}
+.domain-mapping-checkbox input{width:18px;height:18px;min-height:18px;flex-shrink:0;margin:0}
+.domain-mapping-confirm button{justify-self:start;margin-top:5px}
+@media(max-width:760px){.domain-mapping-fields{grid-template-columns:1fr}.domain-mapping-panel{padding:16px}.domain-mapping-heading{align-items:flex-start;flex-direction:column}}
