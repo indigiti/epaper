@@ -311,3 +311,25 @@ gap:8px;padding:7px 9px;font-size:12px;font-weight:700;height:36px}
 .platform-fresh-actions .button{font-size:12px;min-height:38px}
 .platform-fresh-content small{font-size:11px;line-height:1.55;color:var(--muted)}
 @media(max-width:560px){.platform-fresh-alternative details>summary{padding:15px 43px 15px 14px}.platform-fresh-content{padding:15px 13px}.platform-fresh-actions .button{width:100%;justify-content:center}}
+
+
+/* Archived registry release: explicit impact and reversible-by-backup-only confirmation */
+.platform-purge-review{max-width:920px;padding:24px}
+.platform-purge-review h2{font-size:21px;letter-spacing:-.03em;margin:0 0 12px}
+.platform-purge-review>p{font-size:12px;color:var(--muted);line-height:1.65;margin:10px 0}
+.platform-purge-review>p strong{color:var(--text)}
+.platform-purge-counts{list-style:none;margin:19px 0;padding:0;border:1px solid var(--border);border-radius:12px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));overflow:hidden}
+.platform-purge-counts li{display:flex;justify-content:space-between;gap:12px;border-bottom:1px solid var(--border);padding:13px 15px;font-size:12px}
+.platform-purge-counts li:nth-child(odd){border-right:1px solid var(--border)}
+.platform-purge-counts span{color:var(--muted)}
+.platform-purge-counts strong{color:var(--text);font-variant-numeric:tabular-nums}
+.platform-purge-warning{border:1px solid color-mix(in srgb,var(--danger) 44%,var(--border));border-radius:12px;padding:13px 15px;margin:15px 0;font-size:12px;line-height:1.55}
+.platform-purge-warning ul{margin:8px 0 0;padding-left:21px}
+.platform-purge-review form{margin-top:20px;display:grid;gap:12px}
+.platform-purge-review form label{font-size:12px;line-height:1.5;display:flex;gap:9px;align-items:flex-start}
+.platform-purge-review form label:first-of-type{display:grid;gap:7px}
+.platform-purge-review form label:first-of-type input{max-width:440px}
+.platform-purge-review form label input[type=checkbox]{width:18px;height:18px;min-height:18px;flex:0 0 18px}
+.platform-purge-review .form-action{display:flex;flex-wrap:wrap;gap:10px}
+.platform-purge-review .form-action .danger{font-weight:750}
+@media(max-width:640px){.platform-purge-review{padding:15px}.platform-purge-counts{grid-template-columns:1fr}.platform-purge-counts li:nth-child(odd){border-right:0}}
