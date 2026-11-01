@@ -13,4 +13,20 @@ if($from===false||$to===false||$to<=$from)throw new RuntimeException('Login sect
 $login=substr($auth,$from,$to-$from);
 if(!str_contains($login,"<span>'.View::e(\$brand).'</span>")||str_contains($login,"<span>'.\$brand.'</span>"))
  throw new RuntimeException('Unescaped tenant name in publisher login');
-echo "Publisher tenant name escaping: OK\n";
+require_once $root.'/app/Core/Auth.php';
+$failure=\EpaperSaas\Core\Auth::loginFailureMessage(new RuntimeException('SERVICE_SCOPE_DENIED',403));
+if(!str_contains($failure,'temporarily unavailable')||str_contains($failure,'credentials'))
+ throw new RuntimeException('Service scope error is misreported as incorrect password');
+$missing=\EpaperSaas\Core\Auth::loginFailureMessage(new RuntimeException('AUTH_TENANT_MEMBERSHIP_REQUIRED',403));
+if(!str_contains($missing,'no active access to this publisher'))
+ throw new RuntimeException('Missing current-organisation membership is hidden from authenticated users');
+$invalid=\EpaperSaas\Core\Auth::loginFailureMessage(new RuntimeException('AUTH_INVALID',401));
+if($invalid!=='Unable to sign in with those credentials.')
+ throw new RuntimeException('Invalid credentials must retain generic safe error');
+$client=\EpaperSaas\Core\Auth::loginFailureMessage(new RuntimeException('AUTH_CLIENT_INVALID',401));
+if(!str_contains($client,'temporarily unavailable'))
+ throw new RuntimeException('Bad OAuth client misreported as password error');
+$limited=\EpaperSaas\Core\Auth::loginFailureMessage(new RuntimeException('AUTH_RATE_LIMITED',429));
+if(!str_contains($limited,'Too many sign-in attempts'))
+ throw new RuntimeException('Rate-limited login should be distinguishable without revealing account identity');
+echo "Publisher tenant login and error classification: OK\n";
