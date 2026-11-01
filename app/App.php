@@ -3,7 +3,7 @@ namespace Digiti;
 
 use Digiti\Core\{Auth,Audit,Config,Crypto,Database,DomainTools,Entitlements,Http,Mfa,OAuth,RateLimiter,RedisStore,ServiceAuth,Store,Uuid,View};
 use Digiti\Billing\ProviderFactory;
-use Digiti\Admin\{Crud,Onboarding,Home,Help,DomainMapping,ActionUi,Restore,StagingReset};
+use Digiti\Admin\{Crud,Onboarding,Home,Help,DomainMapping,ActionUi,Restore,StagingReset,RegistryCleanup};
 use Digiti\Domain\EdgeProviderFactory;
 
 final class App
@@ -35,6 +35,8 @@ final class App
         if($method==='POST')Http::verifyCsrf();
         if(preg_match('#^/admin/(organisations|users|products|applications|product-tenants|domains|service-accounts|commercial/plans)/([0-9a-f-]{36})/restore$#i',$path,$m))
             Restore::run(strtolower($m[1]),strtolower($m[2]),$method);
+        if(preg_match('#^/admin/(domains|products|organisations)/([0-9a-f-]{36})/release$#i',$path,$m))
+            RegistryCleanup::run(strtolower($m[1]),strtolower($m[2]),$method);
         if($path==='/admin/staging-reset') StagingReset::run($method);
         if(Crud::dispatch($path,$method))exit;
         if($path==='/admin')Home::index();
