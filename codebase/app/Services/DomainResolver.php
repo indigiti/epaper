@@ -23,8 +23,11 @@ final class DomainResolver
         $expected=self::expectedBinding();
         // Namespace migration: old domain:host file/Redis values may still refer
         // to the archived EPAPER tenant. New releases never trust those entries.
-        $fingerprint=substr(hash('sha256',json_encode($expected)),0,16);
-        return 'domain:binding-v3:'.$fingerprint.':'.$host;
+        // A rotated/revoked service credential must not reuse an earlier identity cache.
+        // Include only a digest in the fingerprint; never persist the secret itself.
+        $tokenDigest=hash('sha256',(string)Config::get('platform.service_token',''));
+        $fingerprint=substr(hash('sha256',json_encode($expected).'|'.$tokenDigest),0,16);
+        return 'domain:binding-v4:'.$fingerprint.':'.strtolower(rtrim($host,'.'));
     }
 
     public static function diagnose(?string $host=null): array
@@ -96,8 +99,18 @@ final class DomainResolver
                 }
             }
         } catch(\Throwable $e) {
-            $out['domain']=['ok'=>false,'code'=>'PLATFORM_RESOLVE_FAILED','message'=>$e->getMessage()];
-            $out['binding']=['ok'=>false,'code'=>'PLATFORM_RESOLVE_FAILED'];
+            $code=PlatformClient::diagnosticCode($e);
+            $message=match($code){
+                'SERVICE_AUTH_INVALID'=>'Platform rejected the configured service token.',
+                'SERVICE_AUTH_REQUIRED'=>'No service credential reached Platform.',
+                'SERVICE_SCOPE_DENIED'=>'Service account lacks the required Platform scope.',
+                'SERVICE_PRODUCT_INACTIVE'=>'The service account product is inactive.',
+                'SERVICE_PRODUCT_MISMATCH'=>'Service account is scoped to a different product.',
+                'DOMAIN_NOT_ACTIVE'=>'The hostname has no active Platform domain binding.',
+                default=>'Platform domain resolution failed.',
+            };
+            $out['domain']=['ok'=>false,'code'=>$code,'message'=>$message];
+            $out['binding']=['ok'=>false,'code'=>$code];
         }
         $bound=(bool)($out['binding']['ok']??false);
         $tenantReady=(bool)($out['tenant']['ok']??false)

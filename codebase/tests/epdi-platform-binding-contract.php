@@ -2,8 +2,10 @@
 declare(strict_types=1);
 
 require dirname(__DIR__).'/app/Services/PlatformBinding.php';
+require dirname(__DIR__).'/app/Services/PlatformClient.php';
 
 use EpaperSaas\Services\PlatformBinding;
+use EpaperSaas\Services\PlatformClient;
 
 function check(bool $ok,string $title):void {
     if(!$ok){fwrite(STDERR,"FAIL: $title\n");exit(1);}
@@ -31,9 +33,17 @@ check(PlatformBinding::check($record,'epaper.digiti.in',$expected)['ok'],
 check(PlatformBinding::check([...$record,'product_key'=>'EPAPER'],
     'epaper.digiti.in',$expected)['ok'],
     'product display key does not authorize or deny a valid app binding');
-check(PlatformBinding::check([...$record,'hostname'=>'epaper.dcnnews.co.in'],
+$publisherB=[...$record,'hostname'=>'epaper.dcnnews.co.in',
+    'product_tenant_guid'=>'01a19000-0000-7000-8000-000000000005'];
+check(PlatformBinding::check($publisherB,
     'epaper.dcnnews.co.in',$expected)['ok'],
-    'DCN customer alias may share the EP-DI application without sharing a tenant');
+    'second tenant shares one EP-DI application but resolves under its own domain');
+check(PlatformBinding::check([...$publisherB,'hostname'=>'epaper.digiti.in'],
+    'epaper.digiti.in',$expected)['code']==='CONFIGURED_CANONICAL_TENANT_STALE',
+    'canonical host rejects a different publisher tenant when explicitly pinned');
+check(PlatformBinding::check($publisherB,'epaper.dcnnews.co.in',
+    [...$expected,'default_tenant_guid'=>''])['ok'],
+    'an unset canonical default never blocks an explicitly registered customer hostname');
 check(PlatformBinding::check([...$record,'application_guid'=>'01a19000-0000-7000-8000-000000000999'],
     'epaper.digiti.in',$expected)['code']==='CONFIGURED_APPLICATION_GUID_STALE',
     'different application GUID fails closed rather than selecting a different publisher');
@@ -60,11 +70,20 @@ check(!PlatformBinding::check($emergency,'epaper.digiti.in',
     [...$expected,'allow_canonical_fallback'=>true,'product_guid'=>''])['ok'],
     'fallback never accepts missing product GUID pin');
 
+check(PlatformClient::diagnosticCode(new RuntimeException('SERVICE_AUTH_INVALID',401))==='SERVICE_AUTH_INVALID',
+    'invalid service token is surfaced as a distinct actionable diagnostic');
+check(PlatformClient::diagnosticCode(new RuntimeException('SERVICE_SCOPE_DENIED',403))==='SERVICE_SCOPE_DENIED',
+    'missing domains.resolve permission is distinguished from bad credentials');
+check(PlatformClient::diagnosticCode(new RuntimeException('Service account not found',404))==='PLATFORM_RESOLVE_FAILED',
+    'unknown remote exception is safely normalized without exposing raw details');
+
 $resolver=file_get_contents(dirname(__DIR__).'/app/Services/DomainResolver.php');
 $app=file_get_contents(dirname(__DIR__).'/app/App.php');
 $config=file_get_contents(dirname(__DIR__).'/config/config.example.php');
-check(str_contains($resolver,'domain:binding-v3:'),
-    'new domain cache version skips stale EPAPER redis/file records');
+check(str_contains($resolver,'domain:binding-v4:'),
+    'rotated-credential namespace skips old cached domain-to-tenant mappings');
+check(str_contains($resolver,"hash('sha256',(string)Config::get('platform.service_token',''))"),
+    'cache fingerprint changes after token rotation without persisting the token');
 check(!str_contains($resolver,"if((\$d['product_key']??'')!=='EPAPER')"),
     'hard-coded EPAPER rejection is removed from reader request path');
 check(str_contains($resolver,'PlatformBinding::check($domain,$host,self::expectedBinding())'),
