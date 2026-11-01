@@ -90,6 +90,12 @@ auditCheck(str_contains($oauth,'AND a.status="ACTIVE" AND p.status="ACTIVE"') &&
 auditCheck(str_contains($appSource,'AUTH_TENANT_MEMBERSHIP_REQUIRED') &&
     str_contains($appSource,'organisation_guid=? AND status="ACTIVE" LIMIT 1'),
     'direct login requires selected publisher membership');
+auditCheck(str_contains($onboard,"if (!self::state(\$fresh)['steps'][0]['done'])") &&
+    str_contains($onboard,'AND status=?'),
+    'go-live and DNS revalidation require active parents and conditional status updates');
+auditCheck(str_contains($appSource,'Archived or suspended hostnames cannot be verified') &&
+    str_contains($appSource,'Domain changed during verification'),
+    'legacy DNS verification cannot resurrect archived domains or override state races');
 auditCheck(str_contains($appSource,'IMPERSONATION_ALREADY_USED') &&
     str_contains($appSource,'$role!==\'SUPER_ADMIN\''),
     'support impersonation is superadmin-only and one-time');
@@ -108,11 +114,14 @@ auditCheck(str_contains($appSource,'confirm_manual_access') &&
 auditCheck(str_contains($appSource,'Invoice amount must be positive') &&
     str_contains($appSource,'str_pad($parts[1]'),
     'invoice creation validates amount without float rounding errors');
-auditCheck(str_contains($appSource,"'x-razorpay-event-id'") &&
+auditCheck(str_contains($appSource,"'razorpay'=>'body:'.hash('sha256',\$payload)") &&
     str_contains($appSource,'Store::tx(function()use($guid,$provider,$ref,$sanitized,$payload)'),
-    'webhook dedupes using event identifier and records with outbox atomically');
+    'Razorpay dedupes by authenticated body and persists webhook/outbox atomically');
 auditCheck(str_contains($stripe,'abs(time()-$issued)>300'),
     'Stripe webhooks reject stale signed timestamps');
+auditCheck(str_contains(sourceCode('app/Billing/RazorpayProvider.php'),
+    "Config::get('billing.razorpay_webhook_secret'"),
+    'Razorpay webhook verification uses dedicated signing secret rather than API credential');
 auditCheck(str_contains($installer,'is_file($lock)||is_file($configFile)') &&
     str_contains($installer,'information_schema.tables') &&
     str_contains($installer,'NEW EMPTY DATABASE'),
