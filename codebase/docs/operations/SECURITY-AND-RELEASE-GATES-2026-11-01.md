@@ -23,3 +23,30 @@
 ## Attestation
 
 Record named operator, UTC timestamp, evidence links, restored asset counts, test results, key revocation confirmation, deployed commit SHA and rollback target. **All boxes stay open until real evidence is attached.**
+
+## Cloudways cutover addendum — November 1, 2026
+
+**User statement:** Cloudways backups and restores are working. That is accepted as an operator report, not independent verification of release-specific file preservation.
+
+### Cutover steps
+1. In Cloudways Application Management, identify **Flexible vs Velocity**, the Git branch, deployment path and production document root for both ePaper (`codebase/`) and Platform (`platform/`).
+2. Before deploying a Git tree that deletes tracked files, protect `codebase/storage/`, `codebase/config/`, `codebase/public_html/uploads/`, `platform/storage/` and `platform/config/` using persistent server-side folders or independent release-safe mounts. **Git can delete previously tracked files even on Flexible**; Velocity's newer model additionally removes files not declared persistent.
+3. On a restored staging clone, run a before/after SHA-256 file inventory: `php codebase/bin/storage-inventory.php --output=/private/before.json`, and after the staging cutover `php codebase/bin/storage-inventory.php --compare=/private/before.json`. This checks PDF originals, newspaper media, clipping images and branding without printing filenames.
+4. Put ePaper and Platform secrets in server-only runtime folders; configure `EPDI_PRIVATE_CONFIG_DIR` and `DIGITI_PRIVATE_CONFIG_DIR` in the PHP-FPM runtime, or persist a server-only config fallback. Do not embed secrets in GitHub Actions jobs or PR comments.
+5. Run `php codebase/bin/deployment-parity.php --webroot=/absolute/codebase/public_html --strict` in staging. Check both application bootstraps, published/unpublished asset access, PDF imports, OCR, clipping, offline and Platform API credentials.
+6. Rotate credentials for **both** applications in their providers and revoke exposed originals. Then coordinate a full Git-history cleanup that includes `platform/config/config.php` as well as ePaper assets/config. Notify all deploy agents and collaborators before forcing any refs.
+7. Confirm a second deployment preserves all customer files; record the inventory fingerprints and rollback evidence. Only then consider merging and releasing PR #65.
+
+Cloudways guidance:
+- https://support.cloudways.com/en/articles/5124087-how-to-deploy-code-to-your-application-using-git-on-cloudways-flexible
+- https://support.cloudways.com/en/articles/17694030-how-to-set-a-persistent-storage-folder-on-cloudways-velocity
+
+### Actual evidence required
+- [x] Source branch untracks 4,697 runtime/customer files including both applications' configurations
+- [x] Source CI covers secret/storage paths for both applications
+- [x] External private config support implemented for ePaper and Platform
+- [ ] Specific Cloudways deployment mode and persistent paths confirmed
+- [ ] Staging before/after content hashes match
+- [ ] Actual old service credentials rotated/revoked
+- [ ] Historical Git blobs and external caches cleaned
+- [ ] Staging and physical-device acceptance / deployment parity completed
