@@ -26,4 +26,5 @@ checkWebDesk(str_contains($app,'m.role_key IN ("OWNER","ADMIN","PUBLISHER_ADMIN"
     str_contains(file_get_contents($root.'/app/Admin/Onboarding.php'),
        'm.role_key IN ("OWNER","ADMIN","PUBLISHER_ADMIN")'),
     'WebDesk cannot satisfy mandatory publisher owner assignment');
+checkWebDesk(str_contains($crud,'FOR UPDATE') && str_contains($crud,'Assign another active publisher owner'), 'Last publisher owner cannot be demoted to WebDesk');
 echo "PASS — Platform WebDesk memberships\n";
