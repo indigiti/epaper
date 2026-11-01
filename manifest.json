@@ -1,9 +1,9 @@
 {
-  "version": "2.0.2.1",
-  "type": "reader_ux_patch",
+  "version": "2.0.2.3",
+  "type": "cloudways_reader_publisher_release",
   "base": "2.0.2.0",
-  "requires": "2.0.2.0; no new database migration.",
-  "name": "Responsive Back-Edition Navigator",
+  "requires": "Existing Cloudways schema/features, protected private storage and server-only secrets; no new schema changes introduced by source synchronization.",
+  "name": "Cloudways ePaper 2.0.2.3 — integrated Reader and Publisher workspace",
   "database_migration": false,
   "database_upgrade": null,
   "worker_restart": false,
@@ -14,10 +14,17 @@
     "app/Services/SettingsCatalog.php",
     "public_html/assets/reader.js",
     "public_html/assets/reader.css",
-    "public_html/service-worker.js"
+    "public_html/service-worker.js",
+    "app/Services/Media.php",
+    "app/Core/Config.php",
+    "public_html/assets/reader-flip.js",
+    "public_html/assets/reader-prefetch.js",
+    "public_html/assets/offline-vault.js",
+    "app/Services/AppearanceGallery.php",
+    "app/Services/BackgroundEffectsStudio.php"
   ],
   "upgrade_instructions": "UPDATE-2.0.2.1.md",
-  "validation": "RELEASE-CHECK-2.0.2.1.txt",
+  "validation": "GitHub workflows (dual-layout source parity, Cloudways feature CI, ePaper release checks, security guard); real Cloudways staging/device acceptance remains required.",
   "reader_notes": "READER-DATE-NAVIGATOR-2.0.2.1.md",
   "native_android_change": false,
   "android_wrapper_version": "2.0.2.0"
