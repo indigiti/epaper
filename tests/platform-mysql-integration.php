@@ -402,6 +402,15 @@ try{
     // Billing rejects duplicate active subscriptions and validates invoice
     // amounts in the application layer; schema already requires FK lineage.
 
+
+    $bucket='ci-login-limit-'.bin2hex(random_bytes(8));
+    checkDb(\Digiti\Core\RateLimiter::allow($bucket,2,60),
+        'MySQL fallback permits first login attempt');
+    checkDb(\Digiti\Core\RateLimiter::allow($bucket,2,60),
+        'MySQL fallback permits attempt within configured limit');
+    checkDb(!\Digiti\Core\RateLimiter::allow($bucket,2,60),
+        'MySQL fallback atomically enforces limit without Redis');
+
     echo "PASS: database-backed Platform domain recovery integration checks complete\n";
 }finally{
     @unlink($cfgPath);
