@@ -106,6 +106,12 @@ ok(str_contains($app,'private function reuseExisting('),'duplicate records share
 $cleanup=source('app/Admin/RegistryCleanup.php');
 $actions=source('app/Admin/ActionUi.php');
 ok(str_contains($app,'RegistryCleanup::run('),'super-admin resource cleanup route wired before CRUD dispatch');
+
+ok(str_contains($app,'Hide retired history')&&str_contains($app,'Show retired history'),
+    'historic registry references remain accessible but are hidden from daily operator listings');
+ok(str_contains($app,'LEFT(p.product_key,8)')&&str_contains($app,'LEFT(organisation_code,8)'),
+    'retired products and organisations do not clutter active configuration screens');
+
 ok(str_contains($actions,"/release"),'archived rows show permanent release alongside Restore');
 ok(str_contains($cleanup,'superAdmin()'),'cleanup requires super administrator permission');
 ok(str_contains($cleanup,'Store::tx(')&&str_contains($cleanup,'self::audit('),'cleanup and durable audit share a transaction');
