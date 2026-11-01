@@ -45,7 +45,8 @@ final class OnboardingDashboard
         string $filter,
         string $q,
         string $detail,
-        array $archived=[]
+        array $archived=[],
+        array $applications=[]
     ): string {
         $m=['domains'=>count($domains),'approved'=>0,'review'=>0,'pending'=>0,'system'=>0];
         $prepared=[];
@@ -96,7 +97,7 @@ final class OnboardingDashboard
         $domainTable=self::domainTable($filtered,$filter,$q,count($prepared));
         $archivedTable=self::archivedTable($archived);
         $publisherTable=self::publisherTable($tenants);
-        $create=self::createPanel($users,$tenants);
+        $create=self::createPanel($users,$tenants,$applications);
         $foot='<p class="ob-footer-note">Statuses reflect current Platform records, not a live Cloudways deployment probe. <a href="/admin/domains">Open advanced domain registry</a>.</p>';
 
         return '<div class="ob-workbench">'.$hero.$stats.$detail.$attention.$domainTable.$archivedTable.$publisherTable.$create.$foot.'</div>';
@@ -229,7 +230,7 @@ final class OnboardingDashboard
         return $options;
     }
 
-    private static function createPanel(array $users,array $tenants): string
+    private static function createPanel(array $users,array $tenants,array $applications=[]): string
     {
         $mode=(string)($_GET['mode']??'');
         $open=in_array($mode,['new','alias'],true)?' open':'';
@@ -237,11 +238,29 @@ final class OnboardingDashboard
         foreach($users as $u)$userOptions.='<option value="'.self::e($u['user_guid']).'">'.self::e($u['display_name'].' · '.$u['email']).'</option>';
         $tenantOptions='<option value="">Select an existing EPAPER tenant</option>';
         foreach($tenants as $t)$tenantOptions.='<option value="'.self::e($t['product_tenant_guid']).'">'.self::e($t['organisation_name'].' · '.$t['display_name']).'</option>';
+        $appOptions='';
+        if(count($applications)===1) {
+            $appOptions='<input type="hidden" name="application_guid" value="'.self::e($applications[0]['application_guid']).'">'
+                .'<p class="muted">Application: '.self::e($applications[0]['name'].' · '.$applications[0]['base_url']).'</p>';
+        } elseif(count($applications)>1) {
+            $options='<option value="">Choose the EPAPER application</option>';
+            foreach($applications as $application) {
+                $options.='<option value="'.self::e($application['application_guid']).'">'
+                    .self::e($application['name'].' · '.$application['base_url']).'</option>';
+            }
+            $appOptions='<label>Application<select name="application_guid" required>'.$options.'</select>'
+                .'<small>Choose the installation that will serve this website. Main application hostnames must match its Base URL.</small></label>';
+        } else {
+            $appOptions='<p class="ob-warning">No active EPAPER application. Register it under Applications first.</p>';
+        }
+        $canonicalNote='<label class="ob-check"><input type="checkbox" name="confirm_canonical" value="1">'
+            .' I am registering the main EPAPER application hostname (only when this website matches its Base URL)</label>';
         $csrf='<input type="hidden" name="_csrf" value="'.self::e(\Digiti\Core\Http::csrf()).'">';
         $new='<form class="ob-setup-form" method="post" action="/admin/onboarding">'
             .'<h4>Start a new newspaper account</h4><p>Just enter the publisher name and website. Separate customer records are created automatically.</p>'.$csrf.'<input type="hidden" name="mode" value="new">'
             .'<label>Newspaper or publisher name<input name="organisation_name" maxlength="190" required placeholder="DCN News"></label>'
-            .'<label>Newspaper website<input name="hostname" required autocomplete="off" placeholder="epaper.example.com"><small>Do not include https://</small></label>'
+            .'<label>Newspaper website<input name="hostname" required autocomplete="off" placeholder="epaper.example.com"><small>You can paste a bare hostname or its HTTPS homepage URL</small></label>'
+            .$appOptions.$canonicalNote
             .'<label>Publisher administrator<select name="owner_user_guid">'.$userOptions.'</select><small>You can assign someone later from Team & Access.</small></label>'
             .'<details class="ob-extra-options"><summary>Advanced options (optional)</summary><label>Custom publisher code<input name="organisation_code" maxlength="64" placeholder="Generated automatically"></label></details>'
             .'<button class="primary" type="submit">Create newspaper account</button></form>';
@@ -249,6 +268,7 @@ final class OnboardingDashboard
             .'<h4>Connect another website</h4><p>Use this only when a second website should display the same newspaper content.</p>'.$csrf.'<input type="hidden" name="mode" value="existing">'
             .'<label>Existing newspaper<select name="product_tenant_guid" required>'.$tenantOptions.'</select></label>'
             .'<label>Domain<input name="hostname" required autocomplete="off" placeholder="epaper.example.com"></label>'
+            .$appOptions.$canonicalNote
             .'<label>Existing owner (optional)<select name="owner_user_guid">'.$userOptions.'</select></label>'
             .'<button type="submit">Attach domain</button></form>';
         return '<details id="new-publisher" class="ob-create-details"'.$open.'>'
