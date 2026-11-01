@@ -218,20 +218,20 @@ final class OnboardingDashboard
         foreach($tenants as $t)$tenantOptions.='<option value="'.self::e($t['product_tenant_guid']).'">'.self::e($t['organisation_name'].' · '.$t['display_name']).'</option>';
         $csrf='<input type="hidden" name="_csrf" value="'.self::e(\Digiti\Core\Http::csrf()).'">';
         $new='<form class="ob-setup-form" method="post" action="/admin/onboarding">'
-            .'<h4>New publisher</h4><p>Create a separate organisation and ePaper tenant.</p>'.$csrf.'<input type="hidden" name="mode" value="new">'
-            .'<label>Publisher name<input name="organisation_name" maxlength="190" required placeholder="Pune Mirror Media"></label>'
-            .'<label>Publisher code<input name="organisation_code" maxlength="64" required placeholder="PUNE_MIRROR"></label>'
-            .'<label>Domain<input name="hostname" required autocomplete="off" placeholder="epaper.punemirror.com"></label>'
-            .'<label>Existing owner<select name="owner_user_guid">'.$userOptions.'</select></label>'
-            .'<button class="primary" type="submit">Create publisher and domain</button></form>';
+            .'<h4>Start a new newspaper account</h4><p>Just enter the publisher name and website. Separate customer records are created automatically.</p>'.$csrf.'<input type="hidden" name="mode" value="new">'
+            .'<label>Newspaper or publisher name<input name="organisation_name" maxlength="190" required placeholder="DCN News"></label>'
+            .'<label>Newspaper website<input name="hostname" required autocomplete="off" placeholder="epaper.example.com"><small>Do not include https://</small></label>'
+            .'<label>Publisher administrator<select name="owner_user_guid">'.$userOptions.'</select><small>You can assign someone later from Team & Access.</small></label>'
+            .'<details class="ob-extra-options"><summary>Advanced options (optional)</summary><label>Custom publisher code<input name="organisation_code" maxlength="64" placeholder="Generated automatically"></label></details>'
+            .'<button class="primary" type="submit">Create newspaper account</button></form>';
         $alias='<form class="ob-setup-form" method="post" action="/admin/onboarding">'
-            .'<h4>Additional domain</h4><p>Reuse an existing publisher tenant and its content.</p>'.$csrf.'<input type="hidden" name="mode" value="existing">'
-            .'<label>Publisher<select name="product_tenant_guid" required>'.$tenantOptions.'</select></label>'
+            .'<h4>Connect another website</h4><p>Use this only when a second website should display the same newspaper content.</p>'.$csrf.'<input type="hidden" name="mode" value="existing">'
+            .'<label>Existing newspaper<select name="product_tenant_guid" required>'.$tenantOptions.'</select></label>'
             .'<label>Domain<input name="hostname" required autocomplete="off" placeholder="epaper.example.com"></label>'
             .'<label>Existing owner (optional)<select name="owner_user_guid">'.$userOptions.'</select></label>'
             .'<button type="submit">Attach domain</button></form>';
         return '<details id="new-publisher" class="ob-create-details"'.$open.'>'
-            .'<summary><span class="ob-create-icon">+</span><span><strong>Add a publisher or domain</strong><small>Open setup only when onboarding a new customer</small></span><span class="ob-create-chevron" aria-hidden="true">⌄</span></summary>'
+            .'<summary><span class="ob-create-icon">+</span><span><strong>Add a publisher or domain</strong><small>Guided setup, no installation or technical identifiers required</small></span><span class="ob-create-chevron" aria-hidden="true">⌄</span></summary>'
             .'<div class="ob-create-body"><div class="ob-setup-grid">'.$new.$alias.'</div></div></details>';
     }
 }
