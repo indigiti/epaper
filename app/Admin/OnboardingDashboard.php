@@ -28,6 +28,7 @@ final class OnboardingDashboard
     private static function stage(array $d,array $progress): array
     {
         if (self::isCanonical($d)) return ['class'=>'system','label'=>'App host','hint'=>'Canonical ePaper application domain'];
+        if (!empty($d['_shares_default'])) return ['class'=>'shared','label'=>'Shared tenant','hint'=>'Shares publication data with the canonical application hostname'];
         if ($progress['live']) return ['class'=>'live','label'=>'Approved','hint'=>'Go-live confirmed'];
         if (($d['status']??'')==='ACTIVE') return ['class'=>'review','label'=>'Active · review','hint'=>'Existing active domain, acceptance review outstanding'];
         if (in_array((string)($d['status']??''),['SUSPENDED','REVALIDATION_FAILED'],true))
@@ -47,7 +48,13 @@ final class OnboardingDashboard
     ): string {
         $m=['domains'=>count($domains),'approved'=>0,'review'=>0,'pending'=>0,'system'=>0];
         $prepared=[];
+        $canonicalTenantIds=[];
+        foreach($domains as $candidate) {
+            if(self::isCanonical($candidate)) $canonicalTenantIds[(string)$candidate['product_tenant_guid']]=true;
+        }
         foreach($domains as $d) {
+            $d['_shares_default']=!self::isCanonical($d)
+                && isset($canonicalTenantIds[(string)$d['product_tenant_guid']]);
             $d['reviewed']=isset($reviews[$d['domain_guid']]);
             $progress=Onboarding::state($d);
             $stage=self::stage($d,$progress);
@@ -55,7 +62,7 @@ final class OnboardingDashboard
             $d['_stage']=$stage;
             if($stage['class']==='system') $m['system']++;
             elseif($stage['class']==='live') $m['approved']++;
-            elseif($stage['class']==='review') $m['review']++;
+            elseif(in_array($stage['class'],['review','shared'],true)) $m['review']++;
             else $m['pending']++;
             $prepared[]=$d;
         }
@@ -65,7 +72,7 @@ final class OnboardingDashboard
             $stage=$d['_stage']['class'];
             if($q!=='' && stripos((string)$d['hostname'].' '.(string)$d['organisation_name'].' '.(string)$d['tenant_name'],$q)===false)continue;
             if($filter==='pending'&&!in_array($stage,['pending','blocked','stalled'],true))continue;
-            if($filter==='review'&&$stage!=='review')continue;
+            if($filter==='review'&&!in_array($stage,['review','shared'],true))continue;
             if($filter==='live'&&$stage!=='live')continue;
             $filtered[]=$d;
         }
@@ -108,7 +115,9 @@ final class OnboardingDashboard
             $stage=$d['_stage'];
             if(in_array($stage['class'],['live','system'],true))continue;
             $p=$d['_progress'];
-            $message=$stage['class']==='review'?'Verify live HTTPS, publisher access and tenant isolation':$p['blocker'];
+            $message=$stage['class']==='shared'
+                ?'Same tenant as canonical ePaper host. Reassign if this publisher needs separate content.'
+                :($stage['class']==='review'?'Verify live HTTPS, publisher access and tenant isolation':$p['blocker']);
             $rows[]='<li class="ob-task"><span class="ob-task-icon">!</span>'
                 .'<div><strong>'.self::e($d['hostname']).'</strong><small>'.self::e($message).'</small></div>'
                 .'<a href="'.self::link($d).'">Resolve</a></li>';
@@ -136,7 +145,7 @@ final class OnboardingDashboard
             $pct=(int)round($progress['done']/6*100);
             $next=$stage['class']==='live'?'No outstanding actions':
                 ($stage['class']==='system'?'Canonical infrastructure domain':
-                ($stage['class']==='review'?'Confirm existing deployment':$progress['blocker']));
+                ($stage['class']==='shared'?'Check publisher tenant mapping':($stage['class']==='review'?'Confirm existing deployment':$progress['blocker'])));
             $updated=(string)($d['last_checked_at']??'');
             if($updated==='')$updated=(string)($d['updated_at']??'');
             $displayDate=$updated!==''?substr($updated,0,16):'—';
