@@ -207,7 +207,7 @@ final class RegistryCleanup
             $references=(int)Store::value('SELECT COUNT(*) FROM plan_features WHERE feature_guid=?',[$featureBin])
                 +(int)Store::value('SELECT COUNT(*) FROM usage_meters WHERE feature_guid=?',[$featureBin])
                 +(int)Store::value('SELECT COUNT(*) FROM entitlement_grants WHERE feature_guid=?',[$featureBin]);
-            if($references)Store::exec('UPDATE features SET feature_key=?,name="Historical feature" WHERE feature_guid=?',[
+            if($references)Store::exec('UPDATE features SET feature_key=? WHERE feature_guid=?',[
                 self::code($id),$featureBin
             ]);
             else Store::exec('DELETE FROM features WHERE feature_guid=?',[$featureBin]);
@@ -224,7 +224,7 @@ final class RegistryCleanup
                 $history+=(int)Store::value("SELECT COUNT(*) FROM $table WHERE product_tenant_guid=?",[$tid]);
             if($history){
                 $keptTenants++;
-                Store::exec('UPDATE product_tenants SET display_name="Historical publisher",external_tenant_reference=NULL
+                Store::exec('UPDATE product_tenants SET status="REMOVED"
                     WHERE product_tenant_guid=? AND status="REMOVED"',[$tid]);
             }else Store::exec('DELETE FROM product_tenants WHERE product_tenant_guid=? AND status="REMOVED"',[$tid]);
         }
@@ -234,7 +234,7 @@ final class RegistryCleanup
             +(int)Store::value('SELECT COUNT(*) FROM plans WHERE product_guid=?',[$bin])
             +(int)Store::value('SELECT COUNT(*) FROM features WHERE product_guid=?',[$bin]);
         if($retained){
-            Store::exec('UPDATE products SET product_key=?,name="Historical product",description=NULL,
+            Store::exec('UPDATE products SET product_key=?,description=NULL,
                 updated_at=NOW(6) WHERE product_guid=? AND status="REMOVED"',[
                 self::code($guid),$bin
             ]);
@@ -257,8 +257,7 @@ final class RegistryCleanup
             +(int)Store::value('SELECT COUNT(*) FROM memberships WHERE organisation_guid=?',[$bin])
             +(int)Store::value('SELECT COUNT(*) FROM impersonation_grants WHERE organisation_guid=?',[$bin]);
         if($links){
-            Store::exec('UPDATE organisations SET organisation_code=?,legal_name="Historical organisation",
-                display_name="Historical organisation",metadata=NULL,updated_at=NOW(6)
+            Store::exec('UPDATE organisations SET organisation_code=?,metadata=NULL,updated_at=NOW(6)
                 WHERE organisation_guid=? AND status="REMOVED"',[self::code($guid),$bin]);
         }else Store::exec('DELETE FROM organisations WHERE organisation_guid=? AND status="REMOVED"',[$bin]);
         return ['historical_identity_retained'=>$links>0,'reusable_code_released'=>true];
