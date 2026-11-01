@@ -106,7 +106,7 @@ final class View
         <?=$content?></main>
         <footer>Digiti Platform v<?=self::esc($version)?> · <?=self::esc(strtoupper((string)Config::get('app.env','production')))?></footer>
         <?php if($admin):?></div></div><?php endif;?>
-        <script>window.Digiti={csrf:<?=json_encode($csrf)?>};document.addEventListener("submit",function(e){if(e.target.querySelector("button.danger")&&!window.confirm("Confirm this action? Historical records may be preserved but active access can be disabled."))e.preventDefault();});</script>
+        <script>window.Digiti={csrf:<?=json_encode($csrf)?>};document.addEventListener("submit",function(e){let b=e.submitter;if(!b||!b.matches("button.danger"))b=e.target.querySelector("button.danger");if(b&&b.matches("button.danger")){const message=b.getAttribute("data-confirm")||"Confirm this action? Historical records may be preserved but active access can be disabled.";if(!window.confirm(message))e.preventDefault();}});</script>
         </body></html><?php exit;
     }
 
