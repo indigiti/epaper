@@ -10,7 +10,7 @@ use EpaperSaas\Core\{Auth,Http,RequestContext,Store,Uuid};
  */
 final class ManualClipMarking
 {
-    private const ROLES=['OWNER','ADMIN','PUBLISHER_ADMIN','EDITOR'];
+    private const ROLES=['OWNER','ADMIN','PUBLISHER_ADMIN','EDITOR','WEBDESK'];
     private const UNTITLED_ARTICLE='Untitled article';
 
     /**
@@ -82,7 +82,7 @@ final class ManualClipMarking
         );
         if(!$row||!in_array((string)$row['status'],['ACTIVE','HIDDEN'],true))
             throw new \RuntimeException('Article outline not found');
-        if($role==='EDITOR'&&
+        if(in_array($role,['EDITOR','WEBDESK'],true)&&
             !hash_equals((string)$row['platform_user_guid'],Uuid::toBinary($actor)))
             throw new \RuntimeException('Editors may edit only their own outlines');
         Store::exec(
@@ -98,6 +98,7 @@ final class ManualClipMarking
     public static function change(string $pageGuid,string $markGuid,string $mode): void
     {
         [$actor,$role]=self::actor();
+        if($role==='WEBDESK')throw new \RuntimeException('Only editors can change outline visibility');
         if(!Uuid::isValid($pageGuid)||!Uuid::isValid($markGuid)||!in_array($mode,['activate','hide'],true))
             throw new \InvalidArgumentException('Invalid marking action');
         $tenant=TenantData::tenantBin();
@@ -107,7 +108,7 @@ final class ManualClipMarking
         );
         if(!$mark||!in_array((string)$mark['status'],['ACTIVE','HIDDEN'],true))
             throw new \RuntimeException('Marking not found');
-        if($role==='EDITOR'&&
+        if(in_array($role,['EDITOR','WEBDESK'],true)&&
             !hash_equals((string)$mark['platform_user_guid'],Uuid::toBinary($actor)))
             throw new \RuntimeException('Editors may change only their own markings');
         $newStatus=$mode==='hide'?'HIDDEN':'ACTIVE';
@@ -124,6 +125,7 @@ final class ManualClipMarking
     public static function remove(string $pageGuid,string $markGuid): void
     {
         [$actor,$role]=self::actor();
+        if($role==='WEBDESK')throw new \RuntimeException('Only editors can remove an outline');
         if(!Uuid::isValid($pageGuid)||!Uuid::isValid($markGuid))
             throw new \InvalidArgumentException('Invalid outline');
         $tenant=TenantData::tenantBin();
@@ -134,7 +136,7 @@ final class ManualClipMarking
         );
         if(!$mark||!in_array((string)$mark['status'],['ACTIVE','HIDDEN'],true))
             throw new \RuntimeException('Marked article not found');
-        if($role==='EDITOR'&&
+        if(in_array($role,['EDITOR','WEBDESK'],true)&&
             !hash_equals((string)$mark['platform_user_guid'],Uuid::toBinary($actor)))
             throw new \RuntimeException('Editors may remove only their own outlines');
         $changed=Store::exec(
@@ -150,6 +152,7 @@ final class ManualClipMarking
     public static function importPrivateClip(string $pageGuid,string $slug): string
     {
         [$actor,$role]=self::actor();
+        if($role==='WEBDESK')throw new \RuntimeException('Only editors can import an existing private clipping');
         if(!Uuid::isValid($pageGuid)||!preg_match('/^[a-z0-9]{18}$/D',$slug))
             throw new \InvalidArgumentException('Invalid clipping');
         $clip=Store::one(
@@ -159,7 +162,7 @@ final class ManualClipMarking
             [TenantData::tenantBin(),Uuid::toBinary($pageGuid),$slug]
         );
         if(!$clip)throw new \RuntimeException('Private clipping not found');
-        if($role==='EDITOR'&&
+        if(in_array($role,['EDITOR','WEBDESK'],true)&&
             (!is_string($clip['platform_user_guid'])||
              !hash_equals($clip['platform_user_guid'],Uuid::toBinary($actor))))
             throw new \RuntimeException('Editors may import only their own clippings');

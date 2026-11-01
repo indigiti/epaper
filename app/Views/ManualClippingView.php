@@ -166,7 +166,7 @@ final class ManualClippingView
                     .'top:'.max(0,min(100,(float)$mark['y']*100)).'%;'
                     .'width:'.max(0,min(100,(float)$mark['width']*100)).'%;'
                     .'height:'.max(0,min(100,(float)$mark['height']*100)).'%;"></'.$tag.'>';
-                if($editable){
+                if($editable&&strtoupper($role)!=='WEBDESK'){
                     // Sibling form, not a nested button: keyboard and pointer removal work independently of edit.
                     $closeX=max(0,min(100,((float)$mark['x']+(float)$mark['width'])*100));
                     $closeY=max(0,min(100,(float)$mark['y']*100));
@@ -204,7 +204,7 @@ final class ManualClippingView
           .'<canvas data-manual-crop-preview hidden aria-label="Selected clipping preview"></canvas>'
           .'<div class="manual-form-actions"><button class="btn ghost manual-icon-action" type="button" data-manual-reset title="Clear current selection" aria-label="Clear current selection">'.View::icon('reset').'</button>'
           .'<button class="btn primary manual-icon-action" type="submit" name="action" value="mark" data-manual-submit title="Save article outline (headline optional)" aria-label="Save article outline" disabled>'.View::icon('save').'</button>'
-          .'<button class="btn ghost manual-icon-action" type="submit" name="action" value="private" data-manual-save-private title="Create private clipping now" aria-label="Create private clipping now" disabled>'.View::icon('clip').'</button></div>'
+          . (strtoupper($role)==='WEBDESK'?'':'<button class="btn ghost manual-icon-action" type="submit" name="action" value="private" data-manual-save-private title="Create private clipping now" aria-label="Create private clipping now" disabled>'.View::icon('clip').'</button>') .'</div>'
           .'<p class="manual-map-shortcut">Keyboard: Ctrl/⌘ + S to save, Escape to clear. Use arrow keys to nudge the selection when the newspaper is focused.</p>'
           .'</form></section><section class="panel"><h2>Marked articles</h2>'
           .'<p class="muted">Publisher administrators can approve or withdraw a reusable official clipping. Readers open approved clips directly without creating their own.</p>'
@@ -253,6 +253,7 @@ final class ManualClippingView
                   .' data-mark-x="'.(float)$mark['x'].'" data-mark-y="'.(float)$mark['y'].'"'
                   .' data-mark-w="'.(float)$mark['width'].'" data-mark-h="'.(float)$mark['height'].'">'
                   .View::icon('edit').'</button>';
+                if(strtoupper($role)!=='WEBDESK'){
                 $action=$active?'hide':'activate';
                 $h.='<form method="post" action="/admin/manual-clipping/'.View::e($guid).'/marks/'
                  .View::e($id).'/'.$action.'">'
@@ -267,11 +268,15 @@ final class ManualClippingView
                  .'<input type="hidden" name="_csrf" value="'.View::e(Http::csrf()).'">'
                  .'<button class="btn ghost manual-icon-action manual-mark-remove" type="submit"'
                  .' title="Remove marked article" aria-label="Remove marked article: '
-                 .View::e($mark['title']).'">'.View::icon('trash').'</button></form></div>';
+                 .View::e($mark['title']).'">'.View::icon('trash').'</button></form>';
+                }
+                $h.='</div>';
             }
             $h.='</article>';
         }
         if(!$marks)$h.='<p class="muted">No article outlines marked yet.</p>';
+        if(strtoupper($role)==='WEBDESK')
+            return $h.'</div></section></aside></div></section>';
         $h.='</div></section><section class="panel"><h2>Previously created private clips</h2>'
           .'<p class="muted">Convert an earlier manual clip to a selectable article outline.</p>'
           .'<div class="manual-saved-list">';
