@@ -124,3 +124,14 @@
 .ob-reassign-form .ob-check{font-weight:500;font-size:12px;line-height:1.5}
 .ob-reassign-form .ob-check input{flex-shrink:0}
 .ob-reassign-form button{justify-self:start}
+
+
+/* Plain-language onboarding enhancements */
+.ob-extra-options{margin:0;border:1px solid var(--border);border-radius:10px;padding:0}
+.ob-extra-options>summary{padding:11px 12px;cursor:pointer;font-weight:650;font-size:12px;color:var(--muted)}
+.ob-extra-options>label{padding:0 12px 12px;display:grid;gap:6px}
+.ob-extra-options input{background:var(--surface)}
+.ob-tenant-warning{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;border:1px solid color-mix(in srgb,var(--warning) 42%,var(--border));background:color-mix(in srgb,var(--warning) 8%,var(--surface));border-radius:12px;padding:16px;margin:0 0 19px}
+.ob-tenant-warning strong{font-size:13px;width:100%}
+.ob-tenant-warning p{font-size:12px;line-height:1.5;flex:1;margin:0;color:var(--muted)}
+.ob-tenant-warning .button{font-size:12px;flex-shrink:0}
