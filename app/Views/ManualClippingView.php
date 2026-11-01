@@ -166,7 +166,7 @@ final class ManualClippingView
                     .'top:'.max(0,min(100,(float)$mark['y']*100)).'%;'
                     .'width:'.max(0,min(100,(float)$mark['width']*100)).'%;'
                     .'height:'.max(0,min(100,(float)$mark['height']*100)).'%;"></'.$tag.'>';
-                if($editable){
+                if($editable&&strtoupper($role)!=='WEBDESK'){
                     // Sibling form, not a nested button: keyboard and pointer removal work independently of edit.
                     $closeX=max(0,min(100,((float)$mark['x']+(float)$mark['width'])*100));
                     $closeY=max(0,min(100,(float)$mark['y']*100));
