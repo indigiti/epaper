@@ -78,9 +78,9 @@ ok(str_contains($restore,'self::dependencyGuide($record)'),'domain Restore displ
 
 ok(str_contains($restore,'self::freshStartAlternative($record)'),'canonical recovery shows the decline-restore choice');
 ok(str_contains($restore,'Do not restore — release archived resources'),'canonical recovery now offers permanent archived cleanup');
-ok(str_contains($restore,'/admin/products/')&&str_contains($restore,\x27,'archived product is directly linked to resource release');
+ok(str_contains($restore,'/admin/products/')&&str_contains($restore,'$productGuid'),'archived product is directly linked to resource release');
 ok(str_contains($restore,'original GUID references, invoices, payments, refunds'),'cleanup alternative explains immutable history');
-ok(str_contains($restore,'/admin/domains/')&&str_contains($restore,\x27,'archived domain is independently releasable');
+ok(str_contains($restore,'/admin/domains/')&&str_contains($restore,'$domainGuid'),'archived domain is independently releasable');
 $optOut=methodSource($restore,'freshStartAlternative');
 ok(!str_contains($optOut,'Store::exec(')&&!str_contains($optOut,'Store::tx('),
     'decline-restore page does not mutate production records');
