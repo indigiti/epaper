@@ -901,6 +901,8 @@ final class App
 
     private function adminDashboard(): never
     {
+        if(strtoupper((string)(Auth::currentMembership()['role_key']??''))==='WEBDESK')
+            Http::redirect('/admin/editions');
         $runtime=PublishingRuntime::snapshot();$tb=TenantData::tenantBin();
         $totals=Store::all('SELECT status,COUNT(*) n FROM ep_editions WHERE tenant_guid=? GROUP BY status',[$tb]);
         $counts=array_column($totals,'n','status');
