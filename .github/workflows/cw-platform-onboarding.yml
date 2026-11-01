@@ -26,6 +26,19 @@ permissions:
 jobs:
   onboarding:
     runs-on: ubuntu-24.04
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: platform-ci-only
+          MYSQL_DATABASE: platform_ci
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 --silent"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=12
     steps:
       - uses: actions/checkout@v4
       - uses: shivammathur/setup-php@v2
@@ -42,3 +55,11 @@ jobs:
         run: php tests/registry-action-checks.php
       - name: Cross-module functional and recovery audit
         run: php tests/platform-functional-audit.php
+      - name: Schema and real MySQL publisher recovery integration
+        env:
+          PLATFORM_TEST_MYSQL: '1'
+          MYSQL_HOST: 127.0.0.1
+          MYSQL_DATABASE: platform_ci
+          MYSQL_USER: root
+          MYSQL_PASSWORD: platform-ci-only
+        run: php tests/platform-mysql-integration.php
