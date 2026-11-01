@@ -1,0 +1,73 @@
+/* ePaper SaaS — Clean Login Reset v1
+   Intentionally isolated from all previous auth-fit/auth-panel layout rules. */
+
+body.auth-shell:has(.ep-login){
+  margin:0!important;
+  min-height:100dvh!important;
+  background:
+    radial-gradient(ellipse at 50% 72%,rgba(255,255,255,.74) 0,rgba(255,255,255,.20) 36%,transparent 62%),
+    linear-gradient(180deg,#9dddf6 0%,#cdeefa 46%,#f8fbfd 100%)!important;
+  color:#17191d!important;
+  overflow-x:hidden!important;
+}
+body.auth-shell:has(.ep-login) .auth-main{
+  min-height:100dvh!important;
+  height:auto!important;
+  margin:0!important;
+  padding:0!important;
+  display:block!important;
+  background:transparent!important;
+}
+.ep-login,.ep-login *{box-sizing:border-box}
+.ep-login{
+  --ep-accent:var(--brand-accent,#2563eb);
+  position:relative;
+  min-height:100dvh;
+  padding:26px 24px 34px;
+  display:grid;
+  grid-template-rows:auto 1fr;
+  isolation:isolate;
+  font-family:Inter,ui-sans-serif,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+}
+.ep-login::before,.ep-login::after{
+  content:"";position:fixed;left:50%;top:59%;transform:translate(-50%,-50%);
+  width:min(860px,75vw);aspect-ratio:1.8;border:1px solid rgba(255,255,255,.45);border-radius:50%;z-index:-1;pointer-events:none
+}
+.ep-login::after{width:min(690px,62vw);opacity:.7}
+.ep-login-brand{
+  display:inline-flex;align-items:center;gap:10px;width:max-content;text-decoration:none;color:#111318;font-weight:800;font-size:15px;letter-spacing:-.02em
+}
+.ep-login-mark{display:grid;place-items:center;width:34px;height:34px;border-radius:10px;background:#1d2026;color:white;font-size:14px;font-weight:800;box-shadow:0 6px 18px rgba(16,24,40,.16)}
+.ep-login-stage{display:grid;place-items:center;padding:28px 0 24px}
+.ep-login-card{
+  position:relative;
+  width:min(430px,calc(100vw - 32px));
+  height:auto!important;min-height:0!important;max-height:none!important;
+  margin:0!important;padding:28px 32px 22px!important;
+  display:block!important;overflow:visible!important;
+  border:1px solid rgba(34,51,64,.13);border-radius:28px;
+  background:linear-gradient(150deg,rgba(255,255,255,.84),rgba(249,253,255,.72));
+  box-shadow:0 26px 70px rgba(49,93,119,.17),inset 0 1px 0 rgba(255,255,255,.92);
+  -webkit-backdrop-filter:blur(20px) saturate(118%);backdrop-filter:blur(20px) saturate(118%);
+}
+.ep-login-icon{display:grid;place-items:center;width:50px;height:50px;margin:0 auto 14px;border-radius:17px;background:rgba(255,255,255,.92);border:1px solid rgba(42,55,66,.10);box-shadow:0 10px 24px rgba(38,65,83,.10);color:#1e252b}
+.ep-login-icon .ui-icon{width:25px;height:25px}
+.ep-login-card .auth-fit-form{display:contents!important;height:auto!important;min-height:0!important;max-height:none!important}
+.ep-login-card .auth-fit-panel{display:block!important;width:100%!important;height:auto!important;min-height:0!important;max-height:none!important;margin:0!important;padding:0!important;background:transparent!important;border:0!important;box-shadow:none!important}
+.ep-login-card .auth-fit-eyebrow,.ep-login-card .auth-fit-legacy-brand{display:none!important}
+.ep-login-card .auth-fit-panel h1{margin:0!important;text-align:center!important;font-size:28px!important;line-height:1.08!important;letter-spacing:-.04em!important;color:#17191d!important}
+.ep-login-card .auth-fit-muted,.ep-login-card .auth-fit-panel>p.auth-fit-muted{margin:7px 0 0!important;text-align:center!important;color:#74808a!important;font-size:13px!important;line-height:1.45!important}
+.ep-login-card .auth-fit-fields{display:grid!important;gap:9px!important;margin:18px 0 0!important;height:auto!important;min-height:0!important;max-height:none!important}
+.ep-login-card .auth-fit-fields label{display:grid!important;gap:6px!important;margin:0!important;color:#303942!important;font-size:12px!important;font-weight:700!important;text-align:left!important}
+.ep-login-card .auth-fit-fields label small{font-weight:500;color:#84909a}
+.ep-login-card .auth-fit-fields input{display:block!important;width:100%!important;height:42px!important;min-height:42px!important;max-height:42px!important;margin:0!important;padding:0 13px!important;border:1px solid #d7dfe5!important;border-radius:12px!important;background:rgba(239,244,247,.9)!important;color:#15191d!important;font:500 14px/1.2 inherit!important;box-shadow:none!important;outline:none!important}
+.ep-login-card .auth-fit-fields input:focus{background:white!important;border-color:color-mix(in srgb,var(--ep-accent) 72%,#ccd5dc)!important;box-shadow:0 0 0 3px color-mix(in srgb,var(--ep-accent) 13%,transparent)!important}
+.ep-login-card .auth-fit-submit,.ep-login-card .auth-fit-fields button[type=submit]{display:grid!important;place-items:center!important;width:100%!important;height:42px!important;min-height:42px!important;max-height:42px!important;margin:2px 0 0!important;border:0!important;border-radius:12px!important;background:linear-gradient(180deg,#24272d,#17191e)!important;color:white!important;font:750 14px/1 inherit!important;box-shadow:0 10px 22px rgba(15,20,26,.12)!important;cursor:pointer!important}
+.ep-login-card .auth-fit-security{width:min(330px,100%)!important;margin:10px auto 0!important;color:#7c8790!important;text-align:center!important;font-size:10.5px!important;line-height:1.45!important}
+.ep-login-quote{position:relative;display:grid;grid-template-columns:24px 1fr;grid-template-areas:"mark text" ". author";column-gap:9px;row-gap:4px;width:100%;height:auto!important;min-height:0!important;max-height:none!important;margin:10px 0 0!important;padding:10px 12px 9px!important;border:1px solid rgba(64,82,96,.11);border-radius:14px;background:rgba(255,255,255,.58);box-shadow:inset 0 1px 0 rgba(255,255,255,.76)}
+.ep-login-quote-mark{grid-area:mark;margin-top:-2px;color:color-mix(in srgb,var(--ep-accent) 58%,#60717e);font:700 28px/.9 Georgia,serif;opacity:.82}
+.ep-login-quote blockquote{grid-area:text;margin:0!important;padding:0!important;color:#2b3740;font-size:11.5px;line-height:1.45;font-weight:650;letter-spacing:-.005em}
+.ep-login-quote figcaption{grid-area:author;margin:0!important;color:#7b8790;font-size:9.5px;line-height:1.35;font-weight:600}
+@media(max-width:640px){
+  .ep-login{padding:18px 14px 24px}.ep-login-stage{padding:24px 0 8px;place-items:start center}.ep-login-card{width:100%;padding:26px 20px 18px!important;border-radius:23px}.ep-login-icon{width:46px;height:46px;margin-bottom:13px}.ep-login-card .auth-fit-panel h1{font-size:27px!important}.ep-login-card .auth-fit-fields{margin-top:16px!important;gap:8px!important}.ep-login-card .auth-fit-fields input,.ep-login-card .auth-fit-submit,.ep-login-card .auth-fit-fields button[type=submit]{height:42px!important;min-height:42px!important;max-height:42px!important}.ep-login-quote{margin-top:9px!important;padding:9px 11px 8px!important}.ep-login::before,.ep-login::after{display:none}
+}

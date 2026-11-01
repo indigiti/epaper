@@ -41,6 +41,8 @@ return [
    ],
  ],
  'processing'=>['max_upload_mb'=>300,'tile_size'=>512,'ocr_languages'=>'auto','ocr_timeout_seconds'=>300],
+  // Staging only; default off. Requires private candidate migration, isolated Python 3.12 + OpenCV and authorized worker.
+  'ai_clipping'=>['enabled'=>false,'python_binary'=>'python3','timeout_seconds'=>30],
  'observability'=>['slow_query_ms'=>200,'db_probe_warn_ms'=>150,'db_probe_bad_ms'=>500,'disk_warn_percent'=>15,'disk_bad_percent'=>8,'log_warn_bytes'=>524288000,'request_sample_rate'=>1.0,'request_sample_limit'=>499,'rum_sample_rate'=>0.10,'vitals_sample_limit'=>499],
  'media'=>['token_bucket_seconds'=>300,'x_accel_prefix'=>''],
  'queue'=>[

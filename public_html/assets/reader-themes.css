@@ -1,0 +1,60 @@
+/* Reader presentation skins; preserve reader engine, DOM hooks, clipping geometry and controls. */
+.reader-page.theme-newsstand-replica{--reader-chrome:#f5f6f8}
+.reader-page.theme-newsstand-replica .reader-header{background:#fff;border-bottom:1px solid #e3e6eb}
+.reader-page.theme-editorial-luxe{--reader-chrome:#faf9f6}
+.reader-page.theme-editorial-luxe .reader-header{background:#faf9f6;border-bottom:1px solid #d8d3c8}
+.reader-page.theme-editorial-luxe .reader-title strong{font-family:Georgia,'Times New Roman',serif;font-size:1.15em}
+.reader-page.theme-editorial-luxe .reader-stage-wrap{background:radial-gradient(ellipse at top,#efebe2 0%,#e1dbd1 100%)}
+.reader-page.theme-editorial-luxe .reader-document{box-shadow:0 24px 70px rgba(56,48,40,.24)}
+.reader-page.theme-metro-pulse{--reader-chrome:#f7faff}
+.reader-page.theme-metro-pulse .reader-header{background:#142a49;color:#fff;border-bottom:3px solid #ea4335}
+.reader-page.theme-metro-pulse .reader-header .reader-header-tool,.reader-page.theme-metro-pulse .reader-header .icon-btn{color:#fff}
+.reader-page.theme-metro-pulse .reader-stage-wrap{background:#dbe4f0}
+.reader-page.theme-metro-pulse .reader-rail{border:1px solid #c7d7e8;border-radius:16px}
+.reader-page.theme-heritage-press{--reader-chrome:#f1ebdf}
+.reader-page.theme-heritage-press .reader-header{background:#f1ebdf;border-bottom:3px double #9e8763}
+.reader-page.theme-heritage-press .reader-title strong{font-family:Georgia,'Times New Roman',serif;letter-spacing:.025em}
+.reader-page.theme-heritage-press .reader-stage-wrap{background:#ded2be}
+.reader-page.theme-heritage-press .reader-pages{background:#f5efe4}
+.reader-page.theme-heritage-press .reader-document{box-shadow:0 12px 45px rgba(66,48,26,.22)}
+.reader-page.theme-apple-editorial{--reader-chrome:#fafafa}
+.reader-page.theme-apple-editorial .reader-header{background:rgba(250,250,250,.96);border-bottom:1px solid #e7e7e7}
+.reader-page.theme-apple-editorial .reader-stage-wrap{background:#f1f2f4}
+.reader-page.theme-apple-editorial .reader-header-tool,.reader-page.theme-apple-editorial .reader-rail button{border-radius:11px}
+.reader-page.theme-apple-editorial .reader-document{box-shadow:0 16px 55px rgba(0,0,0,.15)}
+.reader-page.theme-editorial-luxe.dark .reader-stage-wrap,.reader-page.theme-heritage-press.dark .reader-stage-wrap,.reader-page.theme-apple-editorial.dark .reader-stage-wrap,.reader-page.theme-metro-pulse.dark .reader-stage-wrap{background:#171b24}
+.reader-page.dark.theme-editorial-luxe .reader-header,.reader-page.dark.theme-heritage-press .reader-header,.reader-page.dark.theme-apple-editorial .reader-header{background:#22252d;color:#f6f7fa}
+.reader-page.dark.theme-heritage-press .reader-pages{background:#22252d;color:#f6f7fa}
+.reader-page.theme-metro-pulse .reader-header .reader-quality-menu{color:#172238}
+@media(max-width:720px){.reader-page.theme-editorial-luxe .reader-title strong,.reader-page.theme-heritage-press .reader-title strong{font-size:1em}.reader-page.theme-metro-pulse .reader-header{border-bottom-width:2px}}
+
+/* Admin-only preview banner on ePaper reader surface. */
+.reader-page .theme-preview-banner{display:flex;gap:12px;align-items:center;justify-content:center;flex-wrap:wrap;padding:11px 18px;background:#fff0be;color:#352c13;border-bottom:1px solid #e6c15d;font-size:13px}
+.reader-page .theme-preview-banner a{color:#352c13;text-decoration:underline;font-weight:700}
+
+/* Cloudways Reader: chrome-only transformations, never change clipping geometry,
+   tile coordinates, page canvas scale, overlay transforms or reader script behavior. */
+body.reader-page.theme-newsstand-replica .reader-pages,
+body.reader-page.theme-newsstand-replica .reader-rail{background:#f7f9fc}
+body.reader-page.theme-newsstand-replica .reader-stage-wrap{background:#e4e9f0}
+body.reader-page.theme-editorial-luxe .reader-pages,
+body.reader-page.theme-editorial-luxe .reader-rail{background:#f7f3ea}
+body.reader-page.theme-editorial-luxe .reader-header{color:#3e3528}
+body.reader-page.theme-metro-pulse .reader-pages,
+body.reader-page.theme-metro-pulse .reader-rail{background:#dce9f8;color:#14304d}
+body.reader-page.theme-heritage-press .reader-pages,
+body.reader-page.theme-heritage-press .reader-rail{background:#efe6d3;color:#3f3225}
+body.reader-page.theme-apple-editorial .reader-pages,
+body.reader-page.theme-apple-editorial .reader-rail{background:#f5f6f7;color:#333a42}
+body.reader-page.dark.theme-newsstand-replica .reader-pages,
+body.reader-page.dark.theme-newsstand-replica .reader-rail,
+body.reader-page.dark.theme-editorial-luxe .reader-pages,
+body.reader-page.dark.theme-editorial-luxe .reader-rail,
+body.reader-page.dark.theme-metro-pulse .reader-pages,
+body.reader-page.dark.theme-metro-pulse .reader-rail,
+body.reader-page.dark.theme-heritage-press .reader-pages,
+body.reader-page.dark.theme-heritage-press .reader-rail,
+body.reader-page.dark.theme-apple-editorial .reader-pages,
+body.reader-page.dark.theme-apple-editorial .reader-rail{
+  background:#1a222d;color:#e6ebf1
+}

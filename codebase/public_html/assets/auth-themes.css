@@ -1,0 +1,90 @@
+/*
+ * Real auth layouts for existing Authentication theme selectors.
+ * The legacy v5 form keeps its field validation, POST and security semantics.
+ * Body+theme selectors deliberately outrank the legacy inline #epx-login-v5
+ * presentation without changing any form, labels, CSRF or login controls.
+ */
+body.auth-shell.theme-split-editorial #epx-login-v5{
+  display:grid!important;grid-template-columns:minmax(0,1fr) minmax(340px,1fr)!important;
+  align-items:center!important;column-gap:clamp(24px,6vw,120px)!important;
+  padding:86px clamp(24px,5vw,110px) 50px!important;
+  background:linear-gradient(118deg,#102e38 0%,#164b53 52%,#ecf5f4 52.2%,#f4f9f8 100%)!important;
+}
+body.auth-shell.theme-split-editorial #epx-login-v5::before{
+  content:"A better way to publish.\A Your newsroom, connected.";white-space:pre-line;
+  font:750 clamp(2.2rem,4vw,4.4rem)/1.12 Inter,system-ui,sans-serif;
+  letter-spacing:-.052em;color:#e4fffa;max-width:570px;
+  grid-column:1;grid-row:1;align-self:center
+}
+body.auth-shell.theme-split-editorial #epx-login-v5 .epx-brand{color:#eafaf6}
+body.auth-shell.theme-split-editorial #epx-login-v5 .epx-brand-mark{
+  background:#4dc2b2;color:#102b31
+}
+body.auth-shell.theme-split-editorial #epx-login-v5 .epx-card{
+  grid-column:2;grid-row:1;justify-self:center;width:min(100%,460px);
+  margin:0!important;background:#fff;border-color:#d7e6e3;
+  box-shadow:0 28px 80px rgba(4,33,39,.14)
+}
+body.auth-shell.theme-split-editorial #epx-login-v5 .epx-submit{
+  background:#087f79!important;box-shadow:none!important
+}
+body.auth-shell.theme-split-editorial #epx-login-v5 .epx-icon{color:#087f79}
+body.auth-shell.theme-gradient-focus #epx-login-v5{
+  background:radial-gradient(circle at 8% 8%,rgba(116,128,255,.35),transparent 42%),
+    radial-gradient(circle at 88% 78%,rgba(232,93,163,.27),transparent 42%),
+    linear-gradient(135deg,#1a2147,#4b2e69 60%,#281e4c)!important;
+}
+body.auth-shell.theme-gradient-focus #epx-login-v5 .epx-card{
+  background:rgba(255,255,255,.96);border-color:rgba(255,255,255,.42);
+  box-shadow:0 32px 90px rgba(7,6,30,.32)
+}
+body.auth-shell.theme-gradient-focus #epx-login-v5 .epx-brand{color:#fff}
+body.auth-shell.theme-gradient-focus #epx-login-v5 .epx-brand-mark{
+  background:rgba(255,255,255,.17);color:#fff;border:1px solid rgba(255,255,255,.35)
+}
+body.auth-shell.theme-gradient-focus #epx-login-v5 .epx-icon{color:#704dd6}
+body.auth-shell.theme-gradient-focus #epx-login-v5 .epx-submit{
+  background:linear-gradient(135deg,#5b4ab6,#8f4baf)!important;
+  box-shadow:0 9px 25px rgba(83,63,155,.23)!important
+}
+body.auth-shell.theme-gradient-focus #epx-login-v5 .epx-quote-mark{color:#7e55c4}
+body.auth-shell.theme-minimal-access #epx-login-v5{
+  background:#fff!important;
+  color:#182b32!important;
+}
+body.auth-shell.theme-minimal-access #epx-login-v5 .epx-card{
+  border:1px solid #dfe5e9;border-radius:12px!important;
+  background:#fff;box-shadow:none!important;backdrop-filter:none!important;
+}
+body.auth-shell.theme-minimal-access #epx-login-v5 .epx-icon{
+  border:1px solid #e5ecef;border-radius:12px;background:#f8fafb;
+  box-shadow:none;color:#43535b
+}
+body.auth-shell.theme-minimal-access #epx-login-v5 .epx-brand{color:#20333b}
+body.auth-shell.theme-minimal-access #epx-login-v5 .epx-brand-mark{background:#223b44}
+body.auth-shell.theme-minimal-access #epx-login-v5 .epx-submit{
+  background:#173c42!important;border-radius:7px!important;
+  box-shadow:none!important
+}
+body.auth-shell.theme-minimal-access #epx-login-v5 .epx-quote{
+  background:transparent;border:0;border-top:1px solid #e7edef;
+  box-shadow:none;border-radius:0
+}
+body.auth-shell.theme-minimal-access #epx-login-v5 .epx-form input{
+  border-radius:7px!important;background:#f9fbfc!important
+}
+/* Default: the existing blue-tinted recovery layout remains intact. */
+@media(max-width:800px){
+  body.auth-shell.theme-split-editorial #epx-login-v5{
+    display:block!important;padding:75px 16px 32px!important;
+    background:linear-gradient(160deg,#d6eeed,#f8fbfb)!important
+  }
+  body.auth-shell.theme-split-editorial #epx-login-v5::before{display:none!important}
+  body.auth-shell.theme-split-editorial #epx-login-v5 .epx-card{
+    margin:0 auto!important;width:min(100%,440px)
+  }
+  body.auth-shell.theme-split-editorial #epx-login-v5 .epx-brand{color:#1d4043}
+}
+@media(prefers-reduced-motion:reduce){
+  body.auth-shell.theme-gradient-focus #epx-login-v5 *{scroll-behavior:auto!important}
+}

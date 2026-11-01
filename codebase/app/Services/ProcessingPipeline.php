@@ -187,6 +187,16 @@ final class ProcessingPipeline
             );
             $this->parseBlocks($pageGuid,$hocr);
         });
+        // Optional, post-commit and fail-isolated. No AI candidate is ever
+        // treated as a verified/published article or clipping.
+        if(AiCandidatePipeline::enabled()){
+            try{
+                AiCandidatePipeline::stage($editionGuid,$pageGuid,$langs,$hocr,$src);
+            }catch(\Throwable $aiError){
+                // Avoid leaking document text and private media paths to logs.
+                error_log('AI_CANDIDATE_STAGE_FAILED page='.substr(hash('sha256',$pageGuid),0,12).' type='.get_class($aiError));
+            }
+        }
         $this->report(100,'OCR_COMPLETE','Page '.$pageNo.' · OCR complete');
         return ['ok'=>true,'page'=>$pageNo,'characters'=>strlen($text)];
     }

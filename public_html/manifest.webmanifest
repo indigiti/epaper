@@ -1,0 +1,58 @@
+{
+  "id": "/",
+  "name": "ePaper SaaS",
+  "short_name": "ePaper",
+  "description": "Installable digital newspaper Reader OS with archive, search, library and encrypted offline editions.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#f5f5f7",
+  "theme_color": "#f5f5f7",
+  "categories": [
+    "news",
+    "magazines",
+    "productivity"
+  ],
+  "shortcuts": [
+    {
+      "name": "Today's ePaper",
+      "short_name": "Today",
+      "url": "/"
+    },
+    {
+      "name": "Archive",
+      "short_name": "Archive",
+      "url": "/archive"
+    },
+    {
+      "name": "Library",
+      "short_name": "Library",
+      "url": "/account/library"
+    },
+    {
+      "name": "Offline Vault",
+      "short_name": "Offline",
+      "url": "/offline-library.html"
+    }
+  ],
+  "icons": [
+    {
+      "src": "/assets/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/assets/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ],
+  "display_override": [
+    "window-controls-overlay",
+    "standalone",
+    "minimal-ui"
+  ]
+}

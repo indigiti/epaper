@@ -1,0 +1,152 @@
+/* ePaper Publishing Studio 3.0 — scoped admin-only presentation layer.
+   Reuses existing authorization, routes, data and tenant-scoped snapshots. */
+body.admin-shell {
+  --console-bg:#f3f6fb;--console-surface:#fff;--console-surface-soft:#f7f9fd;
+  --console-text:#19263b;--console-muted:#607087;--console-border:#e1e7f0;
+  --console-border-strong:#cbd6e5;--console-accent:#1654d8;
+  --console-accent-soft:#eaf1ff;--console-sidebar:248px;--console-header:64px;
+  --console-r-md:12px;--console-r-lg:16px;
+  font-family:Inter,ui-sans-serif,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+}
+body.admin-shell.dark {
+  --console-bg:#101827;--console-surface:#182235;--console-surface-soft:#202d42;
+  --console-text:#edf3fc;--console-muted:#b1bfd2;--console-border:#344258;
+  --console-border-strong:#4b5c77;--console-accent:#7cacff;--console-accent-soft:#243e68;
+}
+.admin-shell .site-header{z-index:80;background:var(--console-surface);border-bottom:1px solid var(--console-border)}
+.admin-shell .site-header-inner{padding:0 24px}
+.admin-shell .brand{font-size:15px;font-weight:800;letter-spacing:-.035em}
+.admin-shell .workspace-main{max-width:1800px;padding:27px clamp(18px,2.6vw,43px) 70px}
+.admin-shell .app-sidebar{padding:20px 12px 32px;background:var(--console-surface)}
+.admin-shell .sidebar-context{padding:8px 10px 21px;margin-bottom:13px;border-bottom:1px solid var(--console-border)}
+.admin-shell .sidebar-context .eyebrow{font-size:10px;letter-spacing:.1em;font-weight:700}
+.admin-shell .sidebar-context strong{font-size:15px;line-height:1.45;overflow-wrap:anywhere}
+.admin-shell .role-pill{align-self:flex-start;border-radius:999px;padding:4px 8px;font-size:10px}
+.admin-shell .grouped-nav-compact{gap:7px}
+.admin-shell .nav-section-title{min-height:43px;padding:9px 10px;gap:10px;font-size:11px;letter-spacing:.025em;border-radius:11px;color:var(--console-text);font-weight:800}
+.admin-shell .nav-section-title:hover,.admin-shell .nav-section[open]>.nav-section-title{background:var(--console-surface-soft);color:var(--console-text)}
+.admin-shell .nav-section-label{display:flex;align-items:center;min-width:0;gap:10px}
+.admin-shell .nav-section-mark{display:inline-flex;align-items:center;justify-content:center;width:21px;height:21px;color:var(--console-muted)}
+.admin-shell .nav-section-mark svg{width:18px;height:18px;stroke-width:1.8}
+.admin-shell .nav-section[open] .nav-section-mark{color:var(--console-accent)}
+.admin-shell .nav-section-count{font-size:10px;line-height:18px;min-width:19px;color:var(--console-muted)}
+.admin-shell .nav-section .nav-group{padding:5px 0 10px 11px;gap:3px}
+.admin-shell .nav-section .app-nav-link{min-height:40px;padding:9px 11px!important;border-radius:10px;gap:10px}
+.admin-shell .nav-section .app-nav-link>span:last-child{font-size:12px;font-weight:650}
+.admin-shell .app-nav-link.active{background:var(--console-accent-soft)!important;color:var(--console-accent)!important}
+.admin-shell .app-nav-link.active::before{display:none}
+.admin-shell .admin-nav-icon svg{width:16px;height:16px}
+.admin-shell .admin-head h1{font-size:clamp(27px,2.8vw,37px)}
+.admin-shell .panel{border-radius:16px;border:1px solid var(--console-border);box-shadow:none}
+.admin-shell .btn{border-radius:10px}
+.admin-shell .btn.primary{background:#1654d8;border-color:#1654d8;color:#fff}
+.admin-shell .status,.admin-shell .pill{font-weight:700}
+.admin-shell .table-wrap{border-radius:11px;max-width:100%}
+.admin-shell .table-wrap th{font-size:11px;letter-spacing:.04em}
+.admin-shell .table-wrap td{font-size:12px}
+.admin-shell .workspace-main :where(.btn,a,button,summary):focus-visible{outline:3px solid color-mix(in srgb,var(--console-accent) 55%,white);outline-offset:3px}
+.admin-shell .studio-desk{max-width:1600px;margin:auto}
+.admin-shell .studio-hero{position:relative;overflow:hidden;display:grid;grid-template-columns:minmax(0,1fr) minmax(190px,245px);gap:22px;align-items:stretch;margin:0 0 18px;padding:clamp(24px,3vw,39px);border-radius:20px;background:linear-gradient(120deg,#1247bc 0%,#1459da 63%,#1e71ec 100%);color:#fff}
+.admin-shell .studio-hero:after{content:"";pointer-events:none;position:absolute;width:320px;height:320px;right:-90px;top:-155px;border:1px solid rgba(255,255,255,.24);border-radius:50%;box-shadow:0 0 0 55px rgba(255,255,255,.035),0 0 0 110px rgba(255,255,255,.025)}
+.admin-shell .studio-hero-copy,.admin-shell .studio-hero-aside{position:relative;z-index:1;min-width:0}
+.admin-shell .studio-eyebrow,.admin-shell .studio-hero-kicker{color:#d5e5ff;font-size:11px;font-weight:800;letter-spacing:.13em}
+.admin-shell .studio-hero h1{color:#fff;margin:12px 0 9px;font-size:clamp(29px,3.1vw,43px);line-height:1.08;letter-spacing:-.045em}
+.admin-shell .studio-hero p{color:#e2ebff;max-width:600px;margin:0;line-height:1.55;font-size:14px}
+.admin-shell .studio-hero-actions{display:flex;gap:9px;align-items:center;flex-wrap:wrap;margin-top:25px}
+.admin-shell .studio-button{display:inline-flex;align-items:center;justify-content:center;gap:9px;min-height:40px;padding:9px 13px;border:1px solid rgba(255,255,255,.25);border-radius:10px;text-decoration:none;font-size:12px;font-weight:800;transition:background .15s,border-color .15s}
+.admin-shell .studio-button svg{width:16px;height:16px}
+.admin-shell .studio-button-primary{background:white;color:#1654d8;border-color:white}
+.admin-shell .studio-button-primary:hover{background:#e5efff;color:#134bc3}
+.admin-shell .studio-button-soft{background:rgba(255,255,255,.13);color:#fff}
+.admin-shell .studio-button-soft:hover{background:rgba(255,255,255,.23);color:white}
+.admin-shell .studio-hero-aside{display:flex;flex-direction:column;gap:8px;align-self:center;padding:16px;border:1px solid rgba(255,255,255,.19);border-radius:14px;background:rgba(255,255,255,.09);backdrop-filter:blur(8px)}
+.admin-shell .studio-hero-aside a{display:flex;justify-content:space-between;align-items:center;gap:12px;color:#fff;text-decoration:none;padding:8px 0;border-top:1px solid rgba(255,255,255,.16)}
+.admin-shell .studio-hero-aside a:first-of-type{margin-top:3px}
+.admin-shell .studio-hero-aside strong{font-size:28px;line-height:1;letter-spacing:-.05em;font-variant-numeric:tabular-nums}
+.admin-shell .studio-hero-aside a span{max-width:130px;font-size:11px;line-height:1.45}
+.admin-shell .studio-hero-aside a svg{width:12px;height:12px;vertical-align:middle}
+.admin-shell .studio-metrics{grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:0 0 24px}
+.admin-shell .studio-metrics .desk-metric{display:flex;flex-direction:column;align-items:flex-start;gap:8px;min-height:143px;margin:0;padding:19px;border-radius:15px;box-shadow:none}
+.admin-shell .studio-metrics .desk-metric:hover{background:var(--console-surface-soft)}
+.admin-shell .studio-metrics .studio-metric-label{display:flex;align-items:center;gap:10px;color:var(--console-muted);font-size:12px;line-height:1.35;font-weight:700}
+.admin-shell .studio-metrics .studio-metric-label svg{flex:none;width:18px;height:18px;color:var(--console-accent)}
+.admin-shell .studio-metrics .desk-metric strong{font-size:36px;color:var(--console-text);font-variant-numeric:tabular-nums;letter-spacing:-.05em}
+.admin-shell .studio-metrics .desk-metric small{display:flex;align-items:center;justify-content:space-between;width:100%;gap:7px;margin-top:auto;font-size:11px}
+.admin-shell .studio-metrics .desk-metric.danger strong{color:var(--console-danger)}
+.admin-shell .studio-metrics .desk-metric.success strong{color:var(--console-success)}
+.admin-shell .studio-section-kicker{display:block;margin-bottom:6px;color:var(--console-muted);font-size:10px;letter-spacing:.1em;font-weight:800}
+.admin-shell .studio-content-grid{display:grid;grid-template-columns:minmax(0,1.7fr) minmax(300px,.7fr);align-items:start;gap:15px}
+.admin-shell .studio-content-grid>.panel{min-width:0;margin:0}
+.admin-shell .studio-content-grid .desk-editions{padding:18px;border-radius:16px}
+.admin-shell .studio-content-grid .desk-attention{padding:18px;margin:0;border-radius:16px}
+.admin-shell .studio-content-grid .section-head{display:flex;align-items:flex-start;gap:10px;justify-content:space-between}
+.admin-shell .studio-content-grid .section-head h2{font-size:18px}
+.admin-shell .studio-content-grid .section-head p{font-size:12px;line-height:1.45}
+.admin-shell .studio-content-grid .section-head .btn{white-space:nowrap}
+.admin-shell .studio-content-grid .desk-editions .table-wrap{overflow:auto;overscroll-behavior-x:contain}
+.admin-shell .desk-alert{align-items:flex-start;gap:9px}
+.admin-shell .desk-alert strong{font-size:12px;line-height:1.4}
+.admin-shell .desk-alert p{font-size:11px;line-height:1.5}
+.admin-shell .desk-alert>span{font-size:11px}
+.admin-shell .desk-clear{display:flex;gap:9px;align-items:flex-start;margin:0;padding:15px 0;color:var(--console-success);font-size:12px;line-height:1.5}
+.admin-shell .desk-clear svg{width:18px;height:18px}
+.admin-shell .desk-more{font-size:12px}
+.admin-shell .studio-desk>.editorial-actions{margin-top:5px;margin-bottom:22px}
+.admin-shell .studio-desk .editorial-actions-heading h2{font-size:21px}
+.admin-shell .studio-desk .editorial-action-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.admin-shell .studio-desk .editorial-action-card{border-radius:15px;padding:18px;min-width:0}
+.admin-shell .studio-desk .editorial-action-head h3{font-size:14px}
+.admin-shell .studio-desk .editorial-action-description{font-size:12px}
+.admin-shell .desk-bottom{margin:15px 0 25px;gap:15px}
+.admin-shell .desk-bottom>.panel{margin:0;min-width:0;padding:19px}
+.admin-shell .desk-bottom .section-head{display:flex;gap:10px;align-items:flex-start;justify-content:space-between}
+.admin-shell .desk-bottom .section-head h2{font-size:18px}
+.admin-shell .desk-schedule-row{font-size:12px;gap:14px}
+.admin-shell .desk-shortcuts{gap:8px}
+.admin-shell .desk-shortcuts a{padding:11px;border-radius:10px;background:var(--console-surface-soft);font-size:12px;transition:background .15s}
+.admin-shell .desk-shortcuts a:hover{background:var(--console-accent-soft);color:var(--console-accent)}
+.admin-shell .desk-checked{margin:16px 0 0;font-size:11px}
+.admin-shell .studio-desk .admin-launchpad{margin:0;padding:19px;border-radius:16px}
+.admin-shell .studio-desk .launchpad-head h2{font-size:19px}
+.admin-shell .studio-desk .launchpad-quick{grid-template-columns:repeat(3,minmax(0,1fr))}
+.admin-shell .studio-desk .launchpad-quick>a{min-height:47px;background:var(--console-surface-soft)}
+.admin-shell .studio-desk .launchpad-quick>a:hover{background:var(--console-accent-soft)}
+.admin-shell .studio-desk .launchpad-directory{margin-top:15px}
+.admin-shell .studio-desk .launchpad-directory>summary{font-size:12px}
+@media(max-width:1350px){
+  .admin-shell .studio-content-grid{grid-template-columns:minmax(0,1fr)}
+  .admin-shell .studio-desk .editorial-action-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media(max-width:1050px){
+  .admin-shell .studio-hero{grid-template-columns:minmax(0,1fr)}
+  .admin-shell .studio-hero-aside{flex-direction:row;align-self:stretch;gap:15px}
+  .admin-shell .studio-hero-aside>a{flex:1}
+  .admin-shell .studio-hero-kicker{min-width:90px}
+  .admin-shell .studio-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .admin-shell .studio-desk .launchpad-quick{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media(max-width:1000px){.admin-shell .app-sidebar{top:0;height:100dvh;padding-top:75px}.admin-shell .workspace-main{padding:20px 15px 60px}}
+@media(max-width:740px){
+  .admin-shell .studio-hero{padding:23px;border-radius:16px}
+  .admin-shell .studio-hero h1{font-size:31px}
+  .admin-shell .studio-hero-aside{flex-direction:column}
+  .admin-shell .studio-hero-aside a{justify-content:flex-start}
+  .admin-shell .studio-hero-aside a span{max-width:none}
+  .admin-shell .studio-metrics{gap:9px}
+  .admin-shell .studio-metrics .desk-metric{min-height:130px;padding:13px}
+  .admin-shell .studio-metrics .desk-metric strong{font-size:29px}
+  .admin-shell .studio-content-grid .section-head{flex-wrap:wrap}
+  .admin-shell .studio-desk .editorial-action-grid{grid-template-columns:minmax(0,1fr)}
+  .admin-shell .desk-bottom{grid-template-columns:minmax(0,1fr)}
+  .admin-shell .studio-desk .launchpad-quick{grid-template-columns:minmax(0,1fr)}
+}
+@media(max-width:460px){
+  .admin-shell .studio-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .admin-shell .studio-metrics .studio-metric-label{font-size:11px}
+  .admin-shell .studio-metrics .desk-metric small{font-size:10px}
+  .admin-shell .studio-hero-actions{align-items:stretch}
+  .admin-shell .studio-button{width:100%}
+  .admin-shell .studio-hero-aside a span{font-size:12px}
+  .admin-shell .studio-content-grid .desk-editions,.admin-shell .studio-content-grid .desk-attention{padding:14px}
+}
+@media(prefers-reduced-motion:reduce){.admin-shell .studio-button,.admin-shell .desk-shortcuts a{transition:none}}

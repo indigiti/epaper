@@ -1,0 +1,134 @@
+/* ePaper SaaS — FINAL 580px login card override
+   Applied directly into the active auth-v*.css by the one-click installer. */
+
+body.auth-shell .auth-fit {
+  min-height:100dvh !important;
+  height:auto !important;
+  display:grid !important;
+  place-items:start center !important;
+  align-content:start !important;
+  padding:64px 16px 28px !important;
+}
+
+/* HARD REQUIREMENT: white login card is exactly 580px high. */
+body.auth-shell .auth-fit-card {
+  box-sizing:border-box !important;
+  width:min(420px, calc(100vw - 32px)) !important;
+  height:580px !important;
+  min-height:580px !important;
+  max-height:580px !important;
+  display:block !important;
+  flex:none !important;
+  flex-grow:0 !important;
+  flex-shrink:0 !important;
+  align-self:start !important;
+  justify-self:center !important;
+  padding:44px 28px 16px !important;
+  overflow:hidden !important;
+}
+
+/* No child is allowed to stretch the card or reserve filler height. */
+body.auth-shell .auth-fit-form,
+body.auth-shell .auth-fit-panel,
+body.auth-shell .auth-fit-fields {
+  box-sizing:border-box !important;
+  height:auto !important;
+  min-height:0 !important;
+  max-height:none !important;
+  flex:none !important;
+  flex-grow:0 !important;
+  flex-shrink:0 !important;
+  flex-basis:auto !important;
+  align-self:auto !important;
+  justify-content:flex-start !important;
+  align-content:start !important;
+  margin-bottom:0 !important;
+}
+body.auth-shell .auth-fit-form,
+body.auth-shell .auth-fit-panel { display:block !important; }
+body.auth-shell .auth-fit-panel { padding:0 !important; margin:0 !important; }
+
+body.auth-shell .auth-fit-icon {
+  top:-25px !important;
+  width:52px !important;
+  height:52px !important;
+}
+body.auth-shell .auth-fit-panel h1 {
+  margin:0 !important;
+  font-size:28px !important;
+  line-height:1.12 !important;
+}
+body.auth-shell .auth-fit-muted {
+  margin:6px 0 0 !important;
+}
+body.auth-shell .auth-fit-fields {
+  display:grid !important;
+  gap:9px !important;
+  margin:16px 0 0 !important;
+}
+body.auth-shell .auth-fit-fields label {
+  margin:0 !important;
+}
+body.auth-shell .auth-fit-fields input {
+  height:42px !important;
+  min-height:42px !important;
+  max-height:42px !important;
+}
+body.auth-shell .auth-fit-submit,
+body.auth-shell .auth-fit-fields button[type="submit"] {
+  height:42px !important;
+  min-height:42px !important;
+  max-height:42px !important;
+  margin:2px 0 0 !important;
+}
+body.auth-shell .auth-fit-security {
+  margin:8px auto 0 !important;
+  line-height:1.35 !important;
+}
+body.auth-shell .auth-fit-quote-card {
+  position:static !important;
+  inset:auto !important;
+  float:none !important;
+  clear:both !important;
+  width:100% !important;
+  height:auto !important;
+  min-height:0 !important;
+  max-height:none !important;
+  flex:none !important;
+  margin:9px 0 0 !important;
+  padding:9px 11px 8px !important;
+}
+body.auth-shell .auth-fit-quote-card blockquote {
+  margin:0 !important;
+  font-size:10.8px !important;
+  line-height:1.38 !important;
+}
+body.auth-shell .auth-fit-quote-card figcaption {
+  margin-top:3px !important;
+  font-size:9px !important;
+}
+
+/* Kill the exact causes of previous screenshots. */
+body.auth-shell .auth-fit-card > *,
+body.auth-shell .auth-fit-panel > *,
+body.auth-shell .auth-fit-form > * {
+  margin-block-end:initial;
+}
+body.auth-shell .auth-fit-quote-card { margin-top:9px !important; }
+
+@media (max-width:640px) {
+  body.auth-shell .auth-fit { padding:58px 14px 24px !important; }
+  body.auth-shell .auth-fit-card {
+    width:calc(100vw - 28px) !important;
+    height:580px !important;
+    min-height:580px !important;
+    max-height:580px !important;
+    padding:42px 20px 14px !important;
+  }
+  body.auth-shell .auth-fit-fields { margin-top:14px !important; gap:8px !important; }
+  body.auth-shell .auth-fit-fields input { height:40px !important; min-height:40px !important; max-height:40px !important; }
+  body.auth-shell .auth-fit-submit,
+  body.auth-shell .auth-fit-fields button[type="submit"] { height:40px !important; min-height:40px !important; max-height:40px !important; }
+  body.auth-shell .auth-fit-security { margin-top:7px !important; }
+  body.auth-shell .auth-fit-quote-card { margin-top:8px !important; padding:8px 10px 7px !important; }
+}

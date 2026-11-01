@@ -1,0 +1,24 @@
+{
+  "version": "2.0.2.1",
+  "type": "reader_ux_patch",
+  "base": "2.0.2.0",
+  "requires": "2.0.2.0; no new database migration.",
+  "name": "Responsive Back-Edition Navigator",
+  "database_migration": false,
+  "database_upgrade": null,
+  "worker_restart": false,
+  "runtime_changes": [
+    "app/App.php",
+    "app/Core/View.php",
+    "app/Services/PublicReadCache.php",
+    "app/Services/SettingsCatalog.php",
+    "public_html/assets/reader.js",
+    "public_html/assets/reader.css",
+    "public_html/service-worker.js"
+  ],
+  "upgrade_instructions": "UPDATE-2.0.2.1.md",
+  "validation": "RELEASE-CHECK-2.0.2.1.txt",
+  "reader_notes": "READER-DATE-NAVIGATOR-2.0.2.1.md",
+  "native_android_change": false,
+  "android_wrapper_version": "2.0.2.0"
+}

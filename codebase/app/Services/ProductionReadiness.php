@@ -48,10 +48,11 @@ final class ProductionReadiness
             $memoryPct=$redis['memory_percent']??null;$delta=$redis['eviction_delta']??null;$status=($memoryPct!==null&&(float)$memoryPct>=95)?self::ACTION:(($memoryPct!==null&&(float)$memoryPct>=90)||($delta!==null&&(int)$delta>0)?self::DEGRADED:self::READY);
             $detail='Connected · server '.(string)($redis['used_memory_human']??self::bytes((int)($redis['used_memory']??0))).' · DB '.(int)($redis['database']??0).' '.number_format((int)($redis['keys']??0)).' keys · EP-DI namespace '.number_format((int)($redis['namespace_keys']??0)).' key(s)';
             if(($redis['hit_rate']??null)!==null)$detail.=' · '.number_format((float)$redis['hit_rate'],1).'% hit rate';
-            if($memoryPct!==null)$detail.=' · '.number_format((float)$memoryPct,1).'% maxmemory';
-            $detail.=' · '.number_format((int)($redis['evicted_keys']??0)).' historical evictions';
+            if($memoryPct!==null)$detail.=' · '.number_format((float)$memoryPct,1).'% server-wide maxmemory (shared Redis)';
+            $detail.=' · '.number_format((int)($redis['evicted_keys']??0)).' server-wide historical evictions';
+            $detail.=' · EP-DI namespace approximately '.self::bytes((int)($redis['namespace_bytes']??0)).' (bounded key scan)';
             if($delta!==null)$detail.=' · +'.number_format((int)$delta).' since baseline';else$detail.=' · no eviction baseline yet';
-            $action=$status===self::READY?'':(($memoryPct!==null&&(float)$memoryPct>=90)?'Review Redis maxmemory pressure; do not flush shared Redis from EP-DI.':'Open Recovery Center, capture an eviction baseline, and review recent pressure.');
+            $action=$status===self::READY?'':(($memoryPct!==null&&(float)$memoryPct>=90)?'Investigate server-wide Redis memory in Cloudways. Capture an eviction baseline in Web Recovery. Do not flush shared Redis.':'Open Recovery Center, capture an eviction baseline, and review recent pressure.');
             $add('CORE SERVICES','Redis',$status,$detail,$action,$redis);
         }
 
@@ -135,7 +136,13 @@ final class ProductionReadiness
             $add('QUEUE & WORKERS','Transactional outbox',$status,$detail,$action,$out);
         }catch(\Throwable $e){$add('QUEUE & WORKERS','Transactional outbox',self::ACTION,'Outbox telemetry unavailable.','Inspect QueueService and database health.');}
 
-        try{$diag=SupervisorRuntime::diagnosis();$bad=[];foreach(($diag['lanes']??[]) as$lane=>$v)if(($v['status']??'')!=='HEALTHY')$bad[]=$lane.':'.($v['status']??'UNKNOWN');$add('QUEUE & WORKERS','Supervisor workers',empty($bad)?self::READY:self::ACTION,empty($bad)?'All configured worker lanes are healthy.':'Attention: '.implode(', ',$bad),empty($bad)?'':'Open Infrastructure → Supervisor Doctor and restart the affected lane(s).',['lanes'=>$diag['lanes']??[]]);}catch(\Throwable $e){$add('QUEUE & WORKERS','Supervisor workers',self::ACTION,'Worker diagnosis unavailable.','Open Infrastructure and run Supervisor preflight.');}
+        try{$diag=SupervisorRuntime::diagnosis();$bad=[];foreach(($diag['lanes']??[]) as$lane=>$v)if(($v['status']??'')!=='HEALTHY')$bad[]=$lane.':'.($v['status']??'UNKNOWN');
+            if(!QueueService::rabbitEnabled()){
+                $add('QUEUE & WORKERS','Supervisor workers',self::DEGRADED,'Broker consumer verification deferred; current queue driver is not RabbitMQ. Existing heartbeats do not prove broker consumer readiness.','Activate and verify RabbitMQ before validating Supervisor consumer lanes.',['lanes'=>$diag['lanes']??[],'verification_deferred'=>true]);
+            }else{
+                $add('QUEUE & WORKERS','Supervisor workers',empty($bad)?self::READY:self::ACTION,empty($bad)?'All configured worker lanes are healthy.':'Attention: '.implode(', ',$bad),empty($bad)?'':'Open Infrastructure → Supervisor Doctor and restart the affected lane(s).',['lanes'=>$diag['lanes']??[]]);
+            }
+        }catch(\Throwable $e){$add('QUEUE & WORKERS','Supervisor workers',self::ACTION,'Worker diagnosis unavailable.','Open Infrastructure and run Supervisor preflight.');}
 
         try{
             $sch=PublishingScheduler::status();$cron=$sch['last_cron']??null;$last=$sch['last_run']??null;
@@ -201,7 +208,7 @@ final class ProductionReadiness
         $manifest=is_file($root.'/SHA256SUMS');$release=is_file($root.'/BUILD-MANIFEST-'.$version.'.md');
         $status=$aligned&&$manifest&&$release?self::READY:self::ACTION;
         $detail='Service worker '.($aligned?'aligned':'mismatch').' · SHA256SUMS '.($manifest?'present':'missing').' · build manifest '.($release?'present':'missing').'.';
-        $add('RELEASE','Release artifact integrity',$status,$detail,$status===self::READY?'':'Apply the complete current release package and rerun release verification.',['service_worker_aligned'=>$aligned,'sha256_manifest'=>$manifest,'build_manifest'=>$release]);
+        $add('RELEASE','Release artifact integrity',$status,$detail,$status===self::READY?'':'Version-matched verifiable release manifests are missing from this Git checkout. Open Release Audit; do not use placeholder files to bypass verification.',['service_worker_aligned'=>$aligned,'sha256_manifest'=>$manifest,'build_manifest'=>$release]);
     }
 
     private static function commandExists(string $command): bool

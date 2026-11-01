@@ -1,0 +1,4 @@
+# Optional classical image region detector for isolated AI worker only.
+# Review source/ABI/licensing before deployment; never install into production by default.
+numpy==1.26.4
+opencv-python-headless==4.10.0.84

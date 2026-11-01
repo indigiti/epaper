@@ -11,7 +11,7 @@ use EpaperSaas\Core\{Build,Config,Database,RedisStore,RequestContext,Store};
  */
 final class SchemaDoctor
 {
-    private const CACHE_KEY = 'schema:doctor:v2:20181';
+    private const CACHE_KEY = 'schema:doctor:v2:2024-official-clips';
 
     private const ALPHA2_TABLES = [
         'ep_navigation_scopes',
@@ -144,6 +144,7 @@ final class SchemaDoctor
     private const MOBILE15_TABLES = ['ep_local_mobile_accounts','ep_mobile_auth_challenges'];
     private const FLEX17_TABLES = ['ep_local_device_accounts'];
     private const TRUST18_TABLES = ['ep_reader_devices','ep_reader_sessions','ep_desktop_login_challenges'];
+    private const CLIP_MARK_TABLE = 'ep_clip_marks';
 
     public static function quickStatus(bool $refresh=false): array
     {
@@ -178,6 +179,9 @@ final class SchemaDoctor
             foreach(self::MOBILE15_TABLES as$table)if(!self::tableExists($table)){$pending[]='v2.0.1.5 mobile auth schema';break;}
             foreach(self::FLEX17_TABLES as$table)if(!self::tableExists($table)){$pending[]='v2.0.1.7 flexible reader identity schema';break;}
             foreach(self::TRUST18_TABLES as$table)if(!self::tableExists($table)){$pending[]='v2.0.1.8 trusted app / desktop login schema';break;}
+            if(!self::tableExists(self::CLIP_MARK_TABLE))$pending[]='v2.0.2.2 clip marking schema';
+            if(!self::clipReuseReady())$pending[]='v2.0.2.3 clipping mark reference';
+            if(!self::officialReady())$pending[]='v2.0.2.4 publisher-approved clipping links';
         } catch (\Throwable $e) {
             $status=['ok'=>false,'pending'=>['database preflight unavailable'],'error'=>$e->getMessage(),'checked_at'=>gmdate('c')];
             RedisStore::setJson(self::CACHE_KEY,$status,30);
@@ -245,6 +249,18 @@ final class SchemaDoctor
         foreach(self::FLEX17_TABLES as$table){$ok=self::tableExists($table);$checks[]=self::check('migration:2017:table:'.$table,'v2.0.1.7 table '.$table,$ok,$ok?'Present':'Missing flexible reader identity table',true);}
         foreach(self::TRUST18_TABLES as$table){$ok=self::tableExists($table);$checks[]=self::check('migration:2018:table:'.$table,'v2.0.1.8 table '.$table,$ok,$ok?'Present':'Missing trusted-app / desktop-login table',true);}
 
+        $clipMarksReady=self::tableExists(self::CLIP_MARK_TABLE);
+        $checks[]=self::check('migration:clip-marking:table','v2.0.2.2 clip marking table',
+            $clipMarksReady,$clipMarksReady?'Present':'Missing pre-marking table',true);
+
+        $clipReuseReady=self::clipReuseReady();
+        $checks[]=self::check('migration:clip-reuse:mark','v2.0.2.3 clip mark reference',
+            $clipReuseReady,$clipReuseReady?'Present':'Missing nullable clip mark reference or index',true);
+
+        $officialReady=self::officialReady();
+        $checks[]=self::check('migration:official-clips:table','v2.0.2.4 publisher-approved clipping links',
+            $officialReady,$officialReady?'Present':'Official clipping link table missing',true);
+
         $redisEnabled=RedisStore::enabled();
         if($redisEnabled){
             try{$ping=RedisStore::client()?->ping();$ok=$ping!==false&&$ping!==null;$detail=$ok?'Connected':'No response';}
@@ -258,15 +274,113 @@ final class SchemaDoctor
         $navWritable=is_dir($navDir)?is_writable($navDir):is_writable($storage.'/cache')||is_writable($storage);
         $checks[]=self::check('runtime:nav-cache','Compiled navigation cache path',$navWritable,$navWritable?'Writable/creatable':'Cannot create navigation cache files',false);
 
-        $lockFile=$storage.'/installed.lock';$lockVersion='unknown';
-        if(is_file($lockFile)){$d=json_decode((string)@file_get_contents($lockFile),true);if(is_array($d))$lockVersion=(string)($d['version']??'unknown');}
-        $checks[]=self::check('runtime:version-lock','Installed version marker',$lockVersion===Build::version(),$lockVersion===Build::version()?'Aligned at '.Build::version():'Marker '.$lockVersion.' · code '.Build::version(),true);
+        // The optional installer lock is deployment metadata, not a database migration.
+        // Git/Cloudways releases may not have installed.lock; never report it as
+        // a FIXABLE database issue or block a healthy installation because of it.
 
         $pending=[];foreach($checks as $c)if(!$c['ok']&&$c['repairable'])$pending[]=$c['id'];
         $baseOk=true;foreach($checks as$c)if(str_starts_with($c['id'],'base:')&&!$c['ok']){$baseOk=false;break;}
         $report=['ok'=>$baseOk&&$pending===[],'base_ok'=>$baseOk,'version'=>Build::version(),'database'=>$dbName,'server'=>$server,'checks'=>$checks,'pending'=>$pending,'checked_at'=>gmdate('c')];
         RedisStore::setJson(self::CACHE_KEY,['ok'=>$report['ok'],'pending'=>$pending,'checked_at'=>$report['checked_at']],60);
         return $report;
+    }
+
+    /**
+     * One-purpose, additive Clip Marking repair for an authenticated infrastructure
+     * administrator. Uses the same advisory lock as the cumulative schema repair,
+     * so two Upgrade Center submissions cannot race to create the table.
+     * Existing marks and clipping images are never deleted or rewritten.
+     */
+    /**
+     * Nullable mark association is additive. Older clips remain valid while the
+     * schema update is applied from the authenticated Upgrade Center.
+     */
+    public static function officialReady(): bool
+    {
+        if(!self::tableExists('ep_official_clips'))return false;
+        $columns=self::columnNames('ep_official_clips');
+        foreach(['tenant_guid','mark_guid','page_guid','clip_guid','asset_guid',
+                  'asset_checksum','page_version','mark_updated_at','status',
+                  'approved_by_user_guid','approved_at'] as $name)
+            if(!in_array($name,$columns,true))return false;
+        return self::hasEquivalentIndex('ep_official_clips',
+            ['tenant_guid','page_guid','status']);
+    }
+
+    private static function repairOfficialClips(\PDO $pdo,array &$actions): void
+    {
+        if(!self::tableExists('ep_official_clips'))
+            self::applyMigrationFile($pdo,'upgrade-v2.0.2.4-official-clips.sql',$actions,
+                'Created publisher-approved clipping link table');
+    }
+
+    public static function clipReuseReady(): bool
+    {
+        return self::tableExists('ep_clips') &&
+            in_array('mark_guid',self::columnNames('ep_clips'),true) &&
+            self::hasEquivalentIndex('ep_clips',['tenant_guid','page_guid','mark_guid','created_at']);
+    }
+
+    private static function repairClipReuse(\PDO $pdo,array &$actions): void
+    {
+        if(!self::tableExists('ep_clips'))return;
+        if(!in_array('mark_guid',self::columnNames('ep_clips'),true)){
+            $pdo->exec('ALTER TABLE ep_clips ADD COLUMN mark_guid BINARY(16) NULL AFTER page_guid');
+            $actions[]='Added optional article-mark reference to clipping records';
+        }
+        if(!self::hasEquivalentIndex('ep_clips',['tenant_guid','page_guid','mark_guid','created_at'])){
+            $pdo->exec('ALTER TABLE ep_clips ADD INDEX ix_clip_mark (tenant_guid,page_guid,mark_guid,created_at)');
+            $actions[]='Indexed clipping records by original article mark';
+        }
+    }
+
+    public static function repairClipMarking(?string $actorGuid=null): array
+    {
+        $before=self::report(true);
+        if(empty($before['base_ok'])){
+            throw new \RuntimeException(
+                'Base schema is incomplete. Clip Marking repair is blocked until the original database is restored.'
+            );
+        }
+        $pdo=Database::pdo();
+        $lockName='epdi:v2:schema-upgrade';
+        if((int)Store::value('SELECT GET_LOCK(?,10)',[$lockName])!==1)
+            throw new \RuntimeException('Another schema upgrade is running. Recheck its result before retrying.');
+        $actions=[];
+        try{
+            if(!self::tableExists(self::CLIP_MARK_TABLE)){
+                self::applyMigrationFile(
+                    $pdo,'upgrade-v2.0.2.2-clip-marking.sql',$actions,
+                    'Created Clip Marking article outline table'
+                );
+            }
+            if(!self::tableExists(self::CLIP_MARK_TABLE))
+                throw new \RuntimeException('Clip Marking table still missing after repair');
+            self::repairClipReuse($pdo,$actions);
+            self::repairOfficialClips($pdo,$actions);
+            if(!$actions)$actions[]='Clip Marking and official clipping schema already present; no changes needed';
+
+            if(self::tableExists('ep_system_state')){
+                $payload=json_encode([
+                    'version'=>Build::version(),'actor'=>$actorGuid,
+                    'actions'=>$actions,'at'=>gmdate('c'),'target'=>'clip-marking',
+                ],JSON_UNESCAPED_SLASHES|JSON_UNESCAPED_UNICODE);
+                Store::exec(
+                    'INSERT INTO ep_system_state(state_key,state_value,updated_at)
+                     VALUES("schema.v2.last_repair",?,NOW(6))
+                     ON DUPLICATE KEY UPDATE state_value=VALUES(state_value),updated_at=NOW(6)',
+                    [$payload]
+                );
+            }
+            RedisStore::del(self::CACHE_KEY);
+            $after=self::report(true);
+            return [
+                'ok'=>(bool)($after['ok']??false),
+                'actions'=>$actions,'before'=>$before,'after'=>$after,
+            ];
+        }finally{
+            try{Store::value('SELECT RELEASE_LOCK(?)',[$lockName]);}catch(\Throwable){}
+        }
     }
 
     public static function repair(?string $actorGuid=null): array
@@ -365,6 +479,12 @@ final class SchemaDoctor
             // /admin/subscribers referenced ep_reader_devices before its migration had been applied.
             $trust18Missing=false;foreach(self::TRUST18_TABLES as$table)if(!self::tableExists($table)){$trust18Missing=true;break;}
             if($trust18Missing)self::applyMigrationFile($pdo,'upgrade-v2.0.1.8-trusted-app-desktop-login.sql',$actions,'Applied v2.0.1.8 trusted-app / desktop-login schema');
+
+            if(!self::tableExists(self::CLIP_MARK_TABLE))
+                self::applyMigrationFile($pdo,'upgrade-v2.0.2.2-clip-marking.sql',$actions,
+                    'Created clip marking geometry table');
+            self::repairClipReuse($pdo,$actions);
+            self::repairOfficialClips($pdo,$actions);
 
             // Record the migration status in the existing application state table when available.
             if(self::tableExists('ep_system_state')){

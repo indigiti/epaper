@@ -1,0 +1,163 @@
+/* ePaper Studio sidebar: subtle category labels, searchable links and desktop icon rail.
+   Loaded after all publisher styles. No global Reader/Account layout changes. */
+body.admin-shell{--console-sidebar:238px}
+.admin-shell .app-sidebar{
+  display:flex;flex-direction:column;min-height:0;overflow:hidden;
+  padding:15px 10px 12px;background:var(--console-surface);
+  border-right:1px solid var(--console-border);
+}
+.admin-shell .sidebar-context.admin-sidebar-identity{
+  display:flex;flex:0 0 auto;align-items:center;gap:10px;
+  min-width:0;margin:0 0 11px;padding:1px 3px 12px;border-bottom:1px solid var(--console-border);
+}
+.admin-shell .admin-sidebar-emblem{
+  flex:0 0 35px;display:grid;place-items:center;width:35px;height:35px;
+  border-radius:10px;color:#fff;background:linear-gradient(145deg,#7d61ed,#5e6deb);
+  box-shadow:0 4px 12px rgba(106,100,213,.12)
+}
+.admin-shell .admin-sidebar-emblem svg{width:20px;height:20px}
+.admin-shell .admin-sidebar-brand-copy{display:grid;min-width:0;flex:1;gap:2px}
+.admin-shell .admin-sidebar-brand-copy strong{
+  font-size:12px;font-weight:800;line-height:1.3;color:var(--console-text);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis
+}
+.admin-shell .admin-sidebar-brand-copy small{
+  font-size:10px;color:var(--console-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap
+}
+.admin-shell .admin-sidebar-collapse{
+  flex:0 0 27px;display:grid;place-items:center;width:27px;height:29px;
+  border:1px solid var(--console-border);border-radius:8px;color:var(--console-muted);
+  background:var(--console-surface);cursor:pointer
+}
+.admin-shell .admin-sidebar-collapse svg{width:15px;height:15px}
+.admin-shell .admin-sidebar-collapse:hover{color:var(--console-accent);background:var(--console-accent-soft)}
+.admin-shell .admin-sidebar-search{
+  position:relative;display:flex;align-items:center;min-height:39px;
+  margin:0 2px 13px;flex:0 0 auto;
+}
+.admin-shell .admin-sidebar-search input[type=search]{
+  display:block;min-height:39px!important;width:100%;min-width:0;
+  padding:8px 31px 8px 33px!important;border:1px solid var(--console-border)!important;
+  border-radius:10px!important;background:var(--console-surface-soft)!important;
+  font-size:12px!important;color:var(--console-text)!important
+}
+.admin-shell .admin-sidebar-search-icon{
+  position:absolute;left:10px;z-index:1;display:grid;place-items:center;
+  color:var(--console-muted);pointer-events:none
+}
+.admin-shell .admin-sidebar-search-icon svg{width:15px;height:15px}
+.admin-shell .admin-sidebar-search kbd{
+  position:absolute;right:9px;font-size:11px;color:var(--console-muted);
+  font-family:inherit;font-weight:650;pointer-events:none
+}
+.admin-shell .admin-sidebar-search-expand{display:none}
+.admin-shell .admin-sidebar-nav{
+  display:flex!important;flex:1 1 auto;min-height:0;flex-direction:column;gap:8px;
+  overflow-x:hidden!important;overflow-y:auto!important;padding:0 3px 12px 0;
+  scrollbar-width:thin;scrollbar-color:var(--console-border-strong) transparent;
+  overscroll-behavior:contain
+}
+.admin-shell .admin-sidebar-nav .nav-section{min-width:0}
+.admin-shell .admin-sidebar-nav .nav-section-title{
+  display:flex;align-items:center;justify-content:space-between;min-height:30px;
+  gap:8px;padding:6px 8px;margin:0;border-radius:7px;
+  color:var(--console-muted);font-size:10px;letter-spacing:.075em;
+  font-weight:750;line-height:1.35
+}
+.admin-shell .admin-sidebar-nav .nav-section-title:hover,
+.admin-shell .admin-sidebar-nav .nav-section[open]>.nav-section-title{background:transparent;color:var(--console-muted)}
+.admin-shell .admin-sidebar-nav .nav-section-title:hover{color:var(--console-text)}
+.admin-shell .admin-sidebar-nav .nav-section-label{gap:7px;min-width:0}
+.admin-shell .admin-sidebar-nav .nav-section-mark{display:none}
+.admin-shell .admin-sidebar-nav .nav-section-heading{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.admin-shell .admin-sidebar-nav .nav-section-chevron{display:grid;place-items:center;transition:transform .17s ease}
+.admin-shell .admin-sidebar-nav .nav-section-chevron svg{width:13px;height:13px}
+.admin-shell .admin-sidebar-nav .nav-section[open] .nav-section-chevron{transform:rotate(180deg)}
+.admin-shell .admin-sidebar-nav .nav-group{
+  display:flex;flex-direction:column;gap:2px;
+  min-width:0;padding:3px 0 4px
+}
+.admin-shell .admin-sidebar-nav .app-nav-link{
+  display:flex!important;align-items:center;gap:11px;min-height:37px;
+  padding:8px 10px!important;border-radius:9px!important;
+  color:var(--console-text)!important;text-decoration:none
+}
+.admin-shell .admin-sidebar-nav .app-nav-link:hover{background:var(--console-surface-soft)!important;transform:none}
+.admin-shell .admin-sidebar-nav .app-nav-link.active{
+  background:var(--console-surface-soft)!important;color:var(--console-text)!important;
+  box-shadow:inset 2px 0 0 var(--console-accent)
+}
+.admin-shell .admin-sidebar-nav .admin-nav-icon{
+  flex:0 0 16px;display:grid;place-items:center;width:16px;height:16px;
+  color:var(--console-muted)
+}
+.admin-shell .admin-sidebar-nav .admin-nav-icon svg{width:16px;height:16px;stroke-width:1.7}
+.admin-shell .admin-sidebar-nav .app-nav-link.active .admin-nav-icon{color:var(--console-accent)}
+.admin-shell .admin-sidebar-nav .app-nav-link .admin-nav-text{font-size:12px;font-weight:550;line-height:1.3}
+.admin-shell .admin-sidebar-nav .app-nav-link.active .admin-nav-text{font-weight:760}
+.admin-shell .admin-sidebar-empty{padding:12px 8px;font-size:11px;color:var(--console-muted)}
+.admin-shell .admin-sidebar-account{
+  display:flex;align-items:center;gap:10px;flex:0 0 auto;
+  border-top:1px solid var(--console-border);padding:13px 5px 4px;
+  min-width:0;margin-top:6px;text-decoration:none;color:var(--console-text)
+}
+.admin-shell .admin-sidebar-account:hover{color:var(--console-accent)}
+.admin-shell .admin-sidebar-avatar{
+  flex:0 0 33px;width:33px;height:33px;display:grid;place-items:center;
+  border-radius:50%;background:var(--console-accent-soft);color:var(--console-accent)
+}
+.admin-shell .admin-sidebar-avatar svg{width:17px;height:17px}
+.admin-shell .admin-sidebar-account-copy{min-width:0;flex:1;display:grid;gap:3px}
+.admin-shell .admin-sidebar-account-copy strong{font-size:12px;font-weight:750;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.admin-shell .admin-sidebar-account-copy small{font-size:10px;color:var(--console-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.admin-shell .admin-sidebar-account-arrow{color:var(--console-muted)}
+.admin-shell .admin-sidebar-account-arrow svg{width:13px;height:13px}
+.admin-shell .admin-sidebar-nav [hidden],.admin-shell .admin-sidebar-empty[hidden]{display:none!important}
+@media(min-width:1001px){
+  body.admin-shell.admin-nav-collapsed{--console-sidebar:76px}
+  .admin-shell.admin-nav-collapsed .app-sidebar{padding:15px 9px 12px}
+  .admin-shell.admin-nav-collapsed .sidebar-context.admin-sidebar-identity{
+    flex-direction:column;gap:8px;align-items:center;padding:0 0 12px
+  }
+  .admin-shell.admin-nav-collapsed .admin-sidebar-brand-copy,
+  .admin-shell.admin-nav-collapsed .admin-sidebar-account-copy,
+  .admin-shell.admin-nav-collapsed .admin-sidebar-account-arrow,
+  .admin-shell.admin-nav-collapsed .admin-sidebar-search-icon,
+  .admin-shell.admin-nav-collapsed .admin-sidebar-search input,
+  .admin-shell.admin-nav-collapsed .admin-sidebar-search kbd,
+  .admin-shell.admin-nav-collapsed .admin-sidebar-nav .nav-section-heading,
+  .admin-shell.admin-nav-collapsed .admin-sidebar-nav .nav-section-chevron,
+  .admin-shell.admin-nav-collapsed .admin-sidebar-nav .nav-group{display:none!important}
+  .admin-shell.admin-nav-collapsed .admin-sidebar-collapse{width:35px;min-height:30px}
+  .admin-shell.admin-nav-collapsed .admin-sidebar-collapse svg{transform:rotate(180deg)}
+  .admin-shell.admin-nav-collapsed .admin-sidebar-search{justify-content:center;margin:0 0 10px;min-height:42px}
+  .admin-shell.admin-nav-collapsed .admin-sidebar-search-expand{
+    display:grid;place-items:center;min-height:39px;width:43px;
+    border:1px solid var(--console-border);border-radius:10px;
+    background:var(--console-surface-soft);color:var(--console-muted)
+  }
+  .admin-shell.admin-nav-collapsed .admin-sidebar-search-expand svg{width:17px;height:17px}
+  .admin-shell.admin-nav-collapsed .admin-sidebar-nav{align-items:center;padding-right:0}
+  .admin-shell.admin-nav-collapsed .admin-sidebar-nav .nav-section{width:100%}
+  .admin-shell.admin-nav-collapsed .admin-sidebar-nav .nav-section-title{
+    width:100%;height:43px;justify-content:center;padding:8px;border-radius:10px
+  }
+  .admin-shell.admin-nav-collapsed .admin-sidebar-nav .nav-section-mark{display:grid;place-items:center;color:var(--console-muted)}
+  .admin-shell.admin-nav-collapsed .admin-sidebar-nav .nav-section.is-active>.nav-section-title,
+  .admin-shell.admin-nav-collapsed .admin-sidebar-nav .nav-section-title:hover{
+    background:var(--console-accent-soft);color:var(--console-accent)
+  }
+  .admin-shell.admin-nav-collapsed .admin-sidebar-nav .nav-section.is-active .nav-section-mark,
+  .admin-shell.admin-nav-collapsed .admin-sidebar-nav .nav-section-title:hover .nav-section-mark{color:var(--console-accent)}
+  .admin-shell.admin-nav-collapsed .admin-sidebar-account{justify-content:center;padding-inline:0}
+  .admin-shell.admin-nav-collapsed .brand{min-width:0!important}
+}
+@media(max-width:1000px){
+  .admin-shell .app-sidebar{top:0!important;height:100dvh!important;width:min(306px,88vw);padding-top:76px!important}
+  .admin-shell .admin-sidebar-collapse{display:none}
+  .admin-shell .admin-sidebar-nav{display:flex!important;position:static!important}
+}
+@media(prefers-reduced-motion:reduce){
+  .admin-shell .admin-sidebar-nav .nav-section-chevron,
+  .admin-shell .admin-sidebar-collapse svg{transition:none}
+}

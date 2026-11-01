@@ -1,0 +1,148 @@
+/* Publisher workspace 2.0 — accessible, mobile-first, fully scoped to admin */
+.admin-shell .grouped-nav-compact{display:flex;flex-direction:column;gap:5px}
+.admin-shell .grouped-nav-compact .nav-section{min-width:0}
+.admin-shell .nav-section-title{
+ list-style:none;cursor:pointer;display:flex;align-items:center;justify-content:space-between;
+ gap:10px;padding:11px 10px;border-radius:9px;color:var(--console-muted);
+ font-size:10px;font-weight:850;letter-spacing:.075em;
+ transition:background .16s ease,color .16s ease
+}
+.admin-shell .nav-section-title::-webkit-details-marker{display:none}
+.admin-shell .nav-section-title:hover,.admin-shell .nav-section[open]>.nav-section-title{
+ color:var(--console-text);background:var(--console-surface-soft)
+}
+.admin-shell .nav-section-title:focus-visible{outline:2px solid var(--console-accent);outline-offset:2px}
+.admin-shell .nav-section-count{
+ flex:0 0 auto;border:1px solid var(--console-border);border-radius:99px;
+ min-width:21px;text-align:center;font-size:10px;line-height:19px;
+ color:var(--console-muted);background:var(--console-surface)
+}
+.admin-shell .nav-section .nav-group{display:flex;flex-direction:column;gap:2px;padding:4px 0 7px}
+.admin-shell .nav-section .app-nav-link{
+ display:flex;align-items:center;gap:11px;padding:9px 10px!important;
+ min-height:38px;border-radius:9px;min-width:0
+}
+.admin-shell .nav-section .app-nav-link>span:last-child{
+ display:block;min-width:0;font-size:12px;line-height:1.35;white-space:normal
+}
+.admin-shell .admin-nav-icon{
+ flex:0 0 17px;width:17px;height:17px;display:inline-flex;align-items:center;
+ justify-content:center;color:var(--console-muted)
+}
+.admin-shell .admin-nav-icon svg{width:16px;height:16px;display:block}
+.admin-shell .app-nav-link.active .admin-nav-icon{color:var(--console-accent)}
+.admin-shell .publishing-desk .admin-launchpad{
+ --lp-surface:var(--console-surface,#fff);
+ --lp-soft:var(--console-surface-soft,#f8fafc);
+ --lp-border:var(--console-border,#e5e7eb);
+ --lp-text:var(--console-text,#111827);
+ --lp-muted:var(--console-muted,#667085);
+ --lp-accent:var(--console-accent,#3166eb);
+ margin:0 0 24px;padding:20px 21px;
+ border:1px solid var(--lp-border);border-radius:14px;
+ background:var(--lp-surface);min-width:0
+}
+.admin-shell .admin-launchpad *, .admin-shell .admin-launchpad *::before,
+.admin-shell .admin-launchpad *::after{box-sizing:border-box}
+.admin-shell .launchpad-head{
+ display:flex;align-items:center;justify-content:space-between;
+ gap:20px;margin-bottom:17px
+}
+.admin-shell .launchpad-head h2{
+ font-size:21px;line-height:1.25;letter-spacing:-.025em;margin:3px 0 4px;color:var(--lp-text)
+}
+.admin-shell .launchpad-head p{margin:0;color:var(--lp-muted);font-size:12px;line-height:1.6}
+.admin-shell .launchpad-head input[type=search]{
+ flex:0 1 340px;min-width:180px;width:100%;height:40px;
+ border:1px solid var(--lp-border);border-radius:10px;
+ background:var(--lp-soft);color:var(--lp-text);font:inherit;font-size:12px;
+ padding:9px 13px;outline-offset:3px
+}
+.admin-shell .launchpad-head input[type=search]:focus{outline:2px solid var(--lp-accent);border-color:var(--lp-accent)}
+.admin-shell .launchpad-quick{
+ display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;
+}
+.admin-shell .launchpad-quick>a{
+ min-height:55px;display:flex;align-items:center;gap:10px;
+ border:1px solid var(--lp-border);border-radius:10px;
+ padding:11px 12px;text-decoration:none!important;color:var(--lp-text);
+ background:var(--lp-soft);font-size:12px;font-weight:750;min-width:0
+}
+.admin-shell .launchpad-quick>a>span:nth-child(2){flex:1;min-width:0;overflow-wrap:anywhere}
+.admin-shell .launchpad-quick>a:hover{border-color:var(--lp-accent);background:var(--lp-surface)}
+.admin-shell .launchpad-icon{display:inline-flex;align-items:center;justify-content:center;
+ flex:0 0 30px;width:30px;height:30px;border-radius:8px;
+ background:color-mix(in srgb,var(--lp-accent) 9%,var(--lp-surface));color:var(--lp-accent)
+}
+.admin-shell .launchpad-icon svg{width:17px;height:17px}
+.admin-shell .launchpad-quick>a>span:last-child{color:var(--lp-accent)}
+.admin-shell .launchpad-pinned{border-top:1px solid var(--lp-border);padding:15px 0;margin-top:15px}
+.admin-shell .launchpad-pinned strong{display:block;font-size:12px;margin-bottom:11px}
+.admin-shell .launchpad-pinned small{font-weight:400;color:var(--lp-muted);margin-left:6px}
+.admin-shell .launchpad-pinned-links{display:flex;flex-wrap:wrap;gap:8px}
+.admin-shell .launchpad-pinned-links a{
+ display:inline-flex;align-items:center;gap:6px;border-radius:99px;
+ border:1px solid var(--lp-border);padding:7px 11px;
+ text-decoration:none;color:var(--lp-text);font-size:12px;font-weight:700
+}
+.admin-shell .launchpad-pinned-links a:hover{border-color:var(--lp-accent)}
+.admin-shell .launchpad-directory{border-top:1px solid var(--lp-border);margin-top:16px}
+.admin-shell .launchpad-directory>summary{
+ display:flex;align-items:center;justify-content:space-between;
+ gap:14px;list-style:none;cursor:pointer;padding:16px 2px 1px;
+ font-size:13px;font-weight:800;color:var(--lp-text)
+}
+.admin-shell .launchpad-directory>summary::-webkit-details-marker{display:none}
+.admin-shell .launchpad-directory>summary small{font-weight:500;font-size:11px;color:var(--lp-muted);margin-left:10px}
+.admin-shell .launchpad-directory>summary::after{content:'⌄';font-size:17px;color:var(--lp-muted)}
+.admin-shell .launchpad-directory[open]>summary::after{content:'⌃'}
+.admin-shell .launchpad-directory>summary:focus-visible{outline:2px solid var(--lp-accent);outline-offset:3px}
+.admin-shell .launchpad-groups{
+ display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px 22px;
+ padding:20px 0 4px;min-width:0
+}
+.admin-shell .launchpad-group{min-width:0}
+.admin-shell .launchpad-group h3{font-size:11px;color:var(--lp-muted);
+ text-transform:uppercase;letter-spacing:.08em;margin:0 0 8px}
+.admin-shell .launchpad-items{display:flex;flex-direction:column;gap:6px}
+.admin-shell .launchpad-item{
+ display:flex;align-items:stretch;justify-content:space-between;min-width:0;
+ border:1px solid var(--lp-border);border-radius:10px;background:var(--lp-soft)
+}
+.admin-shell .launchpad-item>a{
+ display:flex;align-items:center;gap:10px;min-width:0;flex:1;
+ text-decoration:none;color:var(--lp-text);padding:10px 12px
+}
+.admin-shell .launchpad-item>a:hover{color:var(--lp-accent)}
+.admin-shell .launchpad-item-text{display:flex;flex-direction:column;gap:3px;min-width:0}
+.admin-shell .launchpad-item-text strong{font-size:12px;font-weight:800;overflow-wrap:anywhere}
+.admin-shell .launchpad-item-text small{font-size:11px;line-height:1.4;color:var(--lp-muted);overflow-wrap:anywhere}
+.admin-shell .launchpad-pin{
+ flex:0 0 39px;border:0;border-left:1px solid var(--lp-border);
+ border-radius:0 10px 10px 0;background:transparent;color:var(--lp-muted);
+ cursor:pointer;font-size:19px;min-height:43px
+}
+.admin-shell .launchpad-pin:hover,.admin-shell .launchpad-pin[aria-pressed=true]{color:var(--lp-accent)}
+.admin-shell .launchpad-pin:focus-visible{outline:2px solid var(--lp-accent);outline-offset:1px}
+.admin-shell .admin-launchpad [hidden]{display:none!important}
+.admin-shell .launchpad-directory>[data-feature-empty]{
+ color:var(--lp-muted);font-size:12px;padding:10px 0
+}
+.admin-shell .launchpad-directory:not([open]) .launchpad-groups{display:none}
+@media(max-width:1150px){
+ .admin-shell .launchpad-quick{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media(max-width:780px){
+ .admin-shell .launchpad-head{flex-direction:column;align-items:stretch}
+ .admin-shell .launchpad-head input[type=search]{flex:none;width:100%}
+ .admin-shell .launchpad-groups{grid-template-columns:minmax(0,1fr)}
+}
+@media(max-width:540px){
+ .admin-shell .publishing-desk .admin-launchpad{padding:16px}
+ .admin-shell .launchpad-quick{grid-template-columns:minmax(0,1fr)}
+ .admin-shell .launchpad-directory>summary{align-items:flex-start}
+ .admin-shell .launchpad-directory>summary small{display:block;margin:4px 0 0}
+}
+@media(prefers-reduced-motion:reduce){
+ .admin-shell .nav-section-title{transition:none}
+}

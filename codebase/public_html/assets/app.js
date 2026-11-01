@@ -102,7 +102,7 @@ if(Math.random()<Number(cfg.rumSampleRate||0.10)){
 (()=>{
   const palette=document.querySelector('[data-command-palette]');if(!palette)return;
   const input=palette.querySelector('[data-command-input]'),results=palette.querySelector('[data-command-results]');
-  const commands=[...document.querySelectorAll('.app-sidebar .app-nav-link')].map(a=>[a.querySelector('span')?.textContent?.trim()||a.textContent.trim(),a.getAttribute('href')||'#',a.closest('.nav-group')?.querySelector('.nav-group-label')?.textContent?.trim()||'Navigate']).filter(c=>c[1]&&c[1]!=='#');
+  const commands=[...document.querySelectorAll('.app-sidebar .app-nav-link')].map(a=>[a.querySelector('span')?.textContent?.trim()||a.textContent.trim(),a.getAttribute('href')||'#',a.closest('.nav-section')?.querySelector('.nav-section-title span')?.textContent?.trim()||a.closest('.nav-group')?.querySelector('.nav-group-label')?.textContent?.trim()||'Navigate']).filter(c=>c[1]&&c[1]!=='#');
   if(commands.some(c=>c[1]==='/admin/editions'))commands.unshift(['New edition','/admin/editions','Quick action']);
   let active=0,filtered=[],previousFocus=null;
   const close=()=>{palette.classList.add('hidden');input.value='';document.body.style.overflow='';const target=previousFocus;previousFocus=null;if(target&&target.isConnected)setTimeout(()=>target.focus(),0)};
@@ -129,7 +129,7 @@ if(Math.random()<Number(cfg.rumSampleRate||0.10)){
   function refreshProgress(label=''){
     const p=pct();if(summary)summary.textContent=`${ready()} of ${supported()} formats ready`;if(percent)percent.textContent=p+'%';if(bar)bar.style.width=p+'%';if(message)message.textContent=label||(p>=100?'Ready to share':'Preparing optimized formats…');
   }
-  function markFormat(key,state){formats[key]={...(formats[key]||{}),...state};const card=document.querySelector(`[data-clip-format="${CSS.escape(key)}"]`);if(!card)return;card.classList.remove('ready','preparing','unsupported');card.classList.add(state.supported===false?'unsupported':state.ready?'ready':'preparing');const s=card.querySelector('[data-format-state]');if(s)s.textContent=state.supported===false?'Unavailable':state.ready?'Ready':'Preparing…';if(state.ready){card.href=formats[key].download||`/c/${encodeURIComponent(slug)}/download/${encodeURIComponent(key)}`;card.removeAttribute('aria-disabled');card.setAttribute('download','')}else{card.href='#';card.setAttribute('aria-disabled','true')}}
+  function markFormat(key,state){formats[key]={...(formats[key]||{}),...state};const card=document.querySelector(`[data-clip-format="${CSS.escape(key)}"]`);if(!card)return;card.classList.remove('ready','preparing','unsupported');card.classList.add(state.supported===false?'unsupported':state.ready?'ready':'preparing');const stateLabel=state.supported===false?'Unavailable':state.ready?'Ready':'Preparing…';const s=card.querySelector('[data-format-state]');if(s)s.textContent=stateLabel;const label=formats[key].label||card.querySelector('.clip-sr-only')?.textContent||key;const hint=label+' — '+stateLabel+(state.ready?' · Download':'');card.title=hint;card.setAttribute('aria-label',hint);if(state.ready){card.href=formats[key].download||`/c/${encodeURIComponent(slug)}/download/${encodeURIComponent(key)}`;card.removeAttribute('aria-disabled');card.setAttribute('download','')}else{card.href='#';card.setAttribute('aria-disabled','true')}}
   async function prepareFormats(){
     if(!canManage)return refreshProgress();
     const queue=Object.entries(formats).filter(([,f])=>f.supported&&!f.ready);if(!queue.length)return refreshProgress();
@@ -144,7 +144,7 @@ if(Math.random()<Number(cfg.rumSampleRate||0.10)){
   const updateStats=d=>{if(d?.stats){if(shares)shares.textContent=String(d.stats.shares??shares.textContent);if(downloads)downloads.textContent=String(d.stats.downloads??downloads.textContent)}};
   document.querySelectorAll('[data-clip-share]').forEach(a=>a.addEventListener('click',()=>{epaperApi(`/api/v1/clips/${encodeURIComponent(slug)}/share`,{body:{platform:a.dataset.clipShare||'share'}}).then(updateStats).catch(()=>{})}));
   document.querySelector('[data-clip-copy]')?.addEventListener('click',async()=>{try{await navigator.clipboard.writeText(url);epaperToast?.('Clipping link copied');const d=await epaperApi(`/api/v1/clips/${encodeURIComponent(slug)}/share`,{body:{platform:'copy'}});updateStats(d)}catch(e){epaperToast?.('Could not copy clipping link','error')}});
-  document.querySelectorAll('.clip-format-card.ready').forEach(a=>a.addEventListener('click',()=>{if(downloads)downloads.textContent=String((parseInt(downloads.textContent||'0',10)||0)+1)}));
+  document.querySelectorAll('.clip-format-card').forEach(a=>a.addEventListener('click',e=>{if(a.getAttribute('aria-disabled')==='true'){e.preventDefault();return}if(downloads)downloads.textContent=String((parseInt(downloads.textContent||'0',10)||0)+1)}));
   function qrMatrixV5L(text){
     const bytes=new TextEncoder().encode(text);if(bytes.length>106)throw new Error('URL too long for embedded QR');
     const bits=[],append=(val,len)=>{for(let i=len-1;i>=0;i--)bits.push((val>>>i)&1)};append(4,4);append(bytes.length,8);bytes.forEach(b=>append(b,8));const capacity=108*8;for(let i=0;i<Math.min(4,capacity-bits.length);i++)bits.push(0);while(bits.length%8)bits.push(0);const data=[];for(let i=0;i<bits.length;i+=8){let b=0;for(let j=0;j<8;j++)b=(b<<1)|bits[i+j];data.push(b)}for(let pad=0;data.length<108;pad++)data.push(pad%2?0x11:0xEC);
@@ -204,4 +204,25 @@ if(Math.random()<Number(cfg.rumSampleRate||0.10)){
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',repair,{once:true}); else repair();
   window.addEventListener('load',repair,{once:true});
   setTimeout(repair,80);setTimeout(repair,450);setTimeout(repair,1200);
+})();
+
+
+/* Display tenant brand text instead of a browser broken-image icon on bad logo URLs.
+   Works for cached failures and late network failures; no image polling or extra fetch. */
+(()=>{
+  const fallback=document.querySelector('.site-header .brand-logo-fallback');
+  const stack=document.querySelector('.site-header .brand-logo-stack');
+  if(!fallback||!stack)return;
+  const images=Array.from(stack.querySelectorAll('img.brand-logo'));
+  const refresh=()=>{
+    for(const img of images)if(img.complete&&img.naturalWidth===0)img.hidden=true;
+    const visibleValid=images.some(img=>!img.hidden&&img.complete&&img.naturalWidth>0);
+    fallback.hidden=visibleValid;
+    stack.hidden=!visibleValid;
+  };
+  for(const img of images){
+    img.addEventListener('error',refresh,{once:true});
+    img.addEventListener('load',refresh,{once:true});
+  }
+  refresh();
 })();

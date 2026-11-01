@@ -8,16 +8,26 @@ final class SettingsCatalog
         return [
             'appearance' => [
                 'label' => 'Appearance',
-                'description' => 'Independent Frontend, Reader, Admin and Authentication themes, public light/dark policy and density.',
+                'description' => 'Independent frontend, Admin, Reader and Authentication themes, public color mode and interface density. Homepage animations are configured in Background Effects.',
                 'fields' => [
                     'appearance.frontend_theme' => ['Frontend theme','select','Default',['Default','Newsstand Modern','Editorial Portal','Classic Newspaper','Digital Magazine']],
                     'appearance.admin_theme' => ['Admin theme','select','Publisher Pro',['Publisher Pro','Executive Slate','Midnight Desk','Default']],
                     'appearance.reader_theme' => ['Reader theme','select','Newsstand Replica',['Newsstand Replica','Editorial Luxe','Metro Pulse','Heritage Press','Apple Editorial','Default']],
-                    'appearance.auth_theme' => ['Authentication theme','select','Split Editorial',['Split Editorial','Gradient Focus','Minimal Access','Default']],
+                    'appearance.auth_theme' => ['Authentication theme','select','Default',['Default','Split Editorial','Gradient Focus','Minimal Access']],
                     'appearance.public_color_mode' => ['Public / Reader color default','select','light',['light','system','dark']],
                     'appearance.public_color_switcher' => ['Public / Reader light-dark switcher','select','on',['on','off']],
                     'appearance.density' => ['Admin density','select','Comfortable',['Comfortable','Compact']],
                 ],
+            ],
+            'effects' => [
+                'label' => 'Background Effects',
+                'description' => 'Customize lightweight homepage animations and publisher-specific colors. Live previews are not published until Save.',
+                'fields' => [
+                    'appearance.home_background_effect' => ['Effect','select','Off',\EpaperSaas\Services\BackgroundEffects::EFFECTS],
+                ] + array_map(
+                    static fn(array $field):array=>[$field[0],$field[1]==='color'?'color':'number',$field[2],null],
+                    \EpaperSaas\Services\BackgroundEffects::FIELDS
+                ),
             ],
             'brand' => [
                 'label' => 'Brand & identity',

@@ -31,3 +31,30 @@
 /* Admin-only preview banner on ePaper reader surface. */
 .reader-page .theme-preview-banner{display:flex;gap:12px;align-items:center;justify-content:center;flex-wrap:wrap;padding:11px 18px;background:#fff0be;color:#352c13;border-bottom:1px solid #e6c15d;font-size:13px}
 .reader-page .theme-preview-banner a{color:#352c13;text-decoration:underline;font-weight:700}
+
+/* Cloudways Reader: chrome-only transformations, never change clipping geometry,
+   tile coordinates, page canvas scale, overlay transforms or reader script behavior. */
+body.reader-page.theme-newsstand-replica .reader-pages,
+body.reader-page.theme-newsstand-replica .reader-rail{background:#f7f9fc}
+body.reader-page.theme-newsstand-replica .reader-stage-wrap{background:#e4e9f0}
+body.reader-page.theme-editorial-luxe .reader-pages,
+body.reader-page.theme-editorial-luxe .reader-rail{background:#f7f3ea}
+body.reader-page.theme-editorial-luxe .reader-header{color:#3e3528}
+body.reader-page.theme-metro-pulse .reader-pages,
+body.reader-page.theme-metro-pulse .reader-rail{background:#dce9f8;color:#14304d}
+body.reader-page.theme-heritage-press .reader-pages,
+body.reader-page.theme-heritage-press .reader-rail{background:#efe6d3;color:#3f3225}
+body.reader-page.theme-apple-editorial .reader-pages,
+body.reader-page.theme-apple-editorial .reader-rail{background:#f5f6f7;color:#333a42}
+body.reader-page.dark.theme-newsstand-replica .reader-pages,
+body.reader-page.dark.theme-newsstand-replica .reader-rail,
+body.reader-page.dark.theme-editorial-luxe .reader-pages,
+body.reader-page.dark.theme-editorial-luxe .reader-rail,
+body.reader-page.dark.theme-metro-pulse .reader-pages,
+body.reader-page.dark.theme-metro-pulse .reader-rail,
+body.reader-page.dark.theme-heritage-press .reader-pages,
+body.reader-page.dark.theme-heritage-press .reader-rail,
+body.reader-page.dark.theme-apple-editorial .reader-pages,
+body.reader-page.dark.theme-apple-editorial .reader-rail{
+  background:#1a222d;color:#e6ebf1
+}

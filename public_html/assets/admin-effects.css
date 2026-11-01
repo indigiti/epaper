@@ -1,0 +1,130 @@
+/* Publisher Background Effects Studio — design system scoped, no global overrides. */
+body.admin-shell .effect-studio{
+  display:grid;grid-template-columns:minmax(350px,.84fr) minmax(430px,1.16fr);
+  gap:18px;align-items:start;margin:18px 0 32px
+}
+body.admin-shell .effect-controls,
+body.admin-shell .effect-preview-panel{
+  min-width:0;margin:0;padding:22px;border:1px solid var(--studio-border,#e1e6ec);
+  border-radius:16px;background:var(--studio-surface,#fff)
+}
+body.admin-shell .effect-controls{display:block}
+body.admin-shell .effect-panel-heading{margin-bottom:15px}
+body.admin-shell .effect-panel-heading .eyebrow{font-size:10px;letter-spacing:.12em;color:var(--studio-primary,#148679)}
+body.admin-shell .effect-panel-heading h2,
+body.admin-shell .effect-preview-heading h2{font-size:20px;letter-spacing:-.035em;margin:6px 0 4px;color:var(--studio-text,#1c2934)}
+body.admin-shell .effect-panel-heading p{font-size:12px;line-height:1.55;margin:0}
+body.admin-shell .effect-main-select{display:grid;gap:8px;font-size:12px;font-weight:760;margin-bottom:13px}
+body.admin-shell .effect-main-select select{
+  width:100%;min-height:42px;padding:10px;border:1px solid var(--studio-border,#dde2e6);
+  border-radius:9px;color:var(--studio-text,#1c2934);background:var(--studio-surface,#fff)
+}
+body.admin-shell .effect-picker{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:0 0 23px}
+body.admin-shell .effect-choice-card{
+  display:grid;justify-items:start;align-content:start;gap:5px;text-align:left;
+  min-width:0;min-height:101px;padding:13px;
+  border:1px solid var(--studio-border,#e1e6ec);border-radius:12px;
+  color:var(--studio-text,#142332);background:var(--studio-surface,#fff);
+  cursor:pointer;transition:border .16s,box-shadow .16s
+}
+body.admin-shell .effect-choice-card:hover,
+body.admin-shell .effect-choice-card.is-selected{
+  border-color:var(--studio-primary,#168b81);
+  box-shadow:inset 0 0 0 1px var(--studio-primary,#168b81)
+}
+body.admin-shell .effect-choice-card:focus-visible,
+body.admin-shell .effect-preview-actions button:focus-visible,
+body.admin-shell .effect-field input:focus-visible{
+  outline:2px solid var(--studio-primary,#148679);outline-offset:2px
+}
+body.admin-shell .effect-choice-card strong{font-size:13px;font-weight:760}
+body.admin-shell .effect-choice-card small{
+  color:var(--studio-muted,#788592);font-size:10px;line-height:1.4
+}
+body.admin-shell .effect-choice-icon{
+  display:block;width:30px;height:26px;border:1px solid rgba(70,115,153,.15);
+  border-radius:7px;background:linear-gradient(135deg,#dcebf6,#a8d8e0)
+}
+body.admin-shell .effect-icon-off{background:#eef2f4}
+body.admin-shell .effect-icon-halo{background:radial-gradient(circle at 70% 46%,transparent 18%,#78b8d4 20%,#d6e5f1 34%,transparent 54%),#e6f0f5}
+body.admin-shell .effect-icon-waves{background:repeating-radial-gradient(ellipse at 50% 110%,transparent 0 8px,#8dbbd0 10px 12px,#d2e7ef 14px 20px)}
+body.admin-shell .effect-icon-net{background:linear-gradient(40deg,transparent 46%,#75b4bc 47% 49%,transparent 50%),linear-gradient(135deg,transparent 46%,#81b6d2 47% 49%,transparent 50%),#edf6f8}
+body.admin-shell .effect-icon-dots{background:radial-gradient(circle,#74a4ca 1.5px,transparent 2px) 0 0 / 10px 10px,#eff5fa}
+body.admin-shell .effect-icon-rings{background:repeating-radial-gradient(circle at 62% 46%,transparent 0 5px,#78adcf 6px 8px,transparent 10px 13px),#f0f7fa}
+body.admin-shell .effect-icon-clouds{background:radial-gradient(ellipse at 34% 61%,#fff 1%,#dceaf1 45%,transparent 67%),radial-gradient(ellipse at 70% 37%,#fff,#b4d9e4 66%),#d6edf6}
+body.admin-shell .effect-icon-cells{background:radial-gradient(ellipse at 34% 42%,#bedfe5 1%,#8bb9d2 35%,transparent 69%),radial-gradient(ellipse at 74% 67%,#78b6b0,#dceaf7 65%)}
+body.admin-shell .effect-icon-fog{background:linear-gradient(125deg,#ecf3fb 0%,#afd2e4 35%,#c4e6d5 72%,#edf7f8)}
+
+body.admin-shell .effect-customize-heading{padding-top:18px;border-top:1px solid var(--studio-border,#e1e6ec)}
+body.admin-shell .effect-fields{display:grid;gap:11px}
+body.admin-shell .effect-field{display:grid;grid-template-columns:minmax(130px,1fr) minmax(175px,1.3fr);gap:12px;align-items:center;min-height:35px}
+body.admin-shell .effect-field[hidden]{display:none!important}
+body.admin-shell .effect-field-label{font-size:12px;font-weight:680;color:var(--studio-text,#1b2530)}
+body.admin-shell .effect-field-input{display:flex;align-items:center;gap:8px;min-width:0}
+body.admin-shell .effect-field-input input[type=color]{width:43px;min-width:43px;height:34px;padding:3px;border:1px solid var(--studio-border,#ddd);border-radius:7px;background:var(--studio-surface,#fff);cursor:pointer}
+body.admin-shell .effect-field-input input[type=range]{width:100%;flex:1;min-width:50px;accent-color:var(--studio-primary,#148679)}
+body.admin-shell .effect-field-input select{width:100%;min-height:35px;border:1px solid var(--studio-border,#ddd);border-radius:7px;background:var(--studio-surface,#fff);color:var(--studio-text,#142332)}
+body.admin-shell .effect-field-input output{min-width:42px;font-size:11px;text-align:right;color:var(--studio-text,#233);font-variant-numeric:tabular-nums}
+body.admin-shell .effect-form-actions{display:flex;gap:9px;justify-content:space-between;margin-top:23px;flex-wrap:wrap}
+body.admin-shell .effect-form-note{font-size:11px;line-height:1.6;margin:13px 0 0}
+body.admin-shell .effect-preview-panel{position:sticky;top:84px;padding:18px}
+body.admin-shell .effect-preview-heading{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:16px}
+body.admin-shell .effect-preview-actions{display:flex;align-items:center;gap:9px}
+body.admin-shell .effect-preview-actions .btn{font-size:11px;padding:8px 10px}
+body.admin-shell .effect-unsaved{display:inline-block;padding:5px 8px;border-radius:99px;background:#fef0cb;color:#825812;font-size:10px;font-weight:800}
+body.admin-shell .effect-unsaved[hidden]{display:none}
+body.admin-shell .effect-preview-stage{
+  position:relative;isolation:isolate;min-height:350px;
+  display:grid;grid-template-columns:minmax(0,1fr) 125px;align-items:center;gap:22px;
+  overflow:hidden;padding:28px;background:var(--studio-surface-soft,#f6f8fb);
+  border:1px solid var(--studio-border,#e1e6ec);border-radius:13px
+}
+body.admin-shell .effect-preview-canvas{
+  position:absolute!important;inset:0;z-index:0;width:100%;height:100%;
+  overflow:hidden;pointer-events:none!important;
+  opacity:.28;mix-blend-mode:multiply;
+  -webkit-mask-image:radial-gradient(ellipse 85% 114% at 67% 52%,#000 12%,transparent 98%);
+  mask-image:radial-gradient(ellipse 85% 114% at 67% 52%,#000 12%,transparent 98%)
+}
+body.admin-shell .effect-preview-canvas canvas{max-width:none!important;pointer-events:none!important}
+body.admin-shell .effect-preview-gradient{
+  position:absolute;inset:0;z-index:0;pointer-events:none;
+  background:radial-gradient(ellipse 64% 85% at 66% 48%,rgba(69,140,195,.09),transparent 88%)
+}
+body.admin-shell .effect-preview-copy{position:relative;z-index:2;min-width:0}
+body.admin-shell .effect-preview-kicker{font-size:9px;font-weight:800;letter-spacing:.12em;color:var(--studio-muted,#617181)}
+body.admin-shell .effect-preview-copy h3{font:700 clamp(24px,2.4vw,39px)/1.12 Georgia,"Times New Roman",serif;margin:10px 0;color:var(--studio-text,#1b2934)}
+body.admin-shell .effect-preview-copy p{font-size:12px;line-height:1.55;color:var(--studio-muted,#677686)}
+body.admin-shell .effect-preview-cta{display:inline-block;margin-top:10px;padding:10px 12px;color:#fff;background:#2563eb;border-radius:8px;font-size:11px;font-weight:750}
+body.admin-shell .effect-preview-cover{
+  position:relative;z-index:2;align-self:center;height:175px;
+  padding:10px 8px;background:#fff;border:1px solid #dee5ea;
+  box-shadow:0 12px 27px rgba(30,50,75,.13);transform:rotate(2deg)
+}
+body.admin-shell .effect-paper-heading{color:#193047;text-align:center;font:900 14px Georgia,serif;border-bottom:2px solid #c33;padding-bottom:5px}
+body.admin-shell .effect-paper-lines{height:34px;margin-top:10px;background:repeating-linear-gradient(#bdc7d0 0 1px,transparent 1px 6px)}
+body.admin-shell .effect-paper-lines.short{height:28px}
+body.admin-shell .effect-paper-image{height:38px;background:linear-gradient(145deg,#8eb7cc,#e3eaf1)}
+body.admin-shell .effect-preview-status{font-size:11px;line-height:1.5;margin:12px 0 0;color:var(--studio-muted,#778594)}
+body.admin-shell .effect-preview-foot{display:flex;justify-content:space-between;gap:14px;align-items:center;border-top:1px solid var(--studio-border,#e1e6ec);padding-top:13px;margin-top:13px}
+body.admin-shell .effect-preview-foot span{color:var(--studio-muted,#7c8994);font-size:10px}
+body.admin-shell .effect-preview-foot a{font-size:11px;font-weight:740;color:var(--studio-primary,#148679);white-space:nowrap}
+body.admin-shell.dark .effect-preview-canvas{mix-blend-mode:screen;opacity:.18}
+body.admin-shell.dark .effect-preview-cover{background:#fff}
+@media(max-width:1180px){body.admin-shell .effect-studio{grid-template-columns:minmax(0,1fr)}body.admin-shell .effect-preview-panel{position:static}body.admin-shell .effect-preview-stage{min-height:280px}}
+@media(max-width:600px){
+  body.admin-shell .effect-controls,body.admin-shell .effect-preview-panel{padding:16px}
+  body.admin-shell .effect-studio{gap:13px}
+  body.admin-shell .effect-field{grid-template-columns:1fr;gap:5px}
+  body.admin-shell .effect-field-input{min-height:33px}
+  body.admin-shell .effect-picker{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+  body.admin-shell .effect-choice-card{padding:10px;min-height:100px}
+  body.admin-shell .effect-preview-stage{grid-template-columns:minmax(0,1fr) 80px;gap:12px;padding:16px;min-height:245px}
+  body.admin-shell .effect-preview-cover{height:142px}
+  body.admin-shell .effect-preview-copy h3{font-size:22px}
+  body.admin-shell .effect-preview-copy p{font-size:10px}
+  body.admin-shell .effect-preview-foot{align-items:flex-start;flex-direction:column}
+}
+@media(prefers-reduced-motion:reduce){
+  body.admin-shell .effect-preview-canvas,body.admin-shell .effect-preview-canvas canvas{display:none!important}
+}
