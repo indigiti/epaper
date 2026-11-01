@@ -33,6 +33,17 @@ assertSetup(!str_contains($out,'NEVER_SHOW_HASH'),'No stored token hash or secre
 assertSetup(!str_contains($out,$publisher['product_tenant_guid']),'Does not pin any selected publisher tenant globally');
 assertSetup(ConnectionSetup::missingScopes(['*'])===[],'Wildcard scopes recognized when already granted');
 assertSetup(ConnectionSetup::missingScopes(['domains.resolve'])!==[],'Incomplete scopes flagged');
+$previousScopes=['domains.resolve','tenant.read','access.read','entitlements.read','identity.verify',
+    'auth.exchange','usage.write','heartbeat.write','audit.write','errors.write'];
+assertSetup(ConnectionSetup::missingScopes($previousScopes)===['auth.direct'],
+    'Previously recommended machine scopes now flag missing publisher password-login permission');
+assertSetup(ConnectionSetup::missingScopes([...$previousScopes,'auth.direct'])===[],
+    'Publisher login service scope set passes without wildcard');
+$platformApp=file_get_contents(dirname(__DIR__).'/app/App.php');
+assertSetup(str_contains($platformApp,"ServiceAuth::requireScope('auth.direct')"),
+    'Platform password-login endpoint requires auth.direct');
+assertSetup(str_contains($platformApp,'auth.exchange,auth.direct,audit.write,errors.write'),
+    'New product-scoped machine accounts include publisher direct-login permission');
 $bad=false;try{ConnectionSetup::runtimeSnippet([...$publisher,'base_url'=>'http://epaper.example.com']);}catch(InvalidArgumentException){$bad=true;}
 assertSetup($bad,'Refuse unsafe HTTP application base URLs');
 $app=file_get_contents(dirname(__DIR__).'/app/App.php');
