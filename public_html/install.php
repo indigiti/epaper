@@ -1,4 +1,12 @@
 <?php
+// Installed production must never expose a reusable web setup form.
+header('Cache-Control: no-store, private');
+if((string)(getenv('DIGITI_INSTALL_ENABLED')?:'')!=='1'){
+    http_response_code(403);
+    header('X-Robots-Tag: noindex, nofollow');
+    echo '<h1>Installer disabled</h1>';
+    exit;
+}
 $root=dirname(__DIR__);
 $lock=$root.'/storage/install.lock';
 $privateDir=trim((string)(getenv('DIGITI_PRIVATE_CONFIG_DIR')?:''));
