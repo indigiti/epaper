@@ -275,6 +275,8 @@ final class ManualClippingView
             $h.='</article>';
         }
         if(!$marks)$h.='<p class="muted">No article outlines marked yet.</p>';
+        if(strtoupper($role)==='WEBDESK')
+            return $h.'</div></section></aside></div></section>';
         $h.='</div></section><section class="panel"><h2>Previously created private clips</h2>'
           .'<p class="muted">Convert an earlier manual clip to a selectable article outline.</p>'
           .'<div class="manual-saved-list">';
