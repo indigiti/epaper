@@ -3,7 +3,7 @@ declare(strict_types=1);
 $root=dirname(__DIR__);
 spl_autoload_register(static function(string $class)use($root):void{
     if(!str_starts_with($class,'EpaperSaas\\'))return;
-    $path=$root.'/app/'.str_replace('\\','/',substr($class,12)).'.php';
+    $path=$root.'/app/'.str_replace('\\','/',substr($class,strlen('EpaperSaas\\'))).'.php';
     if(is_file($path))require_once $path;
 });
 use EpaperSaas\Services\{ReaderUiControls,SettingsCatalog,AdminRoutePolicy};
