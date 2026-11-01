@@ -28,16 +28,17 @@ final class Onboarding
         if (!in_array($filter,['all','pending','review','live'],true)) $filter='all';
         if (strlen($q)>120) $q=substr($q,0,120);
         $users=Store::all('SELECT user_guid,display_name,email FROM platform_users WHERE status="ACTIVE" ORDER BY display_name ASC LIMIT 150');
-        $applications=Store::all('SELECT a.application_guid,a.product_guid,a.name,a.base_url
+        $applications=Store::all('SELECT a.application_guid,a.product_guid,a.name,a.base_url,p.name product_name,p.product_key
             FROM applications a JOIN products p ON p.product_guid=a.product_guid
-            WHERE p.product_key="EPAPER" AND a.status="ACTIVE" AND p.status="ACTIVE"
-            ORDER BY (a.application_key="city_epaper") DESC,a.name');
-        $tenants=Store::all('SELECT pt.product_tenant_guid,pt.display_name,o.display_name organisation_name,
+            WHERE a.status="ACTIVE" AND p.status="ACTIVE"
+            ORDER BY p.name,a.name');
+        $tenants=Store::all('SELECT pt.product_tenant_guid,pt.display_name,pt.product_guid,
+            p.name product_name,p.product_key,o.display_name organisation_name,
             (SELECT COUNT(*) FROM domains d WHERE d.product_tenant_guid=pt.product_tenant_guid AND d.status<>"REMOVED") domain_count,
             (SELECT COUNT(*) FROM memberships m JOIN platform_users u ON u.user_guid=m.user_guid WHERE m.organisation_guid=pt.organisation_guid AND m.status="ACTIVE" AND u.status="ACTIVE" AND m.role_key IN ("OWNER","ADMIN","PUBLISHER_ADMIN")) owner_count,
             (SELECT s.service_access_state FROM subscriptions s WHERE s.product_tenant_guid=pt.product_tenant_guid ORDER BY s.created_at DESC LIMIT 1) service_access_state
             FROM product_tenants pt JOIN products p ON p.product_guid=pt.product_guid JOIN organisations o ON o.organisation_guid=pt.organisation_guid
-            WHERE p.product_key="EPAPER" AND pt.status<>"REMOVED" AND o.status<>"REMOVED" ORDER BY o.display_name LIMIT 200');
+            WHERE p.status="ACTIVE" AND pt.status="ACTIVE" AND o.status="ACTIVE" ORDER BY p.name,o.display_name LIMIT 200');
         $detail='';
         if($selected!=='' && preg_match('/^[0-9a-f-]{36}$/i',$selected)) {
             $archived=Store::one('SELECT domain_guid,status FROM domains WHERE domain_guid=? LIMIT 1',[self::gid($selected)]);
@@ -55,7 +56,7 @@ final class Onboarding
             d.updated_at FROM domains d JOIN products p ON p.product_guid=d.product_guid
             JOIN organisations o ON o.organisation_guid=d.organisation_guid
             JOIN product_tenants pt ON pt.product_tenant_guid=d.product_tenant_guid
-            WHERE p.product_key="EPAPER" AND d.status="REMOVED"
+            WHERE d.status="REMOVED"
               AND d.domain_type IN ("CUSTOMER_CUSTOM","CUSTOMER_SUBDOMAIN")
             ORDER BY d.updated_at DESC LIMIT 100');
         View::layout('Publisher Onboarding',OnboardingDashboard::render($rows,$reviews,$users,$tenants,$filter,$q,$detail,$archived,$applications),[
@@ -98,11 +99,11 @@ final class Onboarding
         $target=Store::one('SELECT pt.product_tenant_guid,pt.organisation_guid,pt.display_name,o.display_name organisation_name
             FROM product_tenants pt JOIN organisations o ON o.organisation_guid=pt.organisation_guid
             JOIN products p ON p.product_guid=pt.product_guid
-            WHERE pt.product_tenant_guid=? AND pt.product_guid=? AND p.product_key="EPAPER"
+            WHERE pt.product_tenant_guid=? AND pt.product_guid=? AND p.status="ACTIVE"
                 AND pt.status="ACTIVE" AND o.status="ACTIVE" LIMIT 1',[
             self::gid($targetGuid),self::gid($domain['product_guid'])
         ]);
-        if(!$target) throw new \InvalidArgumentException('Select an active EPAPER tenant. Create the target organisation and tenant first.');
+        if(!$target) throw new \InvalidArgumentException('Select an active publisher tenant in this application product. Create the correct organisation and tenant first.');
         $admin=Auth::requireAdmin();
         Store::tx(function()use($domain,$target,$admin,$host):void{
             $affected=Store::exec('UPDATE domains SET organisation_guid=?,product_tenant_guid=?,is_primary=0,
@@ -145,27 +146,27 @@ final class Onboarding
             View::flash('This hostname is already registered. Its existing onboarding tracker is open below; do not create a duplicate.');
             Http::redirect(self::url($guid));
         }
-        $apps=Store::all('SELECT a.application_guid,p.product_guid,a.base_url,a.name
+        $apps=Store::all('SELECT a.application_guid,p.product_guid,a.base_url,a.name,p.name product_name,p.product_key
             FROM applications a JOIN products p ON p.product_guid=a.product_guid
-            WHERE p.product_key="EPAPER" AND a.status="ACTIVE" AND p.status="ACTIVE"
-            ORDER BY (a.application_key="city_epaper") DESC,a.name LIMIT 100');
-        if(!$apps)throw new \InvalidArgumentException('Register an active EPAPER application before connecting a website.');
+            WHERE a.status="ACTIVE" AND p.status="ACTIVE"
+            ORDER BY p.name,a.name LIMIT 100');
+        if(!$apps)throw new \InvalidArgumentException('Register an active application and product before connecting a publisher website.');
         $requested=trim((string)($_POST['application_guid']??''));
         $matches=array_values(array_filter($apps,static fn(array $candidate):bool=>
             strtolower((string)(parse_url((string)$candidate['base_url'],PHP_URL_HOST)?:''))===$host));
-        if(count($matches)>1)throw new \InvalidArgumentException('Several EPAPER applications use this hostname. Correct the application Base URLs before registering it.');
+        if(count($matches)>1)throw new \InvalidArgumentException('Several applications use this hostname. Correct their Base URLs before registering it.');
         if($requested!=='') {
             $chosen=array_values(array_filter($apps,static fn(array $candidate):bool=>$candidate['application_guid']===$requested));
-            if(!$chosen)throw new \InvalidArgumentException('Select an active EPAPER application for this website.');
+            if(!$chosen)throw new \InvalidArgumentException('Select an active application for this website.');
             $app=$chosen[0];
         } elseif(count($matches)===1) {
             $app=$matches[0];
         } elseif(count($apps)===1) {
             $app=$apps[0];
-        }else throw new \InvalidArgumentException('Select the intended EPAPER application for this website.');
+        }else throw new \InvalidArgumentException('Select the intended application for this website.');
         $domainType=CanonicalDomainRegistration::classify($host,$app);
         if($domainType==='SAAS_DEFAULT' && ($_POST['confirm_canonical']??'')!=='1')
-            throw new \InvalidArgumentException('Confirm that you are registering the main EPAPER application hostname, not another publisher alias.');
+            throw new \InvalidArgumentException('Confirm that you are registering the selected application hostname, not another publisher alias.');
         $owner=(string)($_POST['owner_user_guid']??'');
         if ($owner!==''&&!Store::value('SELECT 1 FROM platform_users WHERE user_guid=? AND status="ACTIVE"',[self::gid($owner)])) throw new \InvalidArgumentException('The selected owner is not an active Platform user.');
         $newGuid=Store::tx(function() use($type,$host,$app,$owner,$domainType):string {
@@ -182,17 +183,17 @@ final class Onboarding
                 Store::exec('INSERT INTO product_tenants(product_tenant_guid,organisation_guid,product_guid,display_name,status,created_at,updated_at) VALUES(?,?,?,?,"ACTIVE",NOW(6),NOW(6))',[self::gid($tenantGuid),self::gid($orgGuid),self::gid($app['product_guid']),$name]);
             } else {
                 $tenantGuid=(string)($_POST['product_tenant_guid']??'');
-                $row=Store::one('SELECT pt.organisation_guid FROM product_tenants pt JOIN products p ON p.product_guid=pt.product_guid JOIN organisations o ON o.organisation_guid=pt.organisation_guid WHERE pt.product_tenant_guid=? AND pt.product_guid=? AND p.product_key="EPAPER"
+                $row=Store::one('SELECT pt.organisation_guid FROM product_tenants pt JOIN products p ON p.product_guid=pt.product_guid JOIN organisations o ON o.organisation_guid=pt.organisation_guid WHERE pt.product_tenant_guid=? AND pt.product_guid=? AND p.status="ACTIVE"
                     AND pt.status="ACTIVE" AND o.status="ACTIVE" AND p.status="ACTIVE"',[
                     self::gid($tenantGuid),self::gid($app['product_guid'])
                 ]);
-                if (!$row) throw new \InvalidArgumentException('Choose an active EPAPER tenant.');
+                if (!$row) throw new \InvalidArgumentException('Choose an active publisher tenant belonging to the selected application product.');
                 $orgGuid=(string)$row['organisation_guid'];
             }
             $dGuid=Uuid::v7();
             $token='digiti_'.bin2hex(random_bytes(16));
             Store::exec('INSERT INTO domains(domain_guid,organisation_guid,product_guid,application_guid,product_tenant_guid,hostname,normalized_hostname,domain_type,status,is_primary,verification_token,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,"AWAITING_DNS",0,?,NOW(6),NOW(6))',[
-                self::gid($dGuid),self::gid($orgGuid),self::gid($app['product_guid']),self::gid($app['application_guid']),$host,$host,$domainType,$token
+                self::gid($dGuid),self::gid($orgGuid),self::gid($app['product_guid']),self::gid($app['application_guid']),self::gid($tenantGuid),$host,$host,$domainType,$token
             ]);
             Store::exec('INSERT INTO application_redirect_uris(redirect_guid,application_guid,redirect_uri,status,created_at) VALUES(?,?,?,"ACTIVE",NOW(6)) ON DUPLICATE KEY UPDATE status="ACTIVE"',[
                 self::gid(Uuid::v7()),self::gid($app['application_guid']),'https://'.$host.'/auth/callback'
@@ -253,7 +254,7 @@ final class Onboarding
         if (!$fresh) throw new \RuntimeException('Domain no longer exists.');
         if (!in_array((string)$fresh['status'],['ROUTING_VALID','SSL_PROVISIONING','ACTIVE'],true)||empty($fresh['verified_at'])) throw new \RuntimeException('DNS must be verified before go-live approval.');
         if (!self::state($fresh)['steps'][0]['done'])
-            throw new \RuntimeException('The EPAPER product, application, organisation and tenant must be active and correctly linked before go-live.');
+            throw new \RuntimeException('The product, application, organisation and tenant must be active and correctly linked before go-live.');
         if ((int)$fresh['owner_count']===0) throw new \RuntimeException('Assign an active publisher OWNER, ADMIN or PUBLISHER_ADMIN before go-live.');
         if ((string)($fresh['service_access_state']??'')!=='FULL') throw new \RuntimeException('Activate a subscription with FULL service access before go-live.');
         $edge=json_decode((string)($fresh['edge_metadata']??''),true)?:[];
@@ -290,7 +291,7 @@ final class Onboarding
             (SELECT COUNT(*) FROM memberships m JOIN platform_users u ON u.user_guid=m.user_guid WHERE m.organisation_guid=d.organisation_guid AND m.status="ACTIVE" AND u.status="ACTIVE" AND m.role_key IN ("OWNER","ADMIN","PUBLISHER_ADMIN")) owner_count,
             (SELECT s.service_access_state FROM subscriptions s WHERE s.product_tenant_guid=d.product_tenant_guid ORDER BY s.created_at DESC LIMIT 1) service_access_state
             FROM domains d
-            JOIN products p ON p.product_guid=d.product_guid AND p.product_key="EPAPER"
+            JOIN products p ON p.product_guid=d.product_guid
             JOIN organisations o ON o.organisation_guid=d.organisation_guid
             JOIN product_tenants pt ON pt.product_tenant_guid=d.product_tenant_guid
             JOIN applications a ON a.application_guid=d.application_guid
@@ -359,7 +360,7 @@ final class Onboarding
         if($canonicalHost!=='' && strcasecmp($canonicalHost,$hostname)!==0) {
             $sharesMain=(bool)Store::value('SELECT 1 FROM domains
                 WHERE normalized_hostname=? AND product_tenant_guid=? AND status<>"REMOVED" LIMIT 1',[
-                strtolower($canonicalHost),self::gid($d['product_tenant_guid'])
+                strtolower($canonicalHost),self::gid($d['product_guid']),self::gid($d['product_tenant_guid'])
             ]);
         }
         $sharedNotice=$sharesMain
@@ -396,7 +397,7 @@ final class Onboarding
             $destinations=Store::all('SELECT pt.product_tenant_guid,pt.display_name,o.display_name organisation_name
                 FROM product_tenants pt JOIN organisations o ON o.organisation_guid=pt.organisation_guid
                 JOIN products p ON p.product_guid=pt.product_guid
-                WHERE p.product_key="EPAPER" AND pt.status="ACTIVE" AND o.status="ACTIVE"
+                WHERE pt.product_guid=? AND p.status="ACTIVE" AND pt.status="ACTIVE" AND o.status="ACTIVE"
                 AND pt.product_tenant_guid<>? ORDER BY o.display_name,pt.display_name LIMIT 200',[
                 self::gid($d['product_tenant_guid'])
             ]);
@@ -405,7 +406,7 @@ final class Onboarding
             $reassign='<details class="ob-reassign" id="change-publisher-tenant"><summary>Wrong newspaper showing? Change publisher tenant</summary>'
                 .'<div class="ob-reassign-body"><p><strong>Current publisher:</strong> '.self::e($d['organisation_name'].' / '.$d['tenant_name']).'</p>'
                 .'<p>This operation changes the EXISTING domain record; it does not reinstall ePaper or copy editions. '
-                .'Create a separate organisation and EPAPER product tenant first if this publication needs its own content. '
+                .'Create a separate organisation and publisher tenant for this application product if it needs its own content. '
                 .'The hostname will be placed in AWAITING_DNS and remain unavailable until verification and onboarding are completed. '
                 .'Existing ePaper caches may temporarily continue serving old content until their TTL expires or an administrator clears them.</p>'
                 .'<div class="actions"><a class="button small" href="/admin/organisations">Organisations</a>'
