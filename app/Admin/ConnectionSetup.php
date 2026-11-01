@@ -16,7 +16,7 @@ final class ConnectionSetup
 {
     private const REQUIRED_SCOPES = [
         'domains.resolve', 'tenant.read', 'access.read', 'entitlements.read',
-        'identity.verify', 'auth.exchange', 'usage.write', 'heartbeat.write',
+        'identity.verify', 'auth.exchange', 'auth.direct', 'usage.write', 'heartbeat.write',
         'audit.write', 'errors.write',
     ];
 
@@ -177,12 +177,16 @@ final class ConnectionSetup
             $accountRows.='<tr><td>'.self::e($account['name']).'</td>'
                 .'<td>'.self::e($account['status']).'</td>'
                 .'<td>'.($ready?'Scope-ready':self::e($missing?'Missing: '.implode(', ',$missing):'Inactive')).'</td>'
-                .'<td>'.self::e($account['last_used_at']??'Never').'</td></tr>';
+                .'<td>'.self::e($account['last_used_at']??'Never').'</td>'
+                .'<td><a href="/admin/service-accounts/'.rawurlencode((string)$account['service_account_guid']).'/edit">Edit scopes</a></td></tr>';
         }
         $accountSection='<section class="card"><h2>Product-scoped service accounts</h2>'
             .'<p>Platform stores only token hashes: it cannot display an existing service-token secret. '
-            .'A green scope check does not prove the token configured in Cloudways is valid.</p>'
-            .($accounts?'<div class="table-wrap"><table><thead><tr><th>Account</th><th>Status</th><th>Scopes</th><th>Last used</th></tr></thead><tbody>'
+            .'A green scope check does not prove the token configured in Cloudways is valid. '
+            .'Publisher email/password sign-in requires the additional <code>auth.direct</code> scope, '
+            .'even when domain binding reports PLATFORM_BOUND. Edit the existing ACTIVE account to '
+            .'add that scope without rotating its credential.</p>'
+            .($accounts?'<div class="table-wrap"><table><thead><tr><th>Account</th><th>Status</th><th>Scopes</th><th>Last used</th><th>Action</th></tr></thead><tbody>'
                 .$accountRows.'</tbody></table></div>'
                 :'<p>No non-archived product-scoped service account was found. Create one for this active product.</p>')
             .'<a class="button" href="/admin/service-accounts">Create / rotate service token</a>'
