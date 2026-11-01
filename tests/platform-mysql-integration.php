@@ -241,8 +241,10 @@ try{
         status,created_at,updated_at) VALUES(?,"ci@example.test","CI Admin","hash","SUPER_ADMIN","ACTIVE",NOW(6),NOW(6))',
         [Uuid::toBinary($adminGuid)]);
     $auditWrite=(new ReflectionMethod(\Digiti\Admin\RegistryCleanup::class,'audit'));
+    $auditChildren=(new ReflectionMethod(\Digiti\Admin\RegistryCleanup::class,'auditProductChildren'));
     $purgedHostnames=[];
-    Store::tx(function()use($release,$auditWrite,$ids,$adminGuid,&$purgedHostnames):void {
+    Store::tx(function()use($release,$auditWrite,$auditChildren,$ids,$adminGuid,&$purgedHostnames):void {
+        $auditChildren->invoke(null,['admin_guid'=>$adminGuid],$ids['product']);
         $impact=$release->invokeArgs(null,[$ids['product'],&$purgedHostnames]);
         $auditWrite->invoke(null,['admin_guid'=>$adminGuid],'products',$ids['product'],'EPAPER',$impact);
     });
@@ -282,6 +284,14 @@ try{
     }
     checkDb((int)Store::value('SELECT COUNT(*) FROM audit_events WHERE action="registry.release"
         AND resource_guid=?',[ $bin('product') ])===1,'permanent cleanup creates a durable trace to original product GUID');
+
+    foreach([['domain',$ids['domain']],['application',$ids['application']],
+        ['product-tenant',$ids['tenantAMG']]] as [$type,$id]) {
+        checkDb((int)Store::value('SELECT COUNT(*) FROM audit_events WHERE action="registry.release"
+            AND resource_type=? AND resource_guid=?',[$type,Uuid::toBinary($id)])===1,
+            'child registry audit retains original '.$type.' GUID and label');
+    }
+
     checkDb((int)Store::value('SELECT COUNT(*) FROM features WHERE feature_key="EDITION_LIMIT"')===0,
         'retained feature history no longer reserves global feature keys');
     $orgRelease=(new ReflectionMethod(\Digiti\Admin\RegistryCleanup::class,'releaseOrganisation'));
