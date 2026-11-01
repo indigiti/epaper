@@ -29,3 +29,5 @@ jobs:
         run: php tests/onboarding-source-contract.php
       - name: Operator UI behaviour and navigation smoke checks
         run: php tests/operator-ui-checks.php
+      - name: Registry icon, restoration and staging reset checks
+        run: php tests/registry-action-checks.php
