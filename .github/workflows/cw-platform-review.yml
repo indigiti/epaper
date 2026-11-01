@@ -67,11 +67,13 @@ jobs:
           base='https://platform.digiti.in'
           failed=False
           for path in ['/health/live','/login','/install.php']:
+              sample=''
               req=urllib.request.Request(base+path,headers={'User-Agent':'DigitiPlatformReadOnlyAudit/1.0','Cache-Control':'no-cache'})
               try:
                   with urllib.request.urlopen(req,timeout=12) as r:
                       status=r.status
                       content_type=r.headers.get('content-type','')
+                      sample=r.read(200000).decode('utf-8','replace')
               except urllib.error.HTTPError as e:
                   status=e.code
                   content_type=e.headers.get('content-type','')
@@ -82,6 +84,8 @@ jobs:
               print(path+': HTTP '+str(status)+' ('+content_type.split(';')[0]+')')
               if path=='/health/live' and status!=200: failed=True
               if path=='/install.php' and status==200:
+                  matches=all(marker in sample for marker in ['Install Platform','name="db_name"','name="admin_email"'])
+                  print('Installer form signature found: '+('YES' if matches else 'NO'))
                   print('SECURITY ALERT: publicly accessible installer may be unlocked')
                   failed=True
           if failed:
