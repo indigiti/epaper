@@ -53,11 +53,40 @@ final class Auth
             if(!Http::csrfValid()){$error='Your sign-in page expired. Please refresh and try again.';Http::rotateCsrf();$email=strtolower(trim((string)($_POST['email']??'')));$password='';$totp='';}else{$email=strtolower(trim((string)($_POST['email']??'')));$password=(string)($_POST['password']??'');$totp=trim((string)($_POST['totp']??''));$ip=(string)($_SERVER['REMOTE_ADDR']??'unknown');$bucket='login:'.$ip.':'.hash('sha256',$email);
             if(!RateLimiter::allow($bucket,10,300)){$error='Too many sign-in attempts. Please try again in a few minutes.';}
             elseif($email===''||$password===''){$error='Enter your email address and password.';}
-            else{try{$identity=PlatformClient::instance()->directAuth(RequestContext::tenantGuid(),$email,$password,$totp);if(empty($identity['user']['user_guid']))throw new \RuntimeException('IDENTITY_INVALID');self::establish($identity);Http::redirect($return);}catch(\Throwable $e){$error=in_array($e->getMessage(),['Too many sign-in attempts. Try again later.'],true)?$e->getMessage():'Unable to sign in with those credentials.';}}
+            else{try{$identity=PlatformClient::instance()->directAuth(RequestContext::tenantGuid(),$email,$password,$totp);if(empty($identity['user']['user_guid']))throw new \RuntimeException('IDENTITY_INVALID');self::establish($identity);Http::redirect($return);}catch(\Throwable $e){
+                $error=self::loginFailureMessage($e);
+                $reason=strtoupper(trim($e->getMessage()));
+                if(in_array($reason,['SERVICE_SCOPE_DENIED','SERVICE_AUTH_INVALID','SERVICE_AUTH_REQUIRED',
+                    'SERVICE_PRODUCT_MISMATCH','SERVICE_PRODUCT_INACTIVE','AUTH_CLIENT_INVALID',
+                    'AUTH_PRODUCT_MISMATCH','TENANT_INACTIVE'],true)){
+                    // Never log credentials or reveal Platform internals in the public login UI.
+                    error_log('[ePaper publisher login] Platform integration error '.$reason
+                        .' request_guid='.Http::requestGuid());
+                }
+            }}
             $password='';$totp='';}
         }
         $brand=(string)(RequestContext::get('tenant_name')?:'ePaper SaaS');$body='<section class="auth-shell"><div class="auth-panel"><div class="auth-brand"><span class="brand-mark">E</span><span>'.View::e($brand).'</span></div><span class="eyebrow">SIGN IN</span><h1>Welcome back</h1><p class="muted">Readers can continue with a mobile number. Publisher and admin identities use Digiti credentials.</p><p><a class="btn primary auth-submit" href="/desktop-login?return='.rawurlencode($return).'">Approve with EP-DI app</a></p><p><a class="btn ghost auth-submit" href="/mobile-login?return='.rawurlencode($return).'">Use mobile OTP</a></p><div class="auth-divider"><span>Publisher / admin</span></div>'.($error?'<div class="alert auth-error">'.View::e($error).'</div>':'').'<form method="post" action="/login" class="auth-form">'.'<input type="hidden" name="_csrf" value="'.View::e(Http::csrf()).'"><input type="hidden" name="return" value="'.View::e($return).'"><label>Email address<input type="email" name="email" value="'.View::e($email).'" autocomplete="username" inputmode="email" required autofocus></label><label>Password<input type="password" name="password" autocomplete="current-password" required></label><label>Authenticator code <span class="muted">(if enabled)</span><input name="totp" autocomplete="one-time-code" inputmode="numeric" pattern="[0-9]*"></label><button class="btn ghost auth-submit" type="submit">Publisher / admin sign in</button></form><p class="auth-security">Reader mobile accounts stay local to this ePaper. Publisher/admin authentication remains verified by Digiti Platform.</p></div></section>';View::layout('Sign in',$body,['brand'=>$brand,'auth'=>true]);
     }
+    /** Map trusted Platform codes to safe user-facing feedback; never reveal passwords or account secrets. */
+    public static function loginFailureMessage(\Throwable $error): string
+    {
+        $code=strtoupper(trim($error->getMessage()));
+        return match($code){
+            'AUTH_TENANT_MEMBERSHIP_REQUIRED'=>
+                'This Digiti account has no active access to this publisher. Ask the publisher owner to assign your account.',
+            'SERVICE_SCOPE_DENIED','SERVICE_AUTH_INVALID','SERVICE_AUTH_REQUIRED',
+            'SERVICE_PRODUCT_MISMATCH','SERVICE_PRODUCT_INACTIVE',
+            'AUTH_CLIENT_INVALID','AUTH_PRODUCT_MISMATCH','TENANT_INACTIVE'=>
+                'Publisher sign-in is temporarily unavailable. Contact the site administrator.',
+            'AUTH_RATE_LIMITED'=>
+                'Too many sign-in attempts. Please try again in a few minutes.',
+            default=>str_starts_with($code,'PLATFORM UNAVAILABLE')?
+                'Publisher sign-in is temporarily unavailable. Contact the site administrator.':
+                'Unable to sign in with those credentials.',
+        };
+    }
+
     public static function mobileLogin(string $method): never
     {
         self::start();Http::privateNoStore();
