@@ -17,6 +17,10 @@ final class DomainMapping
     private static function isGuid(mixed $value): bool {
         return is_string($value) && preg_match('/^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i',$value)===1;
     }
+    private static function requestedTenant(array $input): string {
+        $quick=trim((string)($input['tenant_quickpick']??''));
+        return $quick!==''?$quick:trim((string)($input['product_tenant_guid']??''));
+    }
     private static function canonical(string $url): string {
         return strtolower((string)(parse_url($url,PHP_URL_HOST)?:''));
     }
@@ -130,7 +134,9 @@ final class DomainMapping
                 ?'For this website, select DCN / DCNEP to use DCN’s own editions.'
                 :'Choose a separate publisher account when this website needs different editions.').'</small></label>'
             .'<label>Application<select name="application_guid" required>'.$appOptions.'</select>'
-            .'<small>Normally leave this as EPAPER. Changing it requires matching DNS, SSL and sign-in settings on the new application.</small></label>'
+            .'<small>'.(count($applications)===1
+                ?'Only one application is registered for this product. Leave this as EPAPER for DCN.'
+                :'Normally leave this as the current ePaper application. Moving applications also requires matching DNS, SSL and sign-in settings.').'</small></label>'
             .'</div>'.($quickChoices!==''?'<div class="domain-mapping-quick"><h3>Can’t use the dropdown? Select a newspaper here instead</h3>'
                 .'<p>Choose one option below to override the dropdown selection. Keep Application on EPAPER unless moving hosting.</p>'
                 .'<div class="domain-mapping-choice-list">'.$quickChoices.'</div></div>':'')
@@ -154,8 +160,7 @@ final class DomainMapping
         $d=self::domain($guid);
         if(!$d) throw new \InvalidArgumentException('Domain not found.');
         if(!self::mutable($d)) throw new \InvalidArgumentException('This application or system domain cannot be reassigned.');
-        $quickPick=trim((string)($_POST['tenant_quickpick']??''));
-        $tenantGuid=$quickPick!==''?$quickPick:trim((string)($_POST['product_tenant_guid']??''));
+        $tenantGuid=self::requestedTenant($_POST);
         $appGuid=trim((string)($_POST['application_guid']??''));
         $host=strtolower((string)$d['hostname']);
         $typed=strtolower(trim((string)($_POST['confirm_hostname']??'')));
