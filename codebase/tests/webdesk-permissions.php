@@ -87,8 +87,8 @@ checkWebDesk(str_contains($marks,"'EDITOR','WEBDESK'"),'WebDesk must own outline
 checkWebDesk(str_contains($marks,"Only editors can remove an outline") &&
     str_contains($marks,"Only editors can change outline visibility"),
     'Manual mark mutations are independently protected');
-checkWebDesk(str_contains($view,"strtoupper($role)!=='WEBDESK'") &&
-    str_contains($view,"strtoupper($role)==='WEBDESK'"),
+checkWebDesk(str_contains($view,"strtoupper(\$role)!=='WEBDESK'") &&
+    str_contains($view,"strtoupper(\$role)==='WEBDESK'"),
     'WebDesk clipping UI hides controls outside permission');
 checkWebDesk(str_contains($desk,'action="/admin/editions/')&&
     !str_contains($desk,'/archive')&&!str_contains($desk,'/trash')&&
