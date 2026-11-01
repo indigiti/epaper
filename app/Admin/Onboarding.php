@@ -165,6 +165,8 @@ final class Onboarding
             $app=$apps[0];
         }else throw new \InvalidArgumentException('Select the intended application for this website.');
         $domainType=CanonicalDomainRegistration::classify($host,$app);
+        if($domainType==='SAAS_DEFAULT' && $type==='new')
+            throw new \InvalidArgumentException('The application main hostname must be linked to an existing publisher tenant. Choose Connect another website and select its existing tenant.');
         if($domainType==='SAAS_DEFAULT' && ($_POST['confirm_canonical']??'')!=='1')
             throw new \InvalidArgumentException('Confirm that you are registering the selected application hostname, not another publisher alias.');
         $owner=(string)($_POST['owner_user_guid']??'');
