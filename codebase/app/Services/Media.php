@@ -30,7 +30,8 @@ final class Media
     public static function send(string $token): never
     {
         $d=self::verify($token);$a=self::asset($d['a']);if(!$a)throw new \RuntimeException('Media asset not found');$status=Store::value('SELECT e.status FROM ep_page_assets a JOIN ep_pages p ON p.tenant_guid=a.tenant_guid AND p.page_guid=a.page_guid JOIN ep_editions e ON e.tenant_guid=p.tenant_guid AND e.edition_guid=p.edition_guid WHERE a.tenant_guid=? AND a.asset_guid=?',[Uuid::toBinary(RequestContext::tenantGuid()),Uuid::toBinary($d['a'])]);
-        if(strtoupper((string)$status)!=='PUBLISHED'&&!Auth::currentMembership())throw new \RuntimeException('Media is not publicly available');
+        $membership=Auth::currentMembership();$roles=(array)Config::get('auth.admin_roles',['OWNER','ADMIN','PUBLISHER_ADMIN','EDITOR','OPERATOR']);$staff=$membership&&in_array(strtoupper((string)($membership['role_key']??'')),$roles,true);
+        if(strtoupper((string)$status)!=='PUBLISHED'&&!$staff)throw new \RuntimeException('Media is not publicly available');
         $relative=ltrim((string)$a['storage_path'],'/');
         $path=self::safeStoragePath($relative);if(!$path)throw new \RuntimeException('Media file missing');header('Content-Type: '.$a['mime_type']);header('Content-Length: '.filesize($path));$remaining=max(0,(int)($d['e']??time())-time());header('Cache-Control: private, max-age='.min($remaining,300).', must-revalidate');header('X-Content-Type-Options: nosniff');header('Cross-Origin-Resource-Policy: same-origin');header('Referrer-Policy: no-referrer');header('Vary: Accept-Encoding');header('Accept-Ranges: bytes');$xAccel=trim((string)Config::get('media.x_accel_prefix',''));if($xAccel!==''){PerformanceTelemetry::mediaDelivery('x-accel');header('X-EPDI-Media-Delivery: x-accel');header('X-Accel-Redirect: '.rtrim($xAccel,'/').'/'.$relative);exit;}PerformanceTelemetry::mediaDelivery('php');header('X-EPDI-Media-Delivery: php');readfile($path);exit;
     }
