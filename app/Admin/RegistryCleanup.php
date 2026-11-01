@@ -43,6 +43,7 @@ final class RegistryCleanup
         if(!$row)return ['exists'=>false,'blockers'=>['Record not found'],'counts'=>[]];
         $blockers=[];
         if($row['status']!=='REMOVED')$blockers[]='Archive the existing record before cleanup. Active and suspended records cannot be purged.';
+        if($type!=='domains' && str_starts_with((string)$row[$labelCol],'RETIRED_'))$blockers[]='This record has already released its identifier; only its minimal historical reference is retained.';
         $counts=[];
         $bin=self::bin($guid);
         if($type==='domains') {
@@ -51,8 +52,10 @@ final class RegistryCleanup
         } elseif($type==='organisations') {
             $counts['Product tenants']=(int)Store::value('SELECT COUNT(*) FROM product_tenants WHERE organisation_guid=?',[$bin]);
             $counts['Memberships']=(int)Store::value('SELECT COUNT(*) FROM memberships WHERE organisation_guid=?',[$bin]);
+            $counts['Domains']=(int)Store::value('SELECT COUNT(*) FROM domains WHERE organisation_guid=?',[$bin]);
             $active=(int)Store::value('SELECT COUNT(*) FROM product_tenants WHERE organisation_guid=? AND status<>"REMOVED"',[$bin])
-                +(int)Store::value('SELECT COUNT(*) FROM memberships WHERE organisation_guid=? AND status<>"REMOVED"',[$bin]);
+                +(int)Store::value('SELECT COUNT(*) FROM memberships WHERE organisation_guid=? AND status<>"REMOVED"',[$bin])
+                +(int)Store::value('SELECT COUNT(*) FROM domains WHERE organisation_guid=? AND status<>"REMOVED"',[$bin]);
             if($active>0)$blockers[]='Active tenants or memberships are still linked to this organisation.';
         } elseif($type==='products') {
             $queries=[
@@ -73,7 +76,7 @@ final class RegistryCleanup
                 'application'=>'SELECT COUNT(*) FROM applications WHERE product_guid=? AND status<>"REMOVED"',
                 'publisher tenant'=>'SELECT COUNT(*) FROM product_tenants WHERE product_guid=? AND status<>"REMOVED"',
                 'service account'=>'SELECT COUNT(*) FROM service_accounts WHERE product_guid=? AND status<>"REMOVED"',
-                'plan'=>'SELECT COUNT(*) FROM plans WHERE product_guid=? AND status<>"REMOVED"'
+                'service account status'=>'SELECT COUNT(*) FROM service_accounts WHERE product_guid=? AND status<>"REMOVED"'
             ];
             foreach($activeSql as $label=>$sql)
                 if((int)Store::value($sql,[$bin])>0)$blockers[]='A '.$label.' is not archived. Archive all linked '.$label.' records first.';
@@ -185,6 +188,8 @@ final class RegistryCleanup
         // Entitlements are operational grants; metered usage is billing history.
         Store::exec('DELETE g FROM entitlement_grants g JOIN product_tenants pt
             ON pt.product_tenant_guid=g.product_tenant_guid WHERE pt.product_guid=?',[$bin]);
+        // A retired product cannot sell new plans. Retire its plans as part of cleanup.
+        Store::exec('UPDATE plans SET status="REMOVED",updated_at=NOW(6) WHERE product_guid=?',[$bin]);
         // Remove only plans never used by a subscription. Keep financial plans and prices.
         $unused=Store::all('SELECT pl.plan_guid FROM plans pl WHERE pl.product_guid=?
             AND NOT EXISTS (SELECT 1 FROM subscriptions s WHERE s.plan_guid=pl.plan_guid)',[$bin]);
@@ -248,6 +253,7 @@ final class RegistryCleanup
     {
         $bin=self::bin($guid);
         $links=(int)Store::value('SELECT COUNT(*) FROM product_tenants WHERE organisation_guid=?',[$bin])
+            +(int)Store::value('SELECT COUNT(*) FROM domains WHERE organisation_guid=?',[$bin])
             +(int)Store::value('SELECT COUNT(*) FROM memberships WHERE organisation_guid=?',[$bin])
             +(int)Store::value('SELECT COUNT(*) FROM impersonation_grants WHERE organisation_guid=?',[$bin]);
         if($links){
@@ -262,7 +268,7 @@ final class RegistryCleanup
     {
         Store::exec('INSERT INTO audit_events(audit_event_guid,occurred_at,actor_type,actor_user_guid,
             action,resource_type,resource_guid,result,request_guid,ip_address,user_agent,before_data,metadata)
-            VALUES(?,NOW(6),"PLATFORM_ADMIN",?,"registry.release",?,?,"SUCCESS",?,?,?,?,?,?)',[
+            VALUES(?,NOW(6),"PLATFORM_ADMIN",?,"registry.release",?,?,"SUCCESS",?,?,?,?,?)',[
             self::bin(Uuid::v7()),self::bin($admin['admin_guid']),
             rtrim($type,'s'),self::bin($guid),self::bin(Http::requestGuid()),
             (string)($_SERVER['REMOTE_ADDR']??''),substr((string)($_SERVER['HTTP_USER_AGENT']??''),0,255),
