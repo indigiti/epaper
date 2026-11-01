@@ -1,0 +1,53 @@
+name: EP-DI Reader Staging Acceptance (Manual)
+
+on:
+  workflow_dispatch:
+    inputs:
+      reader_url:
+        description: "Full published-reader URL on protected staging (never use live tenant data)"
+        required: true
+        type: string
+      unpublished_page_guid:
+        description: "Optional unpublished staging fixture GUID for negative authorization"
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  security-posture:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Enforce no tracked secrets or newspaper binaries
+        run: python3 codebase/tests/security-source-guard.py
+  staging-browser:
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: codebase
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install pinned browser acceptance dependencies
+        run: |
+          npm install --no-save --no-package-lock playwright@1.56.1 @axe-core/playwright@4.10.2
+          npx playwright install --with-deps chromium
+      - name: Exercise responsive Reader, OCR, dialogs, media authorization and Web Vitals
+        env:
+          EPDI_READER_TEST_URL: ${{ inputs.reader_url }}
+          EPDI_TEST_UNPUBLISHED_PAGE_GUID: ${{ inputs.unpublished_page_guid }}
+          EPDI_MAX_LCP_MS: '4000'
+          EPDI_MAX_CLS: '0.1'
+        run: node tests/reader-live-browser.mjs
+      - name: Publish screenshot, accessibility and performance evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: reader-staging-acceptance-evidence
+          path: codebase/tests/reader-live-screenshots/*
+          if-no-files-found: error
+          retention-days: 14
