@@ -77,10 +77,10 @@ ok(str_contains($restore,'confirm_canonical'),'canonical recovery requires extra
 ok(str_contains($restore,'self::dependencyGuide($record)'),'domain Restore displays real parent dependency inventory');
 
 ok(str_contains($restore,'self::freshStartAlternative($record)'),'canonical recovery shows the decline-restore choice');
-ok(str_contains($restore,'I do not want to restore the old product or other records'),'non-restore alternative is plainly labeled');
-ok(str_contains($restore,'Do not restore — leave existing records archived'),'declining recovery navigates without modifying records');
-ok(str_contains($restore,'The EPAPER product key and'),'fresh setup explains the unique product key conflict');
-ok(str_contains($restore,'separate staging Cloudways application'),'fresh setup requires an isolated environment');
+ok(str_contains($restore,'Do not restore — release archived resources'),'canonical recovery now offers permanent archived cleanup');
+ok(str_contains($restore,"'/admin/products/'.\$productGuid.'/release'"),'archived product is directly linked to resource release');
+ok(str_contains($restore,'original GUID references, invoices, payments, refunds'),'cleanup alternative explains immutable history');
+ok(str_contains($restore,"'/admin/domains/'.\$domainGuid.'/release'"),'archived domain is independently releasable');
 $optOut=methodSource($restore,'freshStartAlternative');
 ok(!str_contains($optOut,'Store::exec(')&&!str_contains($optOut,'Store::tx('),
     'decline-restore page does not mutate production records');
@@ -102,6 +102,23 @@ ok(str_contains($ui,'archivedTable($archived)'),'archived publisher inventory vi
 ok(str_contains($app,'DomainTools::publicHostname((string)'),'domain registry normalizes pasted URLs');
 
 ok(str_contains($app,'private function reuseExisting('),'duplicate records share one safe recovery redirect');
+
+$cleanup=source('app/Admin/RegistryCleanup.php');
+$actions=source('app/Admin/ActionUi.php');
+ok(str_contains($app,'RegistryCleanup::run('),'super-admin resource cleanup route wired before CRUD dispatch');
+ok(str_contains($actions,"/release"),'archived rows show permanent release alongside Restore');
+ok(str_contains($cleanup,'superAdmin()'),'cleanup requires super administrator permission');
+ok(str_contains($cleanup,'Store::tx(')&&str_contains($cleanup,'self::audit('),'cleanup and durable audit share a transaction');
+ok(str_contains($cleanup,'DELETE FROM domains WHERE product_guid=? AND status="REMOVED"'),'archived domain registrations are physically removed');
+ok(str_contains($cleanup,'DELETE FROM applications WHERE product_guid=? AND status="REMOVED"'),'archived applications are physically removed');
+ok(str_contains($cleanup,'UPDATE products SET product_key=?'),'archived products release unique keys while retaining billed identity');
+ok(str_contains($cleanup,'subscriptions')&&str_contains($cleanup,'invoices')&&str_contains($cleanup,'payments'),
+    'financial record tables participate in retention checks');
+ok(!str_contains($cleanup,"DELETE FROM invoices")&&!str_contains($cleanup,"DELETE FROM payments")
+    &&!str_contains($cleanup,"DELETE FROM subscriptions")&&!str_contains($cleanup,"DELETE FROM audit_events"),
+    'cleanup never deletes immutable financial/audit records');
+ok(str_contains($cleanup,"\$retained>0"),'retained billing lineage prevents deletion of original product GUID');
+
 foreach(['organisations','products','applications','productTenants','users'] as $method)
     ok(str_contains(methodSource($app,$method),'$this->reuseExisting('),
         'existing '. $method .' record opens Edit or Restore rather than duplicate INSERT');
