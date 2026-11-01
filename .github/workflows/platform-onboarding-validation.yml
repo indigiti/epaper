@@ -1,0 +1,27 @@
+name: Platform onboarding source validation
+
+on:
+  pull_request:
+    paths:
+      - 'platform/**'
+      - '.github/workflows/platform-onboarding-validation.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  platform-onboarding-lint:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          coverage: none
+      - name: PHP syntax checks
+        run: |
+          find platform/app platform/public_html -name '*.php' -type f -print0 | xargs -0 -n1 php -l
+      - name: Onboarding contract tests
+        run: php platform/tests/onboarding-source-contract.php
