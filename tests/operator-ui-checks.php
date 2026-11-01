@@ -57,6 +57,7 @@ $css=file_get_contents($root.'/public_html/assets/platform-ui.css');
 check(str_contains($view,'platform-ui.css?v=')&&str_contains($view,"hash_file('sha256'"),'CSS content fingerprinting');
 check(str_contains($app,'Home::index();')&&str_contains($app,'Help::index();'),'simple pages are routed');
 check(str_contains($app,'Existing team members')&&str_contains($app,'platform-form-disclosure'),'existing staff come before the optional add form');
+check(str_contains($app,'Add team member</button></div></form></div></details>'),'team creation disclosure uses valid closing tags');
 check(str_contains($home,'home-issue')&&str_contains($home,'organisation_name'),'homepage shows current tenant-mapping blockers');
 check(str_contains($help,'Wrong newspaper appears')&&str_contains($help,'Product tenant'),'help explains tenant isolation');
 check(str_contains($onboard,'$customCode!==')&&str_contains($panel,'Advanced options (optional)'),'publisher code generated with optional override');
