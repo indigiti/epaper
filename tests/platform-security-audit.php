@@ -70,7 +70,7 @@ auditCheck(str_contains($worker,'status IN ("AWAITING_DNS","ROUTING_VALID","SSL_
     'worker excludes archived and suspended domains');
 auditCheck(str_contains($worker,'WHERE domain_guid=? AND status=?'),
     'worker cannot overwrite lifecycle changes made during DNS check');
-auditCheck(!str_contains($worker,"$status='ACTIVE';"),
+auditCheck(!str_contains($worker,'$status=\'ACTIVE\';'),
     'worker never autoactivates a newspaper from edge status');
 auditCheck(str_contains($worker,'no verified delivery handler') &&
     !str_contains($worker,'status="PROCESSED",processed_at=NOW(6)'),
@@ -91,7 +91,7 @@ auditCheck(str_contains($appSource,'AUTH_TENANT_MEMBERSHIP_REQUIRED') &&
     str_contains($appSource,'organisation_guid=? AND status="ACTIVE" LIMIT 1'),
     'direct login requires selected publisher membership');
 auditCheck(str_contains($appSource,'IMPERSONATION_ALREADY_USED') &&
-    str_contains($appSource,"$role!=='SUPER_ADMIN'"),
+    str_contains($appSource,'$role!==\'SUPER_ADMIN\''),
     'support impersonation is superadmin-only and one-time');
 auditCheck(str_contains($service,'checkTenant(') && str_contains($service,'checkProduct(')
     && str_contains($service,'checkOrganisation('),
