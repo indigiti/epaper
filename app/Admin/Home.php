@@ -26,7 +26,15 @@ final class Home
             JOIN applications a ON a.application_guid=d.application_guid
             WHERE d.status<>"REMOVED" ORDER BY d.updated_at DESC LIMIT 80');
         $confirmed=[];
-        foreach(Store::all('SELECT DISTINCT resource_guid FROM audit_events WHERE action="domain.onboarding.confirm" AND resource_type="domain" AND result="SUCCESS" ORDER BY resource_guid LIMIT 500') as $event){
+        foreach(Store::all('SELECT DISTINCT approved.resource_guid FROM audit_events approved
+            WHERE approved.action="domain.onboarding.confirm" AND approved.resource_type="domain"
+                AND approved.result="SUCCESS"
+                AND NOT EXISTS (SELECT 1 FROM audit_events changed
+                    WHERE changed.resource_type="domain" AND changed.resource_guid=approved.resource_guid
+                        AND changed.occurred_at>=approved.occurred_at
+                        AND changed.action IN ("domain.mapping.changed","domain.onboarding.reassign",
+                            "domain.staging_reset","domain.remove","registry.restore"))
+            ORDER BY approved.resource_guid LIMIT 500') as $event){
             $confirmed[(string)$event['resource_guid']]=true;
         }
 
