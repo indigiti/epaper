@@ -174,7 +174,7 @@ final class Onboarding
         $where=$domainGuid===null?'':' AND d.domain_guid=?';
         return Store::all('SELECT d.domain_guid,d.organisation_guid,d.product_tenant_guid,d.hostname,d.status,d.verification_token,d.dns_metadata,d.edge_metadata,d.verified_at,d.ssl_ready_at,d.activated_at,d.last_checked_at,d.created_at,d.updated_at,
             o.display_name organisation_name,o.status organisation_status,pt.display_name tenant_name,pt.status tenant_status,
-            a.name application_name,a.status application_status,
+            a.name application_name,a.status application_status,a.base_url application_url,
             (SELECT COUNT(*) FROM memberships m JOIN platform_users u ON u.user_guid=m.user_guid WHERE m.organisation_guid=d.organisation_guid AND m.status="ACTIVE" AND u.status="ACTIVE" AND m.role_key IN ("OWNER","ADMIN","PUBLISHER_ADMIN")) owner_count,
             (SELECT s.service_access_state FROM subscriptions s WHERE s.product_tenant_guid=d.product_tenant_guid ORDER BY s.created_at DESC LIMIT 1) service_access_state
             FROM domains d
