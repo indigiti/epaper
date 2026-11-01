@@ -108,3 +108,19 @@
 @media(max-width:1120px){.ob-overview{grid-template-columns:repeat(2,minmax(0,1fr))}.ob-hero{align-items:flex-start}.ob-task-list{grid-template-columns:1fr}.ob-domain-tools{align-items:stretch}.ob-domain-search{margin-left:0}}
 @media(max-width:760px){.onboarding-shell{padding:16px}.ob-hero{padding:19px;display:block}.ob-hero h2{font-size:21px}.ob-hero-actions{margin-top:17px}.ob-panel-heading{padding:18px 16px 12px}.ob-domain-tools{padding:0 16px 14px}.ob-filter-tabs{max-width:100%;overflow-x:auto;flex-wrap:nowrap}.ob-domain-search{width:100%}.ob-domain-search input{flex:1;min-width:0}.ob-overview-card{min-height:105px;padding:14px}.ob-overview-card strong{font-size:27px}.ob-setup-grid{grid-template-columns:1fr}.ob-create-body{padding:13px}.ob-setup-form{padding:15px}.ob-workbench .ob-detail .ob-owner-form{grid-template-columns:1fr}}
 @media(max-width:520px){.ob-data-table{min-width:0}.ob-data-table thead{display:none}.ob-data-table tbody{display:grid;gap:10px;padding:12px}.ob-data-table tr{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));border:1px solid var(--border);border-radius:12px;padding:6px 4px;background:var(--surface);min-width:0}.ob-data-table td{border:0;padding:8px 9px;display:block;min-width:0}.ob-data-table td:before{content:attr(data-label);display:block;font-size:9px;color:var(--muted);font-weight:760;text-transform:uppercase;letter-spacing:.05em;margin-bottom:5px}.ob-data-table td:first-child{grid-column:1/-1}.ob-data-table td:last-child{align-self:end}.ob-data-table .ob-empty-row{grid-column:1/-1}.ob-domain-link{font-size:12px}.ob-hero-actions .button{flex:1}.ob-overview{gap:8px}.ob-attention{padding:16px}.ob-task{padding:10px;flex-wrap:wrap}.ob-task a{margin-left:32px}.ob-panel-heading{align-items:flex-start}.ob-count-label{white-space:nowrap}.ob-create-details summary{padding:16px}.ob-workbench .ob-detail{padding:15px}}
+
+
+/* Tenant mapping diagnostics and guarded domain reassignment */
+.ob-status-shared{color:var(--warning);background:color-mix(in srgb,var(--warning) 10%,var(--surface));border-color:color-mix(in srgb,var(--warning) 32%,var(--border))}
+.ob-reassign{margin-top:24px;border:1px solid color-mix(in srgb,var(--warning) 30%,var(--border));border-radius:12px;overflow:hidden}
+.ob-reassign>summary{padding:16px 17px;font-weight:760;font-size:13px;cursor:pointer;background:var(--surface2);color:var(--text)}
+.ob-reassign>summary:hover{background:var(--surface)}
+.ob-reassign-body{padding:18px;display:grid;gap:12px}
+.ob-reassign-body p{margin:0;font-size:12px;line-height:1.6;color:var(--muted)}
+.ob-reassign-body p strong{color:var(--text)}
+.ob-reassign-body .actions{margin:0}
+.ob-reassign-form{display:grid;gap:12px;margin-top:5px}
+.ob-reassign-form label:not(.ob-check){font-size:12px}
+.ob-reassign-form .ob-check{font-weight:500;font-size:12px;line-height:1.5}
+.ob-reassign-form .ob-check input{flex-shrink:0}
+.ob-reassign-form button{justify-self:start}
