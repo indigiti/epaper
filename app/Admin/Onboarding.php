@@ -320,7 +320,8 @@ final class Onboarding
                         AND changed.occurred_at>=approved.occurred_at
                         AND changed.action IN (
                             "domain.mapping.changed","domain.onboarding.reassign",
-                            "domain.staging_reset","domain.remove","registry.restore"
+                            "domain.staging_reset","domain.remove","registry.restore",
+                            "domain.shared_application_rebind"
                         )
                 )') as $r) $out[$r['resource_guid']]=true;
         return $out;
