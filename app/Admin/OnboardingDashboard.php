@@ -236,25 +236,25 @@ final class OnboardingDashboard
         $open=in_array($mode,['new','alias'],true)?' open':'';
         $userOptions='<option value="">Assign later</option>';
         foreach($users as $u)$userOptions.='<option value="'.self::e($u['user_guid']).'">'.self::e($u['display_name'].' · '.$u['email']).'</option>';
-        $tenantOptions='<option value="">Select an existing EPAPER tenant</option>';
-        foreach($tenants as $t)$tenantOptions.='<option value="'.self::e($t['product_tenant_guid']).'">'.self::e($t['organisation_name'].' · '.$t['display_name']).'</option>';
+        $tenantOptions='<option value="">Select an existing publisher tenant</option>';
+        foreach($tenants as $t)$tenantOptions.='<option value="'.self::e($t['product_tenant_guid']).'">'.self::e($t['product_name'].' · '.$t['organisation_name'].' / '.$t['display_name']).'</option>';
         $appOptions='';
         if(count($applications)===1) {
             $appOptions='<input type="hidden" name="application_guid" value="'.self::e($applications[0]['application_guid']).'">'
                 .'<p class="muted">Application: '.self::e($applications[0]['name'].' · '.$applications[0]['base_url']).'</p>';
         } elseif(count($applications)>1) {
-            $options='<option value="">Choose the EPAPER application</option>';
+            $options='<option value="">Choose the application</option>';
             foreach($applications as $application) {
                 $options.='<option value="'.self::e($application['application_guid']).'">'
-                    .self::e($application['name'].' · '.$application['base_url']).'</option>';
+                    .self::e($application['product_name'].' / '.$application['name'].' · '.$application['base_url']).'</option>';
             }
             $appOptions='<label>Application<select name="application_guid" required>'.$options.'</select>'
                 .'<small>Choose the installation that will serve this website. Main application hostnames must match its Base URL.</small></label>';
         } else {
-            $appOptions='<p class="ob-warning">No active EPAPER application. Register it under Applications first.</p>';
+            $appOptions='<p class="ob-warning">No active application. Verify the linked product is active, then open Applications.</p>';
         }
         $canonicalNote='<label class="ob-check"><input type="checkbox" name="confirm_canonical" value="1">'
-            .' I am registering the main EPAPER application hostname (only when this website matches its Base URL)</label>';
+            .' I am registering the selected application hostname (only when this website matches its Base URL)</label>';
         $csrf='<input type="hidden" name="_csrf" value="'.self::e(\Digiti\Core\Http::csrf()).'">';
         $new='<form class="ob-setup-form" method="post" action="/admin/onboarding">'
             .'<h4>Start a new newspaper account</h4><p>Just enter the publisher name and website. Separate customer records are created automatically.</p>'.$csrf.'<input type="hidden" name="mode" value="new">'
@@ -266,7 +266,7 @@ final class OnboardingDashboard
             .'<button class="primary" type="submit">Create newspaper account</button></form>';
         $alias='<form class="ob-setup-form" method="post" action="/admin/onboarding">'
             .'<h4>Connect another website</h4><p>Use this only when a second website should display the same newspaper content.</p>'.$csrf.'<input type="hidden" name="mode" value="existing">'
-            .'<label>Existing newspaper<select name="product_tenant_guid" required>'.$tenantOptions.'</select></label>'
+            .'<label>Existing newspaper<select name="product_tenant_guid" required>'.$tenantOptions.'</select><small>Choose a tenant from the same product as the selected application.</small></label>'
             .'<label>Domain<input name="hostname" required autocomplete="off" placeholder="epaper.example.com"></label>'
             .$appOptions.$canonicalNote
             .'<label>Existing owner (optional)<select name="owner_user_guid">'.$userOptions.'</select></label>'
