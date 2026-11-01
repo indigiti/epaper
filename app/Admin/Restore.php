@@ -61,6 +61,7 @@ final class Restore
                 .($canonical?'<div class="platform-restore-warning"><strong>Canonical application domain:</strong> This hostname belongs to the installed ePaper application, not a separate publisher. Restore the original record only; its product, application and tenant must all be active and correctly related. Routing will restart at AWAITING_DNS, not go live automatically. No ePaper content or other publisher data is moved.</div>':'')
                 .($blocker?'<div class="platform-restore-warning" role="alert"><strong>Recovery blocked:</strong> '.View::esc($blocker).'</div>':'')
                 .($type==='domains'?self::dependencyGuide($record):'')
+                .($canonical?self::freshStartAlternative($record):'')
                 .'<form method="post" action="/admin/'.View::esc($type).'/'.View::esc($guid).'/restore">'
                 .'<input type="hidden" name="_csrf" value="'.View::esc(Http::csrf()).'">'
                 .'<label>Type <strong>'.View::esc($label).'</strong> to confirm'
@@ -209,6 +210,55 @@ final class Restore
         $html.='<p><a href="/admin/domains/'.rawurlencode((string)$domain['domain_guid']).'/restore">'
             .'Return to this hostname after repairing the records</a></p></section>';
         return $html;
+    }
+
+    /**
+     * Safe opt-out from restoring the prior publisher/product graph. This page
+     * is informational by design: there is no hidden reset or SQL DELETE.
+     * A fresh EPAPER product cannot coexist with the archived EPAPER product
+     * in this database because the integration key is globally unique.
+     */
+    private static function freshStartAlternative(array $domain): string
+    {
+        $productGuid=(string)$domain['product_guid'];
+        $productBin=Uuid::toBinary($productGuid);
+        $countApps=(int)Store::value('SELECT COUNT(*) FROM applications WHERE product_guid=?',[$productBin]);
+        $countTenants=(int)Store::value('SELECT COUNT(*) FROM product_tenants WHERE product_guid=?',[$productBin]);
+        $countDomains=(int)Store::value('SELECT COUNT(*) FROM domains WHERE product_guid=?',[$productBin]);
+        $counts='<p class="platform-fresh-impact"><strong>Records linked to the existing product:</strong> '
+            .$countApps.' application(s), '.$countTenants.' publisher tenant(s), '
+            .$countDomains.' domain(s). No records will be changed by opening this option.</p>';
+        $staging=StagingReset::enabled();
+        $choice=$staging
+            ?'<p><a class="button" href="/admin/staging-reset">View staging test-domain reset</a>'
+                .' <small>That tool only restarts test-domain onboarding; it does not delete products or create a blank Platform database.</small></p>'
+            :'<div class="platform-fresh-restricted"><strong>Fresh-install reset is not available here.</strong> '
+                .'Use a separately configured, isolated staging application and database. '
+                .'No reset or deletion of the live Platform database is allowed from this screen.</div>';
+        return '<section class="platform-fresh-alternative" id="fresh-setup-alternative">'
+            .'<details><summary><span class="platform-fresh-title">I do not want to restore the old product or other records</span>'
+            .'<span class="platform-fresh-subtitle">See how to start fresh without reactivating this archived setup</span></summary>'
+            .'<div class="platform-fresh-content">'
+            .'<p><strong>That is a valid choice.</strong> The original EPAPER product, AMG organisation, '
+            .'application, tenant and hostname can remain archived. '
+            .'This option does not recover or reactivate any of them.</p>'
+            .$counts
+            .'<p><strong>Why you cannot simply add the same website again:</strong> The EPAPER product key and '
+            .'epaper.digiti.in hostname remain reserved in this database. The ePaper reader integration '
+            .'also expects the EPAPER product. Ignoring those relationships would break routing '
+            .'or cross-publisher isolation.</p>'
+            .'<h4>Start fresh safely</h4><ol>'
+            .'<li>Preserve a verified backup of Platform and ePaper databases, media and private configuration.</li>'
+            .'<li>Provision a <strong>separate staging Cloudways application</strong> with a new empty database, '
+            .'independent storage and Redis, and a staging hostname.</li>'
+            .'<li>Install a fresh Platform configuration there, create the EPAPER product and first test publisher, '
+            .'then verify login, reader content isolation and routing using the staging hostname.</li>'
+            .'<li>Only after staging acceptance, prepare a controlled production migration/cutover for '
+            .'epaper.digiti.in. That requires separate data migration, DNS, SSL and cache checks.</li>'
+            .'</ol>'.$choice
+            .'<div class="platform-fresh-actions">'
+            .'<a class="button" href="/admin/domains">Do not restore — leave existing records archived</a>'
+            .'</div></div></details></section>';
     }
 
     private static function requireSystemDomainAdmin(): void
