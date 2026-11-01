@@ -34,8 +34,14 @@ verify(!SharedAppRecovery::eligible($old,[...$installed,'product_guid'=>'wrong-p
     'Never rebind domain to another product');
 verify(!SharedAppRecovery::eligible([...$old,'tenant_status'=>'REMOVED'],$installed,$anchor),
     'Never permit removed publisher tenant');
-verify(!SharedAppRecovery::eligible([...$old,'hostname'=>'epaper.digiti.in'],$installed,$anchor),
-    'Never transform the shared main canonical domain into publisher alias');
+$main=[...$old,'hostname'=>'epaper.digiti.in','base_url'=>'https://epaper.digiti.in',
+    'application_guid'=>'shared-app'];
+$wrongTarget=[...$installed,'application_guid'=>'old-app','base_url'=>'https://epaper.dcnnews.co.in'];
+$wrongAnchor=[...$anchor,'hostname'=>'epaper.dcnnews.co.in','application_guid'=>'old-app'];
+verify(!SharedAppRecovery::eligible($main,$wrongTarget,$wrongAnchor),
+    'Never transform real shared ePaper canonical hostname to second registered application');
+verify(!SharedAppRecovery::eligible($old,$wrongTarget,$wrongAnchor),
+    'Only configured trusted shared ePaper canonical host may be selected as destination');
 verify(!SharedAppRecovery::eligible([...$old,'domain_type'=>'PLATFORM'],$installed,$anchor),
     'Protect Platform infrastructure hostnames');
 verify(!SharedAppRecovery::eligible($old,$installed,[...$anchor,'status'=>'REMOVED']),
