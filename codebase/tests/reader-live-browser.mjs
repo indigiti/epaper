@@ -33,6 +33,19 @@ try{
     if(device.width<=720){
       const more=page.locator('[data-reader-more-toggle]');assert.ok(await more.isVisible(),device.name+': overflow menu missing');await more.click();assert.ok(await page.locator('[data-reader-more-menu]').isVisible());await page.keyboard.press('Escape');assert.ok(!(await page.locator('[data-reader-more-menu]').isVisible()),'Escape must close overflow menu');
     }
+    await page.locator('[data-quality-toggle]').click();
+    await page.locator('[data-quality-mode="low"]').click();
+    assert.equal(await frame.getAttribute('data-effective-quality'),'low',device.name+': Low Data mode not enforced');
+    await page.locator('[data-quality-toggle]').click();
+    await page.locator('[data-quality-mode="auto"]').click();
+    if(device.name==='desktop-1440'){
+      await page.locator('[data-reader-view-toggle]').click();
+      await page.locator('[data-reader-view-mode="continuous"]').click();
+      assert.equal(await frame.getAttribute('data-view-mode'),'continuous','Continuous mode not activated');
+      await page.locator('[data-reader-view-toggle]').click();
+      await page.locator('[data-reader-view-mode="page"]').click();
+      assert.equal(await frame.getAttribute('data-view-mode'),'page','Single Page mode not activated');
+    }
     await page.locator('[data-reader-text-mode]').click();
     await page.getByRole('dialog',{name:'Read page text'}).waitFor();
     await page.locator('[data-reader-text-status]').waitFor();
@@ -57,6 +70,8 @@ try{
   assert.notEqual(bad.status(),200,'Unsigned media must not be accessible');
   const random='00000000-0000-4000-8000-000000000000';
   const unpublished=process.env.EPDI_TEST_UNPUBLISHED_PAGE_GUID||random;
+  if(process.env.EPDI_REQUIRE_UNPUBLISHED_FIXTURE==='1')assert.match(unpublished,/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i,'Staging fixture must be provided');
+  if(process.env.EPDI_REQUIRE_UNPUBLISHED_FIXTURE==='1')assert.notEqual(unpublished,random,'A real unpublished staging page fixture is mandatory');
   const text=await ctx.request.get(origin+'/api/v1/pages/'+unpublished+'/text');
   assert.notEqual(text.status(),200,'Non-public or missing OCR page must not be readable');
   const tile=await ctx.request.get(origin+'/api/v1/pages/'+unpublished+'/tiles/0/0/0.webp');
