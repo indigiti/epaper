@@ -183,9 +183,52 @@ final class App
 
     private function verifyDomain(string $guid): never
     {
-        $d=Store::one('SELECT domain_guid,hostname,verification_token,status,edge_metadata FROM domains WHERE domain_guid=?',[Uuid::toBinary($guid)]);if(!$d)throw new \RuntimeException('Domain not found');$result=DomainTools::verifyDns($d['hostname'],$d['verification_token']);$status='AWAITING_DNS';$edge=[];if($result['verified']){try{$edge=EdgeProviderFactory::make()->provision($d['hostname'],json_decode($d['edge_metadata']?:'{}',true)?:[]);$status=$edge['status']??'ROUTING_VALID';}catch(\Throwable$e){$status='ROUTING_VALID';$edge=['provider_error'=>$e->getMessage()];}}Store::exec('UPDATE domains SET status=?,dns_metadata=?,edge_metadata=?,verified_at=IF(?<>"AWAITING_DNS",COALESCE(verified_at,NOW(6)),verified_at),last_checked_at=NOW(6),updated_at=NOW(6) WHERE domain_guid=?',[$status,json_encode($result),json_encode($edge),$status,Uuid::toBinary($guid)]);RedisStore::del('domain:'.$d['hostname']);Audit::log('domain.verify','domain',$guid,$result['verified']?'SUCCESS':'FAILED',$result+['edge'=>$edge]);View::flash($result['verified']?'DNS verified. Edge/TLS status: '.$status:'DNS not verified yet.');Http::redirect('/admin/domains');
+        $d=Store::one('SELECT d.domain_guid,d.hostname,d.verification_token,d.status,d.edge_metadata,
+            p.status product_status,a.status application_status,pt.status tenant_status,o.status organisation_status,
+            d.product_guid,a.product_guid app_product_guid,pt.product_guid tenant_product_guid,
+            d.organisation_guid,pt.organisation_guid tenant_organisation_guid
+            FROM domains d JOIN products p ON p.product_guid=d.product_guid
+            JOIN applications a ON a.application_guid=d.application_guid
+            JOIN product_tenants pt ON pt.product_tenant_guid=d.product_tenant_guid
+            JOIN organisations o ON o.organisation_guid=d.organisation_guid
+            WHERE d.domain_guid=?',[Uuid::toBinary($guid)]);
+        if(!$d)throw new \InvalidArgumentException('Domain not found.');
+        if(!in_array($d['status'],['AWAITING_DNS','REVALIDATION_FAILED','ROUTING_VALID','SSL_PROVISIONING','ACTIVE'],true))
+            throw new \InvalidArgumentException('Archived or suspended hostnames cannot be verified. Restore their registration first.');
+        if($d['product_status']!=='ACTIVE'||$d['application_status']!=='ACTIVE'
+            ||$d['tenant_status']!=='ACTIVE'||$d['organisation_status']!=='ACTIVE'
+            ||$d['product_guid']!==$d['app_product_guid']
+            ||$d['product_guid']!==$d['tenant_product_guid']
+            ||$d['organisation_guid']!==$d['tenant_organisation_guid'])
+            throw new \InvalidArgumentException('Activate and align the linked EPAPER product, publisher and application before DNS verification.');
+        $result=DomainTools::verifyDns($d['hostname'],$d['verification_token']);
+        $status='AWAITING_DNS';$edge=[];
+        if($result['verified']) {
+            try{
+                $edge=EdgeProviderFactory::make()->provision(
+                    $d['hostname'],json_decode($d['edge_metadata']?:'{}',true)?:[]);
+                $edgeStatus=(string)($edge['status']??'ROUTING_VALID');
+                $status=$edgeStatus==='ACTIVE'
+                    ?($d['status']==='ACTIVE'?'ACTIVE':'SSL_PROVISIONING')
+                    :(in_array($edgeStatus,['ROUTING_VALID','SSL_PROVISIONING'],true)?$edgeStatus:'ROUTING_VALID');
+            }catch(\Throwable $e){
+                $status='ROUTING_VALID';$edge=['provider_error'=>$e->getMessage()];
+            }
+        }
+        $changed=Store::exec('UPDATE domains SET status=?,dns_metadata=?,edge_metadata=?,
+            verified_at=IF(?<>"AWAITING_DNS",COALESCE(verified_at,NOW(6)),NULL),
+            last_checked_at=NOW(6),updated_at=NOW(6)
+            WHERE domain_guid=? AND status=?',[
+            $status,json_encode($result),json_encode($edge),$status,Uuid::toBinary($guid),$d['status']
+        ]);
+        if($changed!==1)throw new \RuntimeException('Domain changed during verification. Reload before retrying.');
+        RedisStore::del('domain:'.$d['hostname']);
+        Audit::log('domain.verify','domain',$guid,$result['verified']?'SUCCESS':'FAILED',$result+['edge'=>$edge]);
+        View::flash($result['verified']?'DNS verified. Check HTTPS and complete operator go-live approval.':'DNS not verified yet.');
+        Http::redirect('/admin/onboarding?domain='.rawurlencode($guid).'#domain-review');
     }
-    private function activateDomain(string $guid): never
+
+        private function activateDomain(string $guid): never
     {
         // Retired legacy instant-activation endpoint. Approval requires the
         // authenticated onboarding checklist and explicit operator attestation.
