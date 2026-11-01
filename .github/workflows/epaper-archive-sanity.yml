@@ -54,6 +54,10 @@ jobs:
         run: |
           php tests/config-private-runtime.php
           php ../platform/tests/config-private-runtime.php
+          php ../platform/tests/installer-config-guard.php
+          php ../platform/tests/core-smoke.php
+          php ../platform/tests/build-guard.php
+          php ../platform/tests/admin-crud-guard.php
           find ../platform/app ../platform/bin ../platform/tests ../platform/public_html -type f -name '*.php' -print0 | xargs -0 -n1 php -l > /tmp/platform-php-lint.txt
       - name: Independent frontend and reader theme regression
         run: php tests/theme-isolation.php
