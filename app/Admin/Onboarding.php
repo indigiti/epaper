@@ -56,7 +56,62 @@ final class Onboarding
         if ($type==='verify') self::verify($d);
         if ($type==='owner') self::owner($d);
         if ($type==='confirm') self::confirm($d);
+        if ($type==='reassign') self::reassign($d);
         throw new \RuntimeException('Unsupported onboarding action.');
+    }
+
+    /**
+     * Reassign an EXISTING customer hostname to a different EPAPER tenant.
+     * Deliberately resets domain readiness; infrastructure domains cannot move.
+     */
+    private static function reassign(array $domain): never
+    {
+        $host=(string)$domain['hostname'];
+        $canonical=(string)(parse_url((string)($domain['application_url']??''),PHP_URL_HOST)?:'');
+        if(($canonical!==''&&strcasecmp($canonical,$host)===0)
+            || in_array(strtoupper((string)($domain['domain_type']??'')),['PLATFORM','PLATFORM_AUTH','SAAS_DEFAULT'],true)) {
+            throw new \RuntimeException('The canonical ePaper application hostname cannot be reassigned.');
+        }
+        $targetGuid=trim((string)($_POST['target_tenant_guid']??''));
+        $typed=trim(strtolower((string)($_POST['confirm_hostname']??'')));
+        if(!preg_match('/^[a-f0-9-]{36}$/i',$targetGuid)) throw new \InvalidArgumentException('Choose a valid destination EPAPER tenant.');
+        if($typed!==strtolower($host)) throw new \InvalidArgumentException('Enter the exact hostname to confirm reassignment.');
+        if(($_POST['confirm_tenant_reset']??'')!=='1') throw new \InvalidArgumentException('Acknowledge that publisher activation must be repeated.');
+        if(($_POST['confirm_content']??'')!=='1') throw new \InvalidArgumentException('Confirm the destination publisher content and data have been reviewed.');
+        if($targetGuid===$domain['product_tenant_guid']) throw new \InvalidArgumentException('The selected tenant already owns this domain.');
+        $target=Store::one('SELECT pt.product_tenant_guid,pt.organisation_guid,pt.display_name,o.display_name organisation_name
+            FROM product_tenants pt JOIN organisations o ON o.organisation_guid=pt.organisation_guid
+            JOIN products p ON p.product_guid=pt.product_guid
+            WHERE pt.product_tenant_guid=? AND pt.product_guid=? AND p.product_key="EPAPER"
+                AND pt.status="ACTIVE" AND o.status="ACTIVE" LIMIT 1',[
+            self::gid($targetGuid),self::gid($domain['product_guid'])
+        ]);
+        if(!$target) throw new \InvalidArgumentException('Select an active EPAPER tenant. Create the target organisation and tenant first.');
+        $admin=Auth::requireAdmin();
+        Store::tx(function()use($domain,$target,$admin,$host):void{
+            $affected=Store::exec('UPDATE domains SET organisation_guid=?,product_tenant_guid=?,is_primary=0,
+                status="AWAITING_DNS",verified_at=NULL,ssl_ready_at=NULL,activated_at=NULL,
+                dns_metadata=NULL,last_checked_at=NULL,updated_at=NOW(6)
+                WHERE domain_guid=? AND product_tenant_guid=? AND status<>"REMOVED"',[
+                self::gid($target['organisation_guid']),self::gid($target['product_tenant_guid']),
+                self::gid($domain['domain_guid']),self::gid($domain['product_tenant_guid'])
+            ]);
+            if($affected!==1) throw new \RuntimeException('Domain changed concurrently. Reload and retry.');
+            Store::exec('INSERT INTO audit_events(audit_event_guid,occurred_at,actor_type,actor_user_guid,action,resource_type,resource_guid,result,request_guid,ip_address,user_agent,metadata) VALUES(?,NOW(6),"PLATFORM_ADMIN",?,"domain.onboarding.reassign","domain",?,"SUCCESS",?,?,?,?)',[
+                self::gid(Uuid::v7()),self::gid($admin['admin_guid']),self::gid($domain['domain_guid']),self::gid(Http::requestGuid()),
+                (string)($_SERVER['REMOTE_ADDR']??''),substr((string)($_SERVER['HTTP_USER_AGENT']??''),0,255),
+                json_encode([
+                    'hostname'=>$host,
+                    'old_tenant_guid'=>$domain['product_tenant_guid'],
+                    'new_tenant_guid'=>$target['product_tenant_guid'],
+                    'new_organisation_guid'=>$target['organisation_guid'],
+                    'dns_and_go_live_reset'=>true
+                ],JSON_UNESCAPED_SLASHES)
+            ]);
+        });
+        \Digiti\Core\RedisStore::del('domain:'.$host);
+        View::flash('Domain moved to '.$target['organisation_name'].' / '.$target['display_name'].'. Verify DNS again, confirm publisher access and subscription, then approve go-live. Clear ePaper domain caches before testing.');
+        Http::redirect(self::url($domain['domain_guid']));
     }
 
     private static function create(): never
@@ -172,7 +227,7 @@ final class Onboarding
     private static function records(?string $domainGuid=null): array
     {
         $where=$domainGuid===null?'':' AND d.domain_guid=?';
-        return Store::all('SELECT d.domain_guid,d.organisation_guid,d.product_tenant_guid,d.hostname,d.status,d.verification_token,d.dns_metadata,d.edge_metadata,d.verified_at,d.ssl_ready_at,d.activated_at,d.last_checked_at,d.created_at,d.updated_at,
+        return Store::all('SELECT d.domain_guid,d.organisation_guid,d.product_guid,d.domain_type,d.is_primary,d.product_tenant_guid,d.hostname,d.status,d.verification_token,d.dns_metadata,d.edge_metadata,d.verified_at,d.ssl_ready_at,d.activated_at,d.last_checked_at,d.created_at,d.updated_at,
             o.display_name organisation_name,o.status organisation_status,pt.display_name tenant_name,pt.status tenant_status,
             a.name application_name,a.status application_status,a.base_url application_url,
             (SELECT COUNT(*) FROM memberships m JOIN platform_users u ON u.user_guid=m.user_guid WHERE m.organisation_guid=d.organisation_guid AND m.status="ACTIVE" AND u.status="ACTIVE" AND m.role_key IN ("OWNER","ADMIN","PUBLISHER_ADMIN")) owner_count,
