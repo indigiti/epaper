@@ -44,6 +44,8 @@ final class ErrorCenter
             return '/admin/onboarding?domain='.rawurlencode(strtolower($m[1])).'#domain-review';
         if(preg_match('#^/admin/domains/([0-9a-f-]{36})/restore$#i',$path,$m))
             return '/admin/domains/'.strtolower($m[1]).'/restore';
+        if(preg_match('#^/admin/(domains|products|organisations)/([0-9a-f-]{36})/release$#i',$path,$m))
+            return '/admin/'.strtolower($m[1]).'/'.strtolower($m[2]).'/release';
         if(preg_match('#^/admin/(?:organisations|users|products|applications|product-tenants|service-accounts|commercial/plans)/([0-9a-f-]{36})/(?:restore|edit)$#i',$path))
             return $path;
         if(preg_match('#^/admin/(?:organisations|users|products|applications|product-tenants|domains|service-accounts|commercial/plans)/[0-9a-f-]{36}/(?:status|remove|rotate)$#i',$path))
