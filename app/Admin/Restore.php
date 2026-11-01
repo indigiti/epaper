@@ -106,7 +106,9 @@ final class Restore
             ?'/admin/onboarding?domain='.rawurlencode($guid).'#domain-review'
             :($type==='domains'
                 ?'/admin/domains/'.rawurlencode($guid).'/edit'
-                :'/admin/'.$type);
+                :(in_array($type,['products','organisations','applications','product-tenants'],true)
+                    ?'/admin/'.$type.'/'.rawurlencode($guid).'/edit'
+                    :'/admin/'.$type));
         Http::redirect($next);
     }
 
@@ -200,7 +202,6 @@ final class Restore
         }
         $html.='</ol>';
         $productKey=(string)($rows['product_guid']['record_code']??'');
-        $application=$rows['application_guid']??null;
         if($productKey!==''&&$productKey!=='EPAPER')
             $html.='<div class="platform-restore-warning">This hostname refers to product '.View::esc($productKey)
                 .', not EPAPER. Do not restore it as the main ePaper site without correcting the original relationship.</div>';
