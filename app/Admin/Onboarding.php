@@ -245,6 +245,8 @@ final class Onboarding
         return Store::all('SELECT d.domain_guid,d.organisation_guid,d.product_guid,d.domain_type,d.is_primary,d.product_tenant_guid,d.hostname,d.status,d.verification_token,d.dns_metadata,d.edge_metadata,d.verified_at,d.ssl_ready_at,d.activated_at,d.last_checked_at,d.created_at,d.updated_at,
             o.display_name organisation_name,o.status organisation_status,pt.display_name tenant_name,pt.status tenant_status,
             a.name application_name,a.status application_status,a.base_url application_url,
+            a.product_guid application_product_guid,pt.product_guid tenant_product_guid,
+            pt.organisation_guid tenant_organisation_guid,
             (SELECT COUNT(*) FROM memberships m JOIN platform_users u ON u.user_guid=m.user_guid WHERE m.organisation_guid=d.organisation_guid AND m.status="ACTIVE" AND u.status="ACTIVE" AND m.role_key IN ("OWNER","ADMIN","PUBLISHER_ADMIN")) owner_count,
             (SELECT s.service_access_state FROM subscriptions s WHERE s.product_tenant_guid=d.product_tenant_guid ORDER BY s.created_at DESC LIMIT 1) service_access_state
             FROM domains d
@@ -283,7 +285,10 @@ final class Onboarding
     public static function state(array $d): array
     {
         $reviewed=(bool)($d['reviewed']??false);
-        $tenant=$d['organisation_status']==='ACTIVE'&&$d['tenant_status']==='ACTIVE'&&$d['application_status']==='ACTIVE';
+        $tenant=$d['organisation_status']==='ACTIVE'&&$d['tenant_status']==='ACTIVE'&&$d['application_status']==='ACTIVE'
+            && ($d['product_guid']??null)===($d['tenant_product_guid']??null)
+            && ($d['product_guid']??null)===($d['application_product_guid']??null)
+            && ($d['organisation_guid']??null)===($d['tenant_organisation_guid']??null);
         $owner=(int)$d['owner_count']>0;
         $plan=($d['service_access_state']??'')==='FULL';
         $dns=!empty($d['verified_at'])&&in_array($d['status'],['ROUTING_VALID','SSL_PROVISIONING','ACTIVE'],true);
