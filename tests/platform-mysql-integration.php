@@ -348,6 +348,81 @@ try{
     catch(\InvalidArgumentException){$denied=true;}
     checkDb($denied,'non-superadmin cannot take over the main application hostname');
 
+
+    // Regression for production data where the publisher product key is EP-DI,
+    // not EPAPER. Its real app GUID and Base URL define its canonical host.
+    // The old hostname must be freed first (the earlier release test covers
+    // permanent cleanup), so remove only this newly generated test fixture.
+    Store::exec('DELETE FROM domains WHERE domain_guid=?',[Uuid::toBinary($newDomainGuid)]);
+    Store::exec('UPDATE applications SET base_url="https://legacy-epaper.digiti.in"
+        WHERE application_guid=?',[Uuid::toBinary($newAppGuid)]);
+    $epdiProduct=Uuid::v7();$epdiOrg=Uuid::v7();$epdiApp=Uuid::v7();
+    $epdiTenant=Uuid::v7();$epdiDomain=Uuid::v7();
+    Store::exec('INSERT INTO products(product_guid,product_key,name,status,created_at,updated_at)
+        VALUES(?,"EP-DI","EP-DI","ACTIVE",NOW(6),NOW(6))',
+        [Uuid::toBinary($epdiProduct)]);
+    Store::exec('INSERT INTO organisations(organisation_guid,organisation_code,legal_name,
+        display_name,status,created_at,updated_at)
+        VALUES(?,"INDIGITI","INDIGITI","INDIGITI","ACTIVE",NOW(6),NOW(6))',
+        [Uuid::toBinary($epdiOrg)]);
+    Store::exec('INSERT INTO applications(application_guid,product_guid,application_key,name,base_url,
+        status,created_at,updated_at)
+        VALUES(?,?,"EPDI_APP","EP-DI ePaper","https://epaper.digiti.in",
+        "ACTIVE",NOW(6),NOW(6))',
+        [Uuid::toBinary($epdiApp),Uuid::toBinary($epdiProduct)]);
+    Store::exec('INSERT INTO product_tenants(product_tenant_guid,organisation_guid,
+        product_guid,display_name,status,created_at,updated_at)
+        VALUES(?,?,?,"EP-DI","ACTIVE",NOW(6),NOW(6))',
+        [Uuid::toBinary($epdiTenant),Uuid::toBinary($epdiOrg),Uuid::toBinary($epdiProduct)]);
+    $epdiSelected=['application_guid'=>$epdiApp,'product_guid'=>$epdiProduct];
+    $known=Store::all('SELECT a.application_guid,a.product_guid,a.base_url,p.product_key
+        FROM applications a JOIN products p ON p.product_guid=a.product_guid
+        WHERE a.status="ACTIVE" AND p.status="ACTIVE"');
+    checkDb($classifier::classifyKnown('epaper.digiti.in',$epdiSelected,$known,true)==='SAAS_DEFAULT',
+        'product EP-DI may register its own matching application hostname without EPAPER key');
+    $wrongTenant=[
+        'product_tenant_guid'=>$newTenantGuid,'organisation_guid'=>$newOrgGuid,
+        'product_guid'=>$newProductGuid
+    ];
+    $wrongRejected=false;
+    try{$classifier::insertDomain(Uuid::v7(),'other.digiti.in','test-token',
+        $wrongTenant,$epdiSelected,'CUSTOMER_CUSTOM');}
+    catch(\InvalidArgumentException){$wrongRejected=true;}
+    checkDb($wrongRejected,'registration cannot cross-link EP-DI application to another product tenant');
+    $epdiOwner=[
+        'product_tenant_guid'=>$epdiTenant,'organisation_guid'=>$epdiOrg,
+        'product_guid'=>$epdiProduct
+    ];
+    Store::tx(static function() use($classifier,$epdiDomain,$epdiOwner,$epdiSelected):void {
+        $classifier::insertDomain($epdiDomain,'epaper.digiti.in','epdi-test-dns',
+            $epdiOwner,$epdiSelected,'SAAS_DEFAULT');
+    });
+    $epdiResult=Store::one('SELECT d.domain_guid,d.product_guid,d.product_tenant_guid,
+        d.application_guid,d.domain_type,d.status,p.product_key
+        FROM domains d JOIN products p ON p.product_guid=d.product_guid
+        WHERE d.domain_guid=?',[Uuid::toBinary($epdiDomain)]);
+    checkDb($epdiResult['domain_guid']===$epdiDomain
+        &&$epdiResult['product_guid']===$epdiProduct
+        &&$epdiResult['product_tenant_guid']===$epdiTenant
+        &&$epdiResult['application_guid']===$epdiApp
+        &&$epdiResult['product_key']==='EP-DI'
+        &&$epdiResult['domain_type']==='SAAS_DEFAULT'
+        &&$epdiResult['status']==='AWAITING_DNS',
+        'EP-DI GUID and ACTIVE tenant bind to canonical epaper.digiti.in registration in MySQL');
+    checkDb((int)Store::value('SELECT COUNT(*) FROM application_redirect_uris
+        WHERE application_guid=? AND redirect_uri="https://epaper.digiti.in/auth/callback"',
+        [Uuid::toBinary($epdiApp)])===1,
+        'EP-DI canonical host creates the correct OAuth callback for its own application');
+    Store::exec('UPDATE products SET status="REMOVED" WHERE product_guid=?',
+        [Uuid::toBinary($epdiProduct)]);
+    $visible=Store::all('SELECT a.application_guid,a.product_guid,a.base_url,p.product_key
+        FROM applications a JOIN products p ON p.product_guid=a.product_guid
+        WHERE a.status="ACTIVE" AND p.status="ACTIVE" AND a.application_guid=?',
+        [Uuid::toBinary($epdiApp)]);
+    checkDb(!$visible,'archived EP-DI product excludes application from new registrations');
+    Store::exec('UPDATE products SET status="ACTIVE" WHERE product_guid=?',
+        [Uuid::toBinary($epdiProduct)]);
+
     // OAuth S256 code must be exchangeable exactly once using conditional SQL
     // on the real database, and inactive applications cannot exchange codes.
     $userGuid=Uuid::v7();$oauthClient='test-epaper-'.bin2hex(random_bytes(6));
