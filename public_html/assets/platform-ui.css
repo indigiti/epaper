@@ -273,3 +273,19 @@ gap:8px;padding:7px 9px;font-size:12px;font-weight:700;height:36px}
 .platform-restore-check input{width:18px;height:18px;min-height:18px;flex:0 0 18px}
 .platform-restore-warning{border:1px solid color-mix(in srgb,var(--warning) 42%,var(--border));border-radius:12px;padding:13px;color:var(--warning);background:var(--surface2);font-size:13px;line-height:1.5;margin-top:14px}
 @media(max-width:620px){.platform-restore-review{padding:15px}.platform-restore-review dl{grid-template-columns:1fr}.platform-restore-review dl>div{border-right:0;border-bottom:1px solid var(--border)}.platform-restore-review dl>div:last-child{border-bottom:0}}
+
+
+/* Guided recovery of archived canonical domain dependencies */
+.platform-dependency-guide{border:1px solid var(--border);background:var(--surface2);border-radius:13px;padding:17px 18px;margin:18px 0}
+.platform-dependency-guide h3{margin:0 0 7px;font-size:15px;letter-spacing:-.015em}
+.platform-dependency-guide p{font-size:12px;line-height:1.6;color:var(--muted);margin:0 0 13px}
+.platform-dependency-guide ol{list-style:decimal;margin:0 0 12px;padding-left:24px}
+.platform-dependency-item{padding:12px 0;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:14px}
+.platform-dependency-item>div{min-width:0;flex:1}
+.platform-dependency-item strong{display:block;font-size:12px;overflow-wrap:anywhere}
+.platform-dependency-item small{display:block;margin-top:5px;font-size:11px;color:var(--muted);line-height:1.5}
+.platform-dependency-item .button{font-size:11px;min-height:34px;flex:0 0 auto}
+.platform-dependency-state{font-weight:700;font-size:11px;color:var(--muted)}
+.platform-dependency-guide>p:last-child{margin:13px 0 0}
+.platform-dependency-guide>p:last-child a{font-size:12px;font-weight:700;color:var(--text)}
+@media(max-width:560px){.platform-dependency-guide{padding:13px}.platform-dependency-item{align-items:flex-start;flex-direction:column;gap:9px}.platform-dependency-item .button{align-self:flex-start}}
