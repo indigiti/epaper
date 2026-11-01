@@ -73,6 +73,12 @@ ok(str_contains($onboarding,"'/admin/domains/'.rawurlencode(\$guid).'/restore'")
 ok(str_contains($app,"'/admin/domains/'.rawurlencode(\$existingGuid).'/restore'"),'duplicate archived hostname from domain registry goes to recovery');
 ok(str_contains($ui,'archivedTable($archived)'),'archived publisher inventory visible');
 ok(str_contains($app,'DomainTools::publicHostname((string)'),'domain registry normalizes pasted URLs');
+
+ok(str_contains($app,'private function reuseExisting('),'duplicate records share one safe recovery redirect');
+foreach(['organisations','products','applications','productTenants','users'] as $method)
+    ok(str_contains(methodSource($app,$method),'$this->reuseExisting('),
+        'existing '. $method .' record opens Edit or Restore rather than duplicate INSERT');
+
 ok(str_contains($onboarding,'DomainTools::publicHostname((string)'),'onboarding normalizes pasted URLs');
 ok(str_contains($app,'AND a.product_guid=d.product_guid')&&
     str_contains($app,'AND pt.product_guid=d.product_guid AND pt.organisation_guid=d.organisation_guid'),'API rejects product and organisation mismatches');
@@ -80,6 +86,9 @@ ok(str_contains($onboarding,'tenant_product_guid')&&str_contains($onboarding,'te
 ok(str_contains($mapping,'Current newspaper unavailable — select a publisher'),'missing current tenant cannot silently select first alternative');
 ok(str_contains($mapping,'Current application unavailable — select a compatible application'),'missing current application cannot silently select first alternative');
 ok(str_contains($schema,'UNIQUE KEY uk_domain_hostname(normalized_hostname)'),'domain hostname uniqueness preserved');
+
+ok(str_contains($schema,'UNIQUE KEY uk_product_tenant_org(organisation_guid,product_guid)'),'tenant uniqueness preserved by organisation/product');
+
 ok(str_contains($schema,'fk_domain_tenant')&&str_contains($schema,'fk_domain_app'),'tenant and application foreign keys preserved');
 foreach(['organisationRemove','userRemove','productRemove','applicationRemove','tenantRemove','planRemove'] as $name)
     ok(str_contains(methodSource($crud,$name),'Store::tx('),'transactional archive: '.$name);
