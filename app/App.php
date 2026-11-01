@@ -3,7 +3,7 @@ namespace Digiti;
 
 use Digiti\Core\{Auth,Audit,Config,Crypto,Database,DomainTools,Entitlements,Http,Mfa,OAuth,RateLimiter,RedisStore,ServiceAuth,Store,Uuid,View};
 use Digiti\Billing\ProviderFactory;
-use Digiti\Admin\{Crud,Onboarding};
+use Digiti\Admin\{Crud,Onboarding,Home,Help};
 use Digiti\Domain\EdgeProviderFactory;
 
 final class App
@@ -34,7 +34,8 @@ final class App
         Auth::requireAdmin();
         if($method==='POST')Http::verifyCsrf();
         if(Crud::dispatch($path,$method))exit;
-        if($path==='/admin')$this->dashboard();
+        if($path==='/admin')Home::index();
+        if($path==='/admin/help')Help::index();
         if($path==='/admin/onboarding')Onboarding::index($method);
         if(preg_match('#^/admin/onboarding/([0-9a-f-]{36})/(verify|owner|confirm|reassign)$#i',$path,$m))Onboarding::action(strtolower($m[1]),$m[2],$method);
         if($path==='/admin/organisations')$this->organisations($method);
@@ -78,15 +79,6 @@ final class App
         if(Auth::admin())Http::redirect('/admin');$error='';
         if($method==='POST'){Http::verifyCsrf();$bucket='platform-login:'.($_SERVER['REMOTE_ADDR']??'unknown');if(!RateLimiter::allow($bucket,10,300)){$error='Too many sign-in attempts. Try again later.';}elseif(Auth::login($_POST['email']??'',$_POST['password']??'',$_POST['totp']??'')){Audit::log('platform.login','platform_admin');Http::redirect('/admin');}else{$error='Invalid email, password or authenticator code.';}}
         $body='<div class="auth-card"><h2>Platform Administrator</h2><p>Sign in to the Digiti control plane.</p>'.($error?'<div class="alert danger">'.$this->e($error).'</div>':'').'<form method="post">'.$this->csrf().'<label>Email<input type="email" name="email" required autofocus></label><label>Password<input type="password" name="password" required></label><label>Authenticator code <span class="muted">(if enabled)</span><input name="totp" inputmode="numeric" autocomplete="one-time-code"></label><button class="primary">Sign in</button></form></div>';View::layout('Sign In',$body,['subtitle'=>'Platform control plane']);
-    }
-
-    private function dashboard(): never
-    {
-        $counts=['Organisations'=>(int)Store::value('SELECT COUNT(*) FROM organisations WHERE status<>"PURGED"'),'Product Tenants'=>(int)Store::value('SELECT COUNT(*) FROM product_tenants WHERE status="ACTIVE"'),'Active Domains'=>(int)Store::value('SELECT COUNT(*) FROM domains WHERE status="ACTIVE"'),'Subscriptions'=>(int)Store::value('SELECT COUNT(*) FROM subscriptions WHERE status IN ("ACTIVE","PAST_DUE","GRACE_PERIOD")')];
-        $cards='<div class="kpis">';foreach($counts as$k=>$v)$cards.='<div class="kpi"><span>'.$this->e($k).'</span><strong>'.$v.'</strong></div>';$cards.='</div>';
-        $attention=[];$badDomains=(int)Store::value('SELECT COUNT(*) FROM domains WHERE status IN ("REVALIDATION_FAILED","SUSPENDED")');if($badDomains)$attention[]="$badDomains domain(s) require attention";$failedJobs=(int)Store::value('SELECT COUNT(*) FROM jobs WHERE status="FAILED"');if($failedJobs)$attention[]="$failedJobs failed job(s)";$pastDue=(int)Store::value('SELECT COUNT(*) FROM subscriptions WHERE status="PAST_DUE"');if($pastDue)$attention[]="$pastDue past-due subscription(s)";
-        $recent=Store::all('SELECT occurred_at,actor_type,action,resource_type,result FROM audit_events ORDER BY occurred_at DESC LIMIT 12');$rows=[];foreach($recent as$r)$rows[]=[ $this->e($r['occurred_at']),$this->e($r['actor_type']),$this->e($r['action']),$this->e($r['resource_type']),$this->status($r['result'])];
-        $body=$cards.'<div class="grid-2"><section class="card"><h2>Needs attention</h2>'.($attention?'<ul><li>'.implode('</li><li>',array_map([$this,'e'],$attention)).'</li></ul>':'<p class="muted">No current platform alerts.</p>').'</section><section class="card"><h2>Quick access</h2><div class="actions"><a class="button" href="/admin/domains">Domains</a><a class="button" href="/admin/service-accounts">Service Accounts</a><a class="button" href="/admin/health">System Health</a></div></section></div><section class="card"><h2>Recent activity</h2>'.$this->table(['Time','Actor','Action','Resource','Result'],$rows).'</section>';View::layout('Overview',$body,['subtitle'=>'Platform health, tenants, products and operations']);
     }
 
     private function organisations(string $method): never
