@@ -36,6 +36,11 @@ final class Onboarding
             WHERE p.product_key="EPAPER" AND pt.status<>"REMOVED" AND o.status<>"REMOVED" ORDER BY o.display_name LIMIT 200');
         $detail='';
         if($selected!=='' && preg_match('/^[0-9a-f-]{36}$/i',$selected)) {
+            $archived=Store::one('SELECT domain_guid,status FROM domains WHERE domain_guid=? LIMIT 1',[self::gid($selected)]);
+            if($archived && $archived['status']==='REMOVED') {
+                View::flash('The selected hostname is archived. Review recovery before onboarding can continue.');
+                Http::redirect('/admin/domains/'.rawurlencode($selected).'/restore');
+            }
             $active=self::one($selected);
             if($active!==null) {
                 $active['reviewed']=isset($reviews[$active['domain_guid']]);
@@ -118,9 +123,17 @@ final class Onboarding
     {
         $type=(string)($_POST['mode']??'new');
         if (!in_array($type,['new','existing'],true)) throw new \InvalidArgumentException('Choose a valid onboarding mode.');
-        $host=DomainTools::normalize((string)($_POST['hostname']??''));
-        if (!str_contains($host,'.')||filter_var($host,FILTER_VALIDATE_IP)||str_ends_with($host,'.local')) throw new \InvalidArgumentException('A valid public publisher hostname is required.');
-        if (Store::value('SELECT 1 FROM domains WHERE normalized_hostname=? LIMIT 1',[$host])) throw new \InvalidArgumentException('This domain already exists in Platform. Open its onboarding record.');
+        $host=DomainTools::publicHostname((string)($_POST['hostname']??''));
+        $existing=Store::one('SELECT domain_guid,status FROM domains WHERE normalized_hostname=? LIMIT 1',[$host]);
+        if($existing) {
+            $guid=(string)$existing['domain_guid'];
+            if($existing['status']==='REMOVED') {
+                View::flash('This hostname is archived. Review its existing record and restore it before changing the publisher account.');
+                Http::redirect('/admin/domains/'.rawurlencode($guid).'/restore');
+            }
+            View::flash('This hostname is already registered. Its existing onboarding tracker is open below; do not create a duplicate.');
+            Http::redirect(self::url($guid));
+        }
         $app=Store::one('SELECT a.application_guid,p.product_guid FROM applications a JOIN products p ON p.product_guid=a.product_guid WHERE p.product_key="EPAPER" AND a.status="ACTIVE" AND p.status="ACTIVE" ORDER BY (a.application_key="city_epaper") DESC LIMIT 1');
         if (!$app) throw new \RuntimeException('Register an active EPAPER application before adding publisher domains.');
         $owner=(string)($_POST['owner_user_guid']??'');
