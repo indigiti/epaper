@@ -62,4 +62,36 @@ final class CanonicalDomainRegistration
             throw new \InvalidArgumentException('Only a Platform SUPER_ADMIN may register a canonical application hostname.');
         return 'SAAS_DEFAULT';
     }
+
+    /**
+     * The one registration writer for Domain Registry and Publisher Onboarding.
+     * Must be called inside the caller's transaction, so new-tenant creation
+     * and hostname registration commit/rollback together.
+     */
+    public static function insertDomain(string $guid,string $host,string $token,array $tenant,array $app,string $domainType): void
+    {
+        if(!in_array($domainType,['SAAS_DEFAULT','CUSTOMER_CUSTOM'],true))
+            throw new \InvalidArgumentException('Invalid website registration type.');
+        if(!isset($tenant['product_tenant_guid'],$tenant['organisation_guid'],$tenant['product_guid'],
+                  $app['application_guid'],$app['product_guid'])
+           ||$tenant['product_guid']!==$app['product_guid'])
+            throw new \InvalidArgumentException('Publisher tenant and application must belong to the same product.');
+
+        Store::exec('INSERT INTO domains(domain_guid,organisation_guid,product_guid,application_guid,
+            product_tenant_guid,hostname,normalized_hostname,domain_type,status,is_primary,
+            verification_token,created_at,updated_at)
+            VALUES(?,?,?,?,?,?,?,?,"AWAITING_DNS",0,?,NOW(6),NOW(6))',[
+            Uuid::toBinary($guid),Uuid::toBinary((string)$tenant['organisation_guid']),
+            Uuid::toBinary((string)$tenant['product_guid']),
+            Uuid::toBinary((string)$app['application_guid']),
+            Uuid::toBinary((string)$tenant['product_tenant_guid']),$host,$host,$domainType,$token
+        ]);
+        Store::exec('INSERT INTO application_redirect_uris(redirect_guid,application_guid,
+            redirect_uri,status,created_at) VALUES(?,?,?,"ACTIVE",NOW(6))
+            ON DUPLICATE KEY UPDATE status="ACTIVE"',[
+            Uuid::toBinary(Uuid::v7()),Uuid::toBinary((string)$app['application_guid']),
+            'https://'.$host.'/auth/callback'
+        ]);
+    }
+
 }
