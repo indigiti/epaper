@@ -1,6 +1,6 @@
 <?php
 namespace EpaperSaas\Core;
-use EpaperSaas\Services\{DesktopAuth,DeviceAuth,MobileAuth,PlatformClient,ReaderSession};
+use EpaperSaas\Services\{DesktopAuth,DeviceAuth,MobileAuth,PlatformClient,ReaderSession,TenantData};
 final class Auth
 {
     private static bool $sessionConfigured=false;

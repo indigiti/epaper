@@ -28,6 +28,9 @@ $catalog=file_get_contents($root.'/app/Services/AdminFeatureCatalog.php');
 checkLoginStorage(str_contains($auth,"\$loginSettings['ui.login_app_approval']")
     &&str_contains($auth,"\$loginSettings['ui.login_mobile_otp']"),
     'Sign-in buttons are conditionally rendered using tenant settings');
+checkLoginStorage(str_contains($auth, 'ReaderSession,TenantData};')
+    &&class_exists(\EpaperSaas\Services\TenantData::class),
+    'Publisher login resolves the tenant settings service without a missing-class error');
 checkLoginStorage(str_contains($auth,'Sign in to Publisher Desk')&&str_contains($auth,'Publisher workspace'),
     'Clear Publisher Desk button and section labels');
 checkLoginStorage(str_contains($view,"self::icon('user').'</a>';"),
