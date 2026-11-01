@@ -38,11 +38,15 @@ try{
     await page.locator('[data-reader-text-status]').waitFor();
     await page.keyboard.press('Escape');assert.ok(!(await page.locator('[data-reader-text-modal]').isVisible()),'Escape must close OCR view');
     if(count>1&&device.name==='desktop-1440'){
-      const next=page.locator('[data-reader-next]');await next.click();await page.waitForFunction(()=>document.querySelector('#reader')?.dataset.pageNumber==='2',{timeout:12000}).catch(()=>{});assert.equal(await frame.getAttribute('data-page-number'),'2','Next-page navigation must work');
+      const next=page.locator('[data-reader-next]');await next.click();await page.waitForFunction(()=>document.querySelector('#reader')?.dataset.pageNumber==='2',null,{timeout:12000});assert.equal(await frame.getAttribute('data-page-number'),'2','Next-page navigation must work');
     }
     const axe=await new AxeBuilder({page}).withTags(['wcag2a','wcag2aa','wcag21a','wcag21aa']).analyze();
     const violations=axe.violations.map(v=>({id:v.id,impact:v.impact,nodes:v.nodes.length}));
-    const metrics=await page.evaluate(()=>({navigationMs:Math.round(performance.getEntriesByType('navigation')[0]?.duration||0),lcpMs:Math.round(window.__webVitals?.lcp||0),cls:Number((window.__webVitals?.cls||0).toFixed(4)),resourceCount:performance.getEntriesByType('resource').length}));
+    const metrics=await page.evaluate(()=>({navigationMs:Math.round(performance.getEntriesByType('navigation')[0]?.duration||0),lcpMs:Math.round(window.__webVitals?.lcp||0),cls:Number((window.__webVitals?.cls||0).toFixed(4)),resourceCount:performance.getEntriesByType('resource').length,transferBytes:performance.getEntriesByType('resource').reduce((sum,r)=>sum+(r.transferSize||0),0)}));
+    const maxLcp=Number(process.env.EPDI_MAX_LCP_MS||4000),maxCls=Number(process.env.EPDI_MAX_CLS||0.1);
+    assert.ok(metrics.lcpMs>0,device.name+': no measurable LCP; performance acceptance incomplete');
+    assert.ok(metrics.lcpMs<=maxLcp,device.name+': LCP exceeds '+maxLcp+'ms');
+    assert.ok(metrics.cls<=maxCls,device.name+': CLS exceeds '+maxCls);
     await page.screenshot({path:new URL(`${device.name}.png`,dir).pathname,fullPage:true,animations:'disabled'});
     evidence.push({profile:device.name,screen:{width:device.width,height:device.height},metrics,violations,pageErrors:errors});
     await context.close();
