@@ -149,3 +149,13 @@ html{scroll-behavior:smooth}
 .platform-main-column .table-wrap{overflow-x:auto}
 }
 @media(prefers-reduced-motion:reduce){.home-action{transition:none}.home-action:hover{transform:none}html{scroll-behavior:auto}}
+
+
+/* Optional creation forms: keep existing records visible first. */
+.platform-form-disclosure{padding:0!important;overflow:hidden}
+.platform-form-disclosure>summary{cursor:pointer;font-size:15px;font-weight:750;padding:20px;list-style:none;display:flex;align-items:center;justify-content:space-between}
+.platform-form-disclosure>summary::after{content:"+";font-size:23px;font-weight:500;color:var(--muted)}
+.platform-form-disclosure[open]>summary::after{content:"−"}
+.platform-form-disclosure>summary::-webkit-details-marker{display:none}
+.platform-form-disclosure-body{border-top:1px solid var(--border);padding:18px 20px 22px}
+.platform-form-disclosure-body>p{margin:0 0 16px;font-size:12px;line-height:1.6}
