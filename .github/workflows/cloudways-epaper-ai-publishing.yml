@@ -21,6 +21,10 @@ jobs:
           --health-interval=5s --health-timeout=5s --health-retries=20
     steps:
       - uses: actions/checkout@v4
+      - name: Guard secrets and Cloudways/root source parity
+        run: |
+          python3 codebase/tests/security-source-guard.py
+          python3 codebase/tests/branch-layout-parity.py
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
