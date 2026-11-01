@@ -27,6 +27,14 @@ After recovery, the administrator is directed to Publisher Onboarding for routin
 
 ## If you do not want to restore the previous product or linked records
 
-On the canonical hostname Restore screen, expand **“I do not want to restore the old product or other records.”** This displays the number of registered applications, publisher tenants and domains belonging to the archived product, explains the database's unique EPAPER product key / hostname constraints, and offers a **Do not restore — leave existing records archived** navigation choice. Opening this preview or selecting the leave-archived link makes **no database changes**.
+The canonical hostname screen now has a **Do not restore — release archived resources** option with links to product/hostname/organisation cleanup reviews.
 
-A genuinely fresh setup needs a **new isolated staging Cloudways application and empty database**, private configuration, independent media and Redis, and a distinct staging hostname. Do not attempt to bypass archived product references on the existing production Platform by creating a second EPAPER product or reusing the same canonical domain. `/admin/staging-reset`, when enabled on isolated staging, only restarts test-domain onboarding—it is **not** a complete database reset. A production cutover would require a separate backed-up migration and acceptance plan.
+- **Release archived hostname:** physically deletes the archived Platform domain row, freeing its unique hostname. Original GUID and hostname are written to an immutable registry.release audit event.
+- **Release archived EPAPER product:** in one transaction, removes archived domains, application registrations, OAuth redirects, auth codes, heartbeats, service credentials, unused plans/features and unreferenced tenants. Frees the old EPAPER product key and application/feature keys.
+- **Release archived organisation code:** frees an archived organisation code, preserving original GUID, legal name and historical records if still referenced.
+- **Financial records preserved:** original invoices, invoice items, payments, payment attempts, refunds, subscriptions, usage meters and audit logs remain. Minimal historical identity rows (product, tenant, plan, feature) remain only when foreign keys require them; unique retired keys no longer block reuse.
+- **Permission/preconditions:** Platform SUPER_ADMIN, backup acknowledgement, typed identifier, irreversible action confirmation, no active subscriptions/pending payments/refunds and no unarchived dependent operational records. Dependency preview checks block unsupported deletion.
+- **Media/cache limitation:** Platform invalidates its Redis hostname cache. ePaper has independent Redis/file caches needing TTL or a targeted purge, and remote PDFs/images are not deleted by Platform. A separate ePaper reference and backup audit is needed to reclaim its media files.
+- **Cutover:** freeing a hostname is not go-live. Recreate valid product/application/tenant/domain mapping, complete onboarding, verify DNS/SSL and confirm isolated newspaper data.
+
+No database cleanup runs on deployment. Every release is an explicit irreversible administrator action, and must first be tested on an isolated Cloudways snapshot.
