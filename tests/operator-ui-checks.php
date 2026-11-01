@@ -24,6 +24,11 @@ check(str_contains($menu,'/admin/help'),'help navigation exists');
 $domain=[
     'domain_guid'=>'01a05e76-d968-7e72-a4ef-aec784cf0547',
     'hostname'=>'epaper.dcnnews.co.in',
+    'organisation_guid'=>'01a05e76-d968-7e72-a4ef-aec784cf0001',
+    'tenant_organisation_guid'=>'01a05e76-d968-7e72-a4ef-aec784cf0001',
+    'product_guid'=>'01a05e76-d968-7e72-a4ef-aec784cf0002',
+    'tenant_product_guid'=>'01a05e76-d968-7e72-a4ef-aec784cf0002',
+    'application_product_guid'=>'01a05e76-d968-7e72-a4ef-aec784cf0002',
     'organisation_status'=>'ACTIVE',
     'tenant_status'=>'ACTIVE',
     'application_status'=>'ACTIVE',
@@ -41,6 +46,8 @@ $domain['reviewed']=true;
 $domain['status']='ACTIVE';
 $complete=\Digiti\Admin\Onboarding::state($domain);
 check($complete['done']===6 && $complete['live'],'operator-reviewed ACTIVE site is counted as complete');
+$wrongTenant=$domain;$wrongTenant['tenant_product_guid']='01a05e76-d968-7e72-a4ef-aec784cf9999';
+check(!\Digiti\Admin\Onboarding::state($wrongTenant)['live'],'mismatched product tenant must not be approved');
 
 $stage=(new ReflectionMethod(\Digiti\Admin\OnboardingDashboard::class,'stage'));
 $domain['_shares_default']=true;
