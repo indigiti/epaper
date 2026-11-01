@@ -1,0 +1,29 @@
+name: cw-platform onboarding checks
+
+on:
+  push:
+    branches: [cw-platform]
+    paths:
+      - 'app/**'
+      - 'public_html/**'
+      - 'config/**'
+      - 'tests/**'
+      - '.github/workflows/cw-platform-onboarding.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  onboarding:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          coverage: none
+      - name: PHP syntax lint
+        run: find app public_html tests -type f -name '*.php' -print0 | xargs -0 -n1 php -l
+      - name: Source-contract checks
+        run: php tests/onboarding-source-contract.php

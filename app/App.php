@@ -3,7 +3,7 @@ namespace Digiti;
 
 use Digiti\Core\{Auth,Audit,Config,Crypto,Database,DomainTools,Entitlements,Http,Mfa,OAuth,RateLimiter,RedisStore,ServiceAuth,Store,Uuid,View};
 use Digiti\Billing\ProviderFactory;
-use Digiti\Admin\Crud;
+use Digiti\Admin\{Crud,Onboarding};
 use Digiti\Domain\EdgeProviderFactory;
 
 final class App
@@ -35,6 +35,8 @@ final class App
         if($method==='POST')Http::verifyCsrf();
         if(Crud::dispatch($path,$method))exit;
         if($path==='/admin')$this->dashboard();
+        if($path==='/admin/onboarding')Onboarding::index($method);
+        if(preg_match('#^/admin/onboarding/([0-9a-f-]{36})/(verify|owner|confirm)$#i',$path,$m))Onboarding::action(strtolower($m[1]),$m[2],$method);
         if($path==='/admin/organisations')$this->organisations($method);
         if($path==='/admin/users')$this->users($method);
         if($path==='/admin/products')$this->products($method);
@@ -125,7 +127,7 @@ final class App
     {
         $tenants=Store::all('SELECT pt.product_tenant_guid,CONCAT(o.display_name," — ",p.name) label,pt.organisation_guid,pt.product_guid FROM product_tenants pt JOIN organisations o ON o.organisation_guid=pt.organisation_guid JOIN products p ON p.product_guid=pt.product_guid WHERE pt.status="ACTIVE" ORDER BY o.display_name');$apps=Store::all('SELECT application_guid,product_guid,name FROM applications WHERE status="ACTIVE" ORDER BY name');
         if($method==='POST'){$host=DomainTools::normalize($_POST['hostname']);$tenant=null;foreach($tenants as$t)if($t['product_tenant_guid']===$_POST['product_tenant_guid']){$tenant=$t;break;}if(!$tenant)throw new \RuntimeException('Invalid tenant');$app=null;foreach($apps as$a)if($a['application_guid']===$_POST['application_guid']){$app=$a;break;}if(!$app||$app['product_guid']!==$tenant['product_guid'])throw new \RuntimeException('Application/product mismatch');$guid=Uuid::v7();$token='digiti_'.bin2hex(random_bytes(16));Store::exec('INSERT INTO domains(domain_guid,organisation_guid,product_guid,application_guid,product_tenant_guid,hostname,normalized_hostname,domain_type,status,is_primary,verification_token,created_at,updated_at) VALUES(?,?,?,?,?,?,?,"CUSTOMER_CUSTOM","AWAITING_DNS",?,?,NOW(6),NOW(6))',[Uuid::toBinary($guid),Uuid::toBinary($tenant['organisation_guid']),Uuid::toBinary($tenant['product_guid']),Uuid::toBinary($app['application_guid']),Uuid::toBinary($tenant['product_tenant_guid']),$host,$host,!empty($_POST['is_primary'])?1:0,$token]);$redirect='https://'.$host.'/auth/callback';Store::exec('INSERT INTO application_redirect_uris(redirect_guid,application_guid,redirect_uri,status,created_at) VALUES(?,?,?,"ACTIVE",NOW(6)) ON DUPLICATE KEY UPDATE status="ACTIVE"',[Uuid::toBinary(Uuid::v7()),Uuid::toBinary($app['application_guid']),$redirect]);Audit::log('domain.create','domain',$guid);View::flash('Domain added. Configure CNAME to '.Config::get('app.domains_target').' or TXT _digiti-verification.'.$host.' = '.$token);Http::redirect('/admin/domains');}
-        $items=Store::all('SELECT d.domain_guid,d.hostname,d.status,d.is_primary,d.verification_token,d.last_checked_at,o.display_name organisation,p.name product,a.name application FROM domains d JOIN organisations o ON o.organisation_guid=d.organisation_guid JOIN products p ON p.product_guid=d.product_guid JOIN applications a ON a.application_guid=d.application_guid ORDER BY d.created_at DESC');$rows=[];foreach($items as$r){$action='<div class="actions compact"><a class="button small" href="/admin/domains/'.$this->e($r['domain_guid']).'/edit">Edit</a><form class="inline-form" method="post" action="/admin/domains/'.$this->e($r['domain_guid']).'/verify">'.$this->csrf().'<button class="small">Verify</button></form>'.(in_array($r['status'],['ROUTING_VALID','SSL_PROVISIONING'],true)?'<form class="inline-form" method="post" action="/admin/domains/'.$this->e($r['domain_guid']).'/activate">'.$this->csrf().'<button class="small">Activate</button></form>':'').'<form class="inline-form" method="post" action="/admin/domains/'.$this->e($r['domain_guid']).'/remove">'.$this->csrf().'<button class="small danger">Remove</button></form></div>';$rows[]=[$this->e($r['hostname']),$this->e($r['organisation']),$this->e($r['product']),$this->status($r['status']),$r['is_primary']?'Yes':'No','<code>'.$this->e($r['verification_token']).'</code>',$action];}
+        $items=Store::all('SELECT d.domain_guid,d.hostname,d.status,d.is_primary,d.verification_token,d.last_checked_at,o.display_name organisation,p.name product,a.name application FROM domains d JOIN organisations o ON o.organisation_guid=d.organisation_guid JOIN products p ON p.product_guid=d.product_guid JOIN applications a ON a.application_guid=d.application_guid ORDER BY d.created_at DESC');$rows=[];foreach($items as$r){$action='<div class="actions compact"><a class="button small" href="/admin/domains/'.$this->e($r['domain_guid']).'/edit">Edit</a><form class="inline-form" method="post" action="/admin/domains/'.$this->e($r['domain_guid']).'/verify">'.$this->csrf().'<button class="small">Verify</button></form>'.(in_array($r['status'],['ROUTING_VALID','SSL_PROVISIONING'],true)?'<a class="button small" href="/admin/onboarding?domain='.$this->e($r['domain_guid']).'">Finish onboarding</a>':'').'<form class="inline-form" method="post" action="/admin/domains/'.$this->e($r['domain_guid']).'/remove">'.$this->csrf().'<button class="small danger">Remove</button></form></div>';$rows[]=[$this->e($r['hostname']),$this->e($r['organisation']),$this->e($r['product']),$this->status($r['status']),$r['is_primary']?'Yes':'No','<code>'.$this->e($r['verification_token']).'</code>',$action];}
         $form='<section class="card"><h2>Add customer domain</h2><form method="post" class="form-grid">'.$this->csrf().'<label>Product tenant'.$this->select('product_tenant_guid',$tenants,'product_tenant_guid','label').'</label><label>Application'.$this->select('application_guid',$apps,'application_guid','name').'</label><label>Hostname<input name="hostname" placeholder="epaper.punemirror.com" required></label><label class="check"><input type="checkbox" name="is_primary" value="1"> Primary domain</label><div class="form-action"><button class="primary">Add domain</button></div></form><p class="muted">CNAME target: <code>'.$this->e(Config::get('app.domains_target')).'</code></p></section>';View::layout('Domains',$form.'<section class="card"><h2>Domain registry</h2>'.$this->table(['Hostname','Organisation','Product','Status','Primary','Verification Token','Action'],$rows).'</section>',['subtitle'=>'Global hostname → product → tenant routing']);
     }
 
@@ -135,7 +137,10 @@ final class App
     }
     private function activateDomain(string $guid): never
     {
-        $d=Store::one('SELECT domain_guid,hostname,status FROM domains WHERE domain_guid=?',[Uuid::toBinary($guid)]);if(!$d)throw new \RuntimeException('Domain not found');if(!in_array($d['status'],['ROUTING_VALID','SSL_PROVISIONING'],true))throw new \RuntimeException('Domain is not ready for activation');Store::exec('UPDATE domains SET status="ACTIVE",ssl_ready_at=COALESCE(ssl_ready_at,NOW(6)),activated_at=COALESCE(activated_at,NOW(6)),updated_at=NOW(6) WHERE domain_guid=?',[Uuid::toBinary($guid)]);RedisStore::del('domain:'.$d['hostname']);Audit::log('domain.activate','domain',$guid);View::flash('Domain activated.');Http::redirect('/admin/domains');
+        // Retired legacy instant-activation endpoint. Approval requires the
+        // authenticated onboarding checklist and explicit operator attestation.
+        View::flash('Complete publisher onboarding and go-live checks before activation.');
+        Http::redirect('/admin/onboarding?domain='.rawurlencode($guid));
     }
 
     private function serviceAccounts(string $method): never
