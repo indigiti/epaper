@@ -176,6 +176,151 @@ try{
     checkDb((int)Store::value('SELECT COUNT(*) FROM products WHERE product_key="EPAPER"')===1,
         'canonical recovery does not create an additional product');
 
+
+    // Retention-aware cleanup: remove obsolete operational rows, preserve
+    // original invoice/subscription/payment/audit GUIDs, and release keys.
+    $planGuid=Uuid::v7();$priceGuid=Uuid::v7();$featureGuid=Uuid::v7();
+    $subscriptionGuid=Uuid::v7();$invoiceGuid=Uuid::v7();$paymentGuid=Uuid::v7();
+    $refundGuid=Uuid::v7();$attemptGuid=Uuid::v7();$invoiceItemGuid=Uuid::v7();
+    $usageGuid=Uuid::v7();$grantGuid=Uuid::v7();$oldAuditGuid=Uuid::v7();
+    Store::exec('INSERT INTO features(feature_guid,product_guid,feature_key,name,feature_type,created_at)
+        VALUES(?,?,"EDITION_LIMIT","Edition limit","NUMBER",NOW(6))',
+        [Uuid::toBinary($featureGuid),$bin('product')]);
+    Store::exec('INSERT INTO plans(plan_guid,product_guid,plan_key,name,status,created_at,updated_at)
+        VALUES(?,?,"OLD_PLAN","Previous publishing plan","ACTIVE",NOW(6),NOW(6))',
+        [Uuid::toBinary($planGuid),$bin('product')]);
+    Store::exec('INSERT INTO prices(price_guid,plan_guid,currency,amount_minor,billing_interval,status,created_at)
+        VALUES(?,?,"INR",49900,"MONTHLY","ACTIVE",NOW(6))',
+        [Uuid::toBinary($priceGuid),Uuid::toBinary($planGuid)]);
+    Store::exec('INSERT INTO plan_features(plan_guid,feature_guid,enabled) VALUES(?,?,1)',
+        [Uuid::toBinary($planGuid),Uuid::toBinary($featureGuid)]);
+    Store::exec('INSERT INTO entitlement_grants(grant_guid,product_tenant_guid,feature_guid,enabled,created_at)
+        VALUES(?,?,?,1,NOW(6))',[Uuid::toBinary($grantGuid),$bin('tenantAMG'),Uuid::toBinary($featureGuid)]);
+    Store::exec('INSERT INTO usage_meters(usage_guid,product_tenant_guid,feature_guid,period_key,used_value,reserved_value,updated_at)
+        VALUES(?,?,?,"2026-10",12,0,NOW(6))',
+        [Uuid::toBinary($usageGuid),$bin('tenantAMG'),Uuid::toBinary($featureGuid)]);
+    Store::exec('INSERT INTO subscriptions(subscription_guid,product_tenant_guid,plan_guid,price_guid,
+        status,billing_state,service_access_state,current_period_start,current_period_end,created_at,updated_at)
+        VALUES(?,?,?,?,"ACTIVE","ACTIVE","FULL",NOW(6),DATE_ADD(NOW(6),INTERVAL 1 MONTH),NOW(6),NOW(6))',
+        [Uuid::toBinary($subscriptionGuid),$bin('tenantAMG'),Uuid::toBinary($planGuid),Uuid::toBinary($priceGuid)]);
+    Store::exec('INSERT INTO invoices(invoice_guid,product_tenant_guid,invoice_number,currency,
+        subtotal_minor,tax_minor,total_minor,status,created_at,updated_at)
+        VALUES(?,?,"CI-INVOICE-0001","INR",49900,0,49900,"PAID",NOW(6),NOW(6))',
+        [Uuid::toBinary($invoiceGuid),$bin('tenantAMG')]);
+    Store::exec('INSERT INTO invoice_items(invoice_item_guid,invoice_guid,description,
+        quantity,unit_amount_minor,line_total_minor)
+        VALUES(?,?,"October ePaper service",1,49900,49900)',
+        [Uuid::toBinary($invoiceItemGuid),Uuid::toBinary($invoiceGuid)]);
+    Store::exec('INSERT INTO payments(payment_guid,product_tenant_guid,invoice_guid,provider,amount_minor,currency,status,created_at,updated_at)
+        VALUES(?,?,?,"TEST",49900,"INR","SUCCEEDED",NOW(6),NOW(6))',
+        [Uuid::toBinary($paymentGuid),$bin('tenantAMG'),Uuid::toBinary($invoiceGuid)]);
+    Store::exec('INSERT INTO payment_attempts(attempt_guid,payment_guid,status,created_at)
+        VALUES(?,?,"SUCCEEDED",NOW(6))',[Uuid::toBinary($attemptGuid),Uuid::toBinary($paymentGuid)]);
+    Store::exec('INSERT INTO refunds(refund_guid,payment_guid,amount_minor,status,created_at,updated_at)
+        VALUES(?,?,1000,"SUCCEEDED",NOW(6),NOW(6))',
+        [Uuid::toBinary($refundGuid),Uuid::toBinary($paymentGuid)]);
+    Store::exec('INSERT INTO audit_events(audit_event_guid,occurred_at,actor_type,action,resource_type,resource_guid,result)
+        VALUES(?,NOW(6),"SYSTEM","historical.domain.link","domain",?,"SUCCESS")',
+        [Uuid::toBinary($oldAuditGuid),$bin('domain')]);
+    Store::exec('UPDATE domains SET status="REMOVED" WHERE product_guid=?',[$bin('product')]);
+    Store::exec('UPDATE applications SET status="REMOVED" WHERE product_guid=?',[$bin('product')]);
+    Store::exec('UPDATE product_tenants SET status="REMOVED" WHERE product_guid=?',[$bin('product')]);
+    Store::exec('UPDATE products SET status="REMOVED" WHERE product_guid=?',[$bin('product')]);
+    Store::exec('UPDATE organisations SET status="REMOVED" WHERE organisation_guid=?',[$bin('orgAMG')]);
+    $cleanup=new ReflectionMethod(\Digiti\Admin\RegistryCleanup::class,'snapshot');
+    $blocked=$cleanup->invoke(null,'products',$ids['product']);
+    checkDb((bool)$blocked['blockers'],'active subscription blocks product release without deleting financial references');
+    Store::exec('UPDATE subscriptions SET status="CANCELLED",service_access_state="NONE" WHERE subscription_guid=?',
+        [Uuid::toBinary($subscriptionGuid)]);
+    $eligible=$cleanup->invoke(null,'products',$ids['product']);
+    checkDb(!$eligible['blockers'] && $eligible['counts']['Invoices retained']===1
+        && $eligible['counts']['Payments retained']===1,'settled financial history permits safe archived product release');
+    $release=(new ReflectionMethod(\Digiti\Admin\RegistryCleanup::class,'releaseProduct'));
+    $adminGuid=Uuid::v7();
+    Store::exec('INSERT INTO platform_admins(admin_guid,email,display_name,password_hash,role_key,
+        status,created_at,updated_at) VALUES(?,"ci@example.test","CI Admin","hash","SUPER_ADMIN","ACTIVE",NOW(6),NOW(6))',
+        [Uuid::toBinary($adminGuid)]);
+    $auditWrite=(new ReflectionMethod(\Digiti\Admin\RegistryCleanup::class,'audit'));
+    $purgedHostnames=[];
+    Store::tx(function()use($release,$auditWrite,$ids,$adminGuid,&$purgedHostnames):void {
+        $impact=$release->invokeArgs(null,[$ids['product'],&$purgedHostnames]);
+        $auditWrite->invoke(null,['admin_guid'=>$adminGuid],'products',$ids['product'],'EPAPER',$impact);
+    });
+    checkDb(in_array('epaper.digiti.in',$purgedHostnames,true)
+        &&in_array('epaper.dcnnews.co.in',$purgedHostnames,true),
+        'archived canonical and customer hostnames are released');
+    checkDb((int)Store::value('SELECT COUNT(*) FROM domains WHERE product_guid=?',[$bin('product')])===0,
+        'archived domain registry rows physically deleted');
+    checkDb((int)Store::value('SELECT COUNT(*) FROM applications WHERE product_guid=?',[$bin('product')])===0,
+        'archived application configuration physically deleted');
+    checkDb((int)Store::value('SELECT COUNT(*) FROM products WHERE product_key="EPAPER"')===0,
+        'unique EPAPER product key is released despite retained billing lineage');
+    $historicProduct=Store::one('SELECT product_guid,product_key FROM products WHERE product_guid=?',[$bin('product')]);
+    checkDb($historicProduct['product_guid']===$ids['product'] &&
+        str_starts_with($historicProduct['product_key'],'RETIRED_'),
+        'minimal historical product retains original GUID but not the reserved product key');
+    $invoiceAfter=Store::one('SELECT i.invoice_guid,i.product_tenant_guid,t.product_guid,
+        t.display_name,p.product_guid product_reference_guid
+        FROM invoices i JOIN product_tenants t ON t.product_tenant_guid=i.product_tenant_guid
+        JOIN products p ON p.product_guid=t.product_guid WHERE i.invoice_guid=?',
+        [Uuid::toBinary($invoiceGuid)]);
+    checkDb($invoiceAfter['invoice_guid']===$invoiceGuid
+        &&$invoiceAfter['product_tenant_guid']===$ids['tenantAMG']
+        &&$invoiceAfter['product_guid']===$ids['product'],
+        'invoice remains linked to original tenant and retired product GUID');
+    foreach([
+        ['subscriptions','subscription_guid',$subscriptionGuid],
+        ['payments','payment_guid',$paymentGuid],
+        ['refunds','refund_guid',$refundGuid],
+        ['payment_attempts','attempt_guid',$attemptGuid],
+        ['invoice_items','invoice_item_guid',$invoiceItemGuid],
+        ['usage_meters','usage_guid',$usageGuid],
+        ['audit_events','audit_event_guid',$oldAuditGuid]
+    ] as [$table,$col,$id]){
+        checkDb((int)Store::value("SELECT COUNT(*) FROM $table WHERE $col=?",[Uuid::toBinary($id)])===1,
+            'retained original GUID in '.$table);
+    }
+    checkDb((int)Store::value('SELECT COUNT(*) FROM audit_events WHERE action="registry.release"
+        AND resource_guid=?',[ $bin('product') ])===1,'permanent cleanup creates a durable trace to original product GUID');
+    checkDb((int)Store::value('SELECT COUNT(*) FROM features WHERE feature_key="EDITION_LIMIT"')===0,
+        'retained feature history no longer reserves global feature keys');
+    $orgRelease=(new ReflectionMethod(\Digiti\Admin\RegistryCleanup::class,'releaseOrganisation'));
+    $orgBefore=$cleanup->invoke(null,'organisations',$ids['orgAMG']);
+    checkDb(!$orgBefore['blockers'],'archived AMG organisation eligible for code release');
+    Store::tx(fn()=> $orgRelease->invoke(null,$ids['orgAMG']));
+    checkDb((int)Store::value('SELECT COUNT(*) FROM organisations WHERE organisation_code="AMG"')===0,
+        'archived organisation code released while billed tenant remains linked');
+    $oldOrg=Store::one('SELECT legal_name FROM organisations WHERE organisation_guid=?',[$bin('orgAMG')]);
+    checkDb($oldOrg['legal_name']==='AMG','historic legal name retained for billing readability');
+    $newProductGuid=Uuid::v7();$newOrgGuid=Uuid::v7();$newAppGuid=Uuid::v7();
+    $newTenantGuid=Uuid::v7();$newDomainGuid=Uuid::v7();$newFeatureGuid=Uuid::v7();
+    Store::exec('INSERT INTO products(product_guid,product_key,name,status,created_at,updated_at)
+        VALUES(?,"EPAPER","Fresh ePaper","ACTIVE",NOW(6),NOW(6))',[Uuid::toBinary($newProductGuid)]);
+    Store::exec('INSERT INTO organisations(organisation_guid,organisation_code,legal_name,display_name,
+        status,created_at,updated_at) VALUES(?,"AMG","New AMG","New AMG","ACTIVE",NOW(6),NOW(6))',
+        [Uuid::toBinary($newOrgGuid)]);
+    Store::exec('INSERT INTO applications(application_guid,product_guid,application_key,name,base_url,
+        status,created_at,updated_at) VALUES(?,?,"EPAPER","New EPAPER",
+        "https://epaper.digiti.in","ACTIVE",NOW(6),NOW(6))',
+        [Uuid::toBinary($newAppGuid),Uuid::toBinary($newProductGuid)]);
+    Store::exec('INSERT INTO product_tenants(product_tenant_guid,organisation_guid,product_guid,display_name,
+        status,created_at,updated_at) VALUES(?,?,?,"New AMG tenant","ACTIVE",NOW(6),NOW(6))',
+        [Uuid::toBinary($newTenantGuid),Uuid::toBinary($newOrgGuid),Uuid::toBinary($newProductGuid)]);
+    Store::exec('INSERT INTO domains(domain_guid,organisation_guid,product_guid,application_guid,
+        product_tenant_guid,hostname,normalized_hostname,domain_type,status,is_primary,
+        verification_token,created_at,updated_at) VALUES(?,?,?,?,?,
+        "epaper.digiti.in","epaper.digiti.in","SAAS_DEFAULT","AWAITING_DNS",0,
+        "new-canonical-token",NOW(6),NOW(6))',
+        [Uuid::toBinary($newDomainGuid),Uuid::toBinary($newOrgGuid),Uuid::toBinary($newProductGuid),
+            Uuid::toBinary($newAppGuid),Uuid::toBinary($newTenantGuid)]);
+    Store::exec('INSERT INTO features(feature_guid,product_guid,feature_key,name,created_at)
+        VALUES(?,?,"EDITION_LIMIT","Fresh edition limit",NOW(6))',
+        [Uuid::toBinary($newFeatureGuid),Uuid::toBinary($newProductGuid)]);
+    checkDb((int)Store::value('SELECT COUNT(*) FROM products WHERE product_key="EPAPER"')===1
+        &&(int)Store::value('SELECT COUNT(*) FROM domains WHERE normalized_hostname="epaper.digiti.in"')===1
+        &&(int)Store::value('SELECT COUNT(*) FROM applications WHERE application_key="EPAPER"')===1,
+        'fresh setup reuses original EPAPER product, application and canonical hostname keys');
+
     echo "PASS: database-backed Platform domain recovery integration checks complete\n";
 }finally{
     @unlink($cfgPath);
