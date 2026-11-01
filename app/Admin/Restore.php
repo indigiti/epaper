@@ -45,17 +45,20 @@ final class Restore
             Http::redirect('/admin/'.$type);
         }
         $label=self::recordLabel($type,$record);
+        $canonical=$type==='domains' && self::canonicalDomain($record);
+        if($canonical) self::requireSystemDomainAdmin();
         if($method==='GET') {
             $blocker=null;
             try {self::checkDependencies($type,$record);}
             catch(\InvalidArgumentException $e){$blocker=$e->getMessage();}
             $target=$type==='domains'?'AWAITING_DNS':($type==='service-accounts'?'REVOKED':'SUSPENDED');
-            $body='<section class="card platform-restore-review"><h2>Recover an existing record</h2>'
+            $body='<section class="card platform-restore-review"><h2>'.($canonical?'Restore ePaper application hostname':'Recover an existing record').'</h2>'
                 .'<p>This record already exists. Restore it instead of attempting to add another record with the same identifier.</p>'
                 .'<dl><div><dt>Record</dt><dd>'.View::esc($label).'</dd></div>'
                 .'<div><dt>Current state</dt><dd>Archived (REMOVED)</dd></div>'
                 .'<div><dt>After recovery</dt><dd>'.View::esc($target).'</dd></div></dl>'
                 .'<p class="muted">The original record and history are preserved. Dependent accounts, privileges, DNS and SSL readiness are not silently reactivated.</p>'
+                .($canonical?'<div class="platform-restore-warning"><strong>Canonical application domain:</strong> This hostname belongs to the installed ePaper application, not a separate publisher. Restore the original record only; its product, application and tenant must all be active and correctly related. Routing will restart at AWAITING_DNS, not go live automatically. No ePaper content or other publisher data is moved.</div>':'')
                 .($blocker?'<div class="platform-restore-warning" role="alert"><strong>Recovery blocked:</strong> '.View::esc($blocker).'</div>':'')
                 .'<form method="post" action="/admin/'.View::esc($type).'/'.View::esc($guid).'/restore">'
                 .'<input type="hidden" name="_csrf" value="'.View::esc(Http::csrf()).'">'
@@ -63,7 +66,9 @@ final class Restore
                 .'<input name="confirm_record" required autocomplete="off" placeholder="'.View::esc($label).'"></label>'
                 .'<label class="platform-restore-check"><input type="checkbox" name="confirm_restore" value="1" required>'
                 .' I understand this reopens the archived record and requires follow-up checks.</label>'
-                .'<div class="form-action"><button type="submit" class="primary"'.($blocker?' disabled':'').'>Restore existing record</button>'
+                .($canonical?'<label class="platform-restore-check"><input type="checkbox" name="confirm_canonical" value="1" required>'
+                    .' I understand this is the main ePaper application hostname. Restoring it does not restore an archived product or activate public routing.</label>':'')
+                .'<div class="form-action"><button type="submit" class="primary"'.($blocker?' disabled':'').'>'.($canonical?'Restore application hostname':'Restore existing record').'</button>'
                 .'<a class="button" href="/admin/'.View::esc($type).'">Cancel</a></div></form>'
                 .'</section>';
             View::layout('Restore archived record',$body,['subtitle'=>$label]);
@@ -71,6 +76,8 @@ final class Restore
         if(trim((string)($_POST['confirm_record']??''))!==$label
             ||($_POST['confirm_restore']??'')!=='1')
             throw new \InvalidArgumentException('Type the exact record name and confirm the recovery.');
+        if($canonical && ($_POST['confirm_canonical']??'')!=='1')
+            throw new \InvalidArgumentException('Confirm the additional application-hostname recovery warning.');
         self::checkDependencies($type,$record);
         $target=$type==='domains'?'AWAITING_DNS':($type==='service-accounts'?'REVOKED':'SUSPENDED');
         Store::tx(function()use($type,$guid,$cfg,$table,$key,$bin,$target):void{
@@ -91,10 +98,14 @@ final class Restore
             ]);
         });
         self::invalidate($type,$record,$guid);
-        View::flash('Restored to '.$target.'. Review the publisher/application link and complete onboarding before publishing.');
-        $next=$type==='domains'
-            ?'/admin/domains/'.rawurlencode($guid).'/edit'
-            :'/admin/'.$type;
+        View::flash($canonical
+            ?'Canonical ePaper hostname restored to AWAITING_DNS. Product and application remain unchanged; complete routing verification before go-live.'
+            :'Restored to '.$target.'. Review the publisher/application link and complete onboarding before publishing.');
+        $next=$canonical
+            ?'/admin/onboarding?domain='.rawurlencode($guid).'#domain-review'
+            :($type==='domains'
+                ?'/admin/domains/'.rawurlencode($guid).'/edit'
+                :'/admin/'.$type);
         Http::redirect($next);
     }
 
@@ -117,6 +128,33 @@ final class Restore
         return 'Archived record';
     }
 
+    /**
+     * The ePaper application's canonical domain is allowed a separate recovery
+     * path. Never treat a Platform/Platform Auth infrastructure hostname as an
+     * ePaper customer domain.
+     */
+    private static function canonicalDomain(array $record): bool
+    {
+        if(!in_array((string)($record['domain_type']??''),['SAAS_DEFAULT','CUSTOMER_CUSTOM','CUSTOMER_SUBDOMAIN'],true))
+            return false;
+        $app=Store::one('SELECT a.base_url,p.product_key FROM applications a
+            JOIN products p ON p.product_guid=a.product_guid WHERE a.application_guid=?',[
+            Uuid::toBinary((string)$record['application_guid'])
+        ]);
+        if(!$app || $app['product_key']!=='EPAPER')return false;
+        $canonical=(string)(parse_url((string)$app['base_url'],PHP_URL_HOST)?:'');
+        return $canonical!=='' && strcasecmp((string)$record['hostname'],$canonical)===0;
+    }
+
+    private static function requireSystemDomainAdmin(): void
+    {
+        $admin=Auth::requireAdmin();
+        $role=Store::value('SELECT role_key FROM platform_admins WHERE admin_guid=?',[
+            Uuid::toBinary((string)$admin['admin_guid'])
+        ]);
+        if($role!=='SUPER_ADMIN')throw new \InvalidArgumentException('Only a Platform SUPER_ADMIN may recover the canonical ePaper hostname.');
+    }
+
     private static function checkDependencies(string $type,array $record): void
     {
         $check=static function(?string $table,?string $key,?string $foreign,string $label): void {
@@ -134,12 +172,27 @@ final class Restore
         if($type==='domains') {
             $check('applications','application_guid',$record['application_guid']??null,'application');
             $check('product_tenants','product_tenant_guid',$record['product_tenant_guid']??null,'publisher tenant');
-            if(!in_array($record['domain_type'],['CUSTOMER_CUSTOM','CUSTOMER_SUBDOMAIN'],true))
-                throw new \InvalidArgumentException('System domains require a separate infrastructure recovery process.');
-            $app=Store::one('SELECT base_url FROM applications WHERE application_guid=?',[Uuid::toBinary($record['application_guid'])]);
-            $canonical=(string)(parse_url((string)($app['base_url']??''),PHP_URL_HOST)?:'');
-            if($canonical!=='' && strcasecmp($canonical,(string)$record['hostname'])===0)
-                throw new \InvalidArgumentException('The canonical application domain cannot be restored through customer-domain tools.');
+            $parents=Store::one('SELECT p.status product_status,o.status organisation_status,
+                a.status application_status,pt.status tenant_status,
+                p.product_guid,pt.product_guid tenant_product_guid,
+                a.product_guid application_product_guid,pt.organisation_guid tenant_organisation_guid
+                FROM domains d JOIN products p ON p.product_guid=d.product_guid
+                JOIN organisations o ON o.organisation_guid=d.organisation_guid
+                JOIN applications a ON a.application_guid=d.application_guid
+                JOIN product_tenants pt ON pt.product_tenant_guid=d.product_tenant_guid
+                WHERE d.domain_guid=? LIMIT 1',[Uuid::toBinary((string)$record['domain_guid'])]);
+            if(!$parents)throw new \InvalidArgumentException('The domain has missing parent records. Correct the original product, application or publisher first.');
+            foreach(['product','organisation','application','tenant'] as $name) {
+                if($parents[$name.'_status']!=='ACTIVE')
+                    throw new \InvalidArgumentException('The '.$name.' is '.$parents[$name.'_status'].'. Activate it before restoring this domain. Do not create another product.');
+            }
+            if($parents['product_guid']!==$parents['application_product_guid']
+                ||$parents['product_guid']!==$parents['tenant_product_guid']
+                ||$record['organisation_guid']!==$parents['tenant_organisation_guid'])
+                throw new \InvalidArgumentException('Domain, application and publisher belong to different products or organisations. Correct the mapping before recovery.');
+            $canonical=self::canonicalDomain($record);
+            if(!$canonical && !in_array((string)$record['domain_type'],['CUSTOMER_CUSTOM','CUSTOMER_SUBDOMAIN'],true))
+                throw new \InvalidArgumentException('System infrastructure hostnames require a separate infrastructure recovery process.');
             // Keep the original hostname and its unique key. Never insert a duplicate record.
             $duplicate=Store::value('SELECT COUNT(*) FROM domains WHERE normalized_hostname=? AND domain_guid<>?',[
                 $record['normalized_hostname'],Uuid::toBinary($record['domain_guid'])
