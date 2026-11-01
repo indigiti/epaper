@@ -8,8 +8,8 @@ on:
         required: true
         type: string
       unpublished_page_guid:
-        description: "Optional unpublished staging fixture GUID for negative authorization"
-        required: false
+        description: "Unpublished staging fixture GUID for mandatory media/metadata denial tests"
+        required: true
         type: string
 
 permissions:
@@ -40,6 +40,7 @@ jobs:
         env:
           EPDI_READER_TEST_URL: ${{ inputs.reader_url }}
           EPDI_TEST_UNPUBLISHED_PAGE_GUID: ${{ inputs.unpublished_page_guid }}
+          EPDI_REQUIRE_UNPUBLISHED_FIXTURE: '1'
           EPDI_MAX_LCP_MS: '4000'
           EPDI_MAX_CLS: '0.1'
         run: node tests/reader-live-browser.mjs
