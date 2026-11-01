@@ -249,12 +249,14 @@ final class OnboardingDashboard
                     .self::e($application['product_name'].' / '.$application['name'].' · '.$application['base_url']).'</option>';
             }
             $appOptions='<label>Application<select name="application_guid" required>'.$options.'</select>'
-                .'<small>Choose the installation that will serve this website. Main application hostnames must match its Base URL.</small></label>';
+                .'<small>Choose the existing shared ePaper installation for each new publisher. Do not register an application per newspaper. A different application is only for a separately deployed server.</small></label>';
         } else {
             $appOptions='<p class="ob-warning">No active application. Verify the linked product is active, then open Applications.</p>';
         }
         $canonicalNote='<label class="ob-check"><input type="checkbox" name="confirm_canonical" value="1">'
-            .' I am registering the selected application hostname (only when this website matches its Base URL)</label>';
+            .' I am registering the selected application hostname (only when this website matches its Base URL)</label>'
+            .'<label class="ob-check"><input type="checkbox" name="confirm_dedicated_deployment" value="1">'
+            .' This is a separately deployed application, not a second publisher on the existing shared ePaper server</label>';
         $csrf='<input type="hidden" name="_csrf" value="'.self::e(\Digiti\Core\Http::csrf()).'">';
         $new='<form class="ob-setup-form" method="post" action="/admin/onboarding">'
             .'<h4>Start a new newspaper account</h4><p>Just enter the publisher name and website. Separate customer records are created automatically.</p>'.$csrf.'<input type="hidden" name="mode" value="new">'

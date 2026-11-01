@@ -169,6 +169,8 @@ final class Onboarding
             throw new \InvalidArgumentException('The application main hostname must be linked to an existing publisher tenant. Choose Connect another website and select its existing tenant.');
         if($domainType==='SAAS_DEFAULT' && ($_POST['confirm_canonical']??'')!=='1')
             throw new \InvalidArgumentException('Confirm that you are registering the selected application hostname, not another publisher alias.');
+        if($domainType==='SAAS_DEFAULT' && count($apps)>1 && ($_POST['confirm_dedicated_deployment']??'')!=='1')
+            throw new \InvalidArgumentException('This hostname matches a separate application Base URL. If it uses an existing shared Cloudways ePaper installation, select that shared application instead. Confirm a separate physical deployment only when independently verified.');
         $owner=(string)($_POST['owner_user_guid']??'');
         if ($owner!==''&&!Store::value('SELECT 1 FROM platform_users WHERE user_guid=? AND status="ACTIVE"',[self::gid($owner)])) throw new \InvalidArgumentException('The selected owner is not an active Platform user.');
         $newGuid=Store::tx(function() use($type,$host,$app,$owner,$domainType):string {
@@ -364,6 +366,12 @@ final class Onboarding
                 strtolower($canonicalHost),self::gid($d['product_tenant_guid'])
             ]);
         }
+        $sharedAppNotice=$canonicalHost!=='' && strcasecmp($canonicalHost,$hostname)===0
+            && strcasecmp($hostname,(string)(parse_url((string)Config::get('integrations.epaper_shared_base_url','https://epaper.digiti.in'),PHP_URL_HOST)?:''))!==0
+            ?'<div class="ob-tenant-warning"><strong>Is this a separate ePaper installation?</strong> '
+                .'If this publisher hostname actually shares the main ePaper Cloudways codebase, it must belong to that shared application and have its own tenant. '
+                .'<a class="button" href="/admin/domains/'.rawurlencode((string)$guid).'/shared-application">Check application binding and repair</a></div>'
+            :'';
         $sharedNotice=$sharesMain
             ?'<div class="ob-tenant-warning"><strong>This website shares the main ePaper newspaper.</strong>'
                 .'<p>The domain is connected, but both websites use the same publisher tenant and will show the same editions.'
@@ -423,7 +431,7 @@ final class Onboarding
                 .'</form></div></details>';
         }
         return '<section id="domain-review" class="card ob-detail" aria-label="Publisher onboarding tracker"><div class="ob-section-head"><div><span class="ob-eyebrow">DOMAIN TRACKER</span><h2>'.self::e($d['hostname']).'</h2><p class="muted">'.self::e($d['organisation_name']).' · '.self::e($d['tenant_name']).'</p></div><a class="button" href="/admin/onboarding">Close tracker</a></div>'
-            .$sharedNotice.'<div class="ob-detail-grid"><div class="ob-timeline"><ol>'.$steps.'</ol><p class="ob-warning">Current blocker: <strong>'.self::e($state['blocker']).'</strong>'.($state['stalled']?' · Stalled for over 48 hours':'').'</p></div>'
+            .$sharedAppNotice.$sharedNotice.'<div class="ob-detail-grid"><div class="ob-timeline"><ol>'.$steps.'</ol><p class="ob-warning">Current blocker: <strong>'.self::e($state['blocker']).'</strong>'.($state['stalled']?' · Stalled for over 48 hours':'').'</p></div>'
             .'<div class="ob-workspace"><h3>DNS ownership & routing</h3>'.$dns.'<p class="muted">CNAME only works if the configured domain target is routed to the ePaper origin. Also add this hostname to Cloudways domain management and its SSL configuration.</p>'.$verify
             .'<div class="ob-rule"></div><h3>Publisher access</h3><p class="muted">'.((int)$d['owner_count']>0?'An active owner/admin membership is present.':'No active publisher owner yet. Create the user in Users, then assign here.').'</p>'.$assign
             .'<div class="ob-rule"></div><h3>Subscription</h3><p>Current service access: <strong>'.self::e((string)($d['service_access_state']??'NOT CONFIGURED')).'</strong></p><a href="/admin/subscriptions">Manage subscriptions</a>'

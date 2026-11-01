@@ -3,7 +3,7 @@ namespace Digiti;
 
 use Digiti\Core\{Auth,Audit,Config,Crypto,Database,DomainTools,Entitlements,Http,Mfa,OAuth,RateLimiter,RedisStore,ServiceAuth,Store,Uuid,View};
 use Digiti\Billing\ProviderFactory;
-use Digiti\Admin\{Crud,Onboarding,Home,Help,ConnectionSetup,PublisherLoginCheck,DomainMapping,ActionUi,Restore,StagingReset,RegistryCleanup,CanonicalDomainRegistration};
+use Digiti\Admin\{Crud,Onboarding,Home,Help,ConnectionSetup,PublisherLoginCheck,DomainMapping,SharedAppRecovery,ActionUi,Restore,StagingReset,RegistryCleanup,CanonicalDomainRegistration};
 use Digiti\Domain\EdgeProviderFactory;
 
 final class App
@@ -38,6 +38,7 @@ final class App
         if(preg_match('#^/admin/(domains|products|organisations)/([0-9a-f-]{36})/release$#i',$path,$m))
             RegistryCleanup::run(strtolower($m[1]),strtolower($m[2]),$method);
         if($path==='/admin/staging-reset') StagingReset::run($method);
+        if(preg_match('#^/admin/domains/([0-9a-f-]{36})/shared-application$#i',$path,$m)) SharedAppRecovery::run(strtolower($m[1]),$method);
         if(Crud::dispatch($path,$method))exit;
         if($path==='/admin')Home::index();
         if($path==='/admin/help')Help::index();

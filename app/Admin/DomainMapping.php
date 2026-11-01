@@ -3,7 +3,7 @@ declare(strict_types=1);
 
 namespace Digiti\Admin;
 
-use Digiti\Core\{Auth,Http,RedisStore,Store,Uuid,View};
+use Digiti\Core\{Auth,Config,Http,RedisStore,Store,Uuid,View};
 
 /**
  * Explicit, audited mapping change for EXISTING customer domains only.
@@ -49,7 +49,12 @@ final class DomainMapping
         if(!self::mutable($domain)) {
             return '<section class="card"><h2>Publisher & application assignment</h2>'
                 .'<p class="muted">This is a system or canonical application domain. Its publisher/application mapping is protected from changes here.</p>'
-                .'<p><strong>Newspaper account:</strong> '.$currentTenant.' · <strong>Application:</strong> '.$currentApp.'</p></section>';
+                .'<p><strong>Newspaper account:</strong> '.$currentTenant.' · <strong>Application:</strong> '.$currentApp.'</p>'
+                .(strtolower((string)$domain['hostname'])===strtolower((string)(parse_url((string)Config::get('integrations.epaper_shared_base_url','https://epaper.digiti.in'),PHP_URL_HOST)?:''))
+                    ?''
+                    :'<p><a class="button" href="/admin/domains/'.rawurlencode((string)$domain['domain_guid']).'/shared-application">Check shared-app recovery</a></p>'
+                        .'<p class="muted">A hostname wrongly registered as a second canonical application can be converted to an alias only after super-admin review and same-product checks.</p>')
+                .'</section>';
         }
         $tenants=Store::all('SELECT pt.product_tenant_guid,pt.display_name tenant_name,o.display_name organisation_name
             FROM product_tenants pt JOIN organisations o ON o.organisation_guid=pt.organisation_guid
@@ -146,7 +151,7 @@ final class DomainMapping
                 ?'Only one application is registered for this product. Leave this as EPAPER for DCN.'
                 :'Normally leave this as the current ePaper application. Moving applications also requires matching DNS, SSL and sign-in settings.').'</small></label>'
             .'</div>'.($quickChoices!==''?'<div class="domain-mapping-quick"><h3>Can’t use the dropdown? Select a newspaper here instead</h3>'
-                .'<p>Choose one option below to override the dropdown selection. Keep Application on EPAPER unless moving hosting.</p>'
+                .'<p>Choose one option below to override the dropdown selection. Choose the shared installed application, not a separate application for each newspaper.</p>'
                 .'<div class="domain-mapping-choice-list">'.$quickChoices.'</div></div>':'')
             .'<div class="domain-mapping-confirm">'
             .'<h3>Before changing this connection</h3><p>This keeps the domain record and does not move or copy newspaper editions. '
