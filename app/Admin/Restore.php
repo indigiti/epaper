@@ -141,11 +141,11 @@ final class Restore
     {
         if(!in_array((string)($record['domain_type']??''),['SAAS_DEFAULT','CUSTOMER_CUSTOM','CUSTOMER_SUBDOMAIN'],true))
             return false;
-        $app=Store::one('SELECT a.base_url,p.product_key FROM applications a
-            JOIN products p ON p.product_guid=a.product_guid WHERE a.application_guid=?',[
+        $app=Store::one('SELECT a.base_url,a.product_guid FROM applications a
+            WHERE a.application_guid=?',[
             Uuid::toBinary((string)$record['application_guid'])
         ]);
-        if(!$app || $app['product_key']!=='EPAPER')return false;
+        if(!$app || (string)$app['product_guid']!==(string)$record['product_guid'])return false;
         $canonical=(string)(parse_url((string)$app['base_url'],PHP_URL_HOST)?:'');
         return $canonical!=='' && strcasecmp((string)$record['hostname'],$canonical)===0;
     }
@@ -165,7 +165,7 @@ final class Restore
         ];
         $html='<section class="platform-dependency-guide" aria-labelledby="platform-dependency-heading">'
             .'<h3 id="platform-dependency-heading">Repair required records in this order</h3>'
-            .'<p>These are the records already linked to this website. Do not create a new EPAPER product or another domain. '
+            .'<p>These are the records already linked to this website. Do not create a duplicate product or another domain. '
             .'Restore archived records, activate suspended ones, then return here to restore the hostname.</p><ol>';
         $allReady=true;
         $rows=[];
@@ -203,9 +203,8 @@ final class Restore
         }
         $html.='</ol>';
         $productKey=(string)($rows['product_guid']['record_code']??'');
-        if($productKey!==''&&$productKey!=='EPAPER')
-            $html.='<div class="platform-restore-warning">This hostname refers to product '.View::esc($productKey)
-                .', not EPAPER. Do not restore it as the main ePaper site without correcting the original relationship.</div>';
+        if($productKey!=='' && $allReady)
+            $html.='<p>Linked product: <strong>'.View::esc($productKey).'</strong>. Restore is based on matching product, application and tenant records, not a fixed product code.</p>';
         if($allReady) $html.='<p><strong>All parent records are active.</strong> Confirm the original domain below to restart its verification.</p>';
         $html.='<p><a href="/admin/domains/'.rawurlencode((string)$domain['domain_guid']).'/restore">'
             .'Return to this hostname after repairing the records</a></p></section>';
@@ -234,7 +233,7 @@ final class Restore
             .'<p>The archived setup can be permanently cleaned up without restoring its product, tenant or application. '
             .'Only a Platform SUPER_ADMIN can approve cleanup. You will see exactly what can be removed and what billing references must remain.</p>'
             .'<div class="platform-fresh-actions">'
-            .'<a class="button" href="/admin/products/'.$productGuid.'/release">Release archived EPAPER product and linked configuration</a>'
+            .'<a class="button" href="/admin/products/'.$productGuid.'/release">Release archived product and linked configuration</a>'
             .'<a class="button" href="/admin/domains/'.$domainGuid.'/release">Delete only this archived hostname</a>'
             .'<a class="button" href="/admin/organisations/'.$orgGuid.'/release">Release old organisation code</a>'
             .'</div>'
