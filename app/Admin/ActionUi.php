@@ -58,8 +58,10 @@ final class ActionUi
         $url=$base.'/'.rawurlencode($guid);
         $html='<div class="platform-action-bar">';
         if($status==='REMOVED') {
-            return $html.self::link($url.'/restore','Review & restore','restore')
-                .'</div>';
+            $html.=self::link($url.'/restore','Review & restore','restore');
+            if(in_array($entity,['domain','product','organisation'],true))
+                $html.=self::link($url.'/release','Permanently release archived resources','trash');
+            return $html.'</div>';
         }
         if($entity==='domain') {
             $html.=self::link('/admin/onboarding?domain='.rawurlencode($guid).'#domain-review','View onboarding','view');
