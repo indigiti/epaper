@@ -30,6 +30,7 @@ final class View
             ['/admin/products','Products'],
             ['/admin/applications','Applications'],
             ['/admin/service-accounts','Service accounts'],
+            ['/admin/app-connections','Application connection setup'],
             ['/admin/commercial','Plans & pricing'],
             ['/admin/billing','Billing & payments'],
             ['/admin/operations','Operations'],
