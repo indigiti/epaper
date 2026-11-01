@@ -224,42 +224,6 @@ final class Onboarding
         return ['steps'=>$steps,'done'=>count(array_filter($steps,fn($s)=>$s['done'])),'live'=>$live,'stalled'=>$stalled,'blocker'=>$block?:'Ready','link'=>$link];
     }
 
-    private static function metric(string $name,int $value,string $hint):string
-    {
-        return '<div class="ob-metric"><span>'.self::e($name).'</span><strong>'.self::e((string)$value).'</strong><small>'.self::e($hint).'</small></div>';
-    }
-
-    private static function card(array $d,array $state): string
-    {
-        $guid=$d['domain_guid'];$pct=(int)round($state['done']/6*100);
-        $label=$state['live']?'LIVE':($state['stalled']?'STALLED':'PENDING');
-        $dots='';foreach($state['steps'] as $step) $dots.='<span class="ob-dot'.($step['done']?' done':'').'" title="'.self::e($step['name'].': '.($step['done']?'complete':'pending')).'"></span>';
-        return '<article class="ob-domain"><div class="ob-domain-main"><div><span class="ob-eyebrow">'.self::e($d['organisation_name']).'</span><h3>'.self::e($d['hostname']).'</h3><p class="muted">'.self::e($d['tenant_name']).'</p></div><span class="ob-pill '.strtolower($label).'">'.self::e($label).'</span></div>'
-            .'<div class="ob-progress"><div class="ob-progress-bar"><span style="width:'.$pct.'%"></span></div><span>'.$state['done'].'/6</span></div>'
-            .'<div class="ob-dots" aria-label="Onboarding steps">'.$dots.'</div>'
-            .'<div class="ob-domain-footer"><div><small>Next required step</small><strong>'.self::e($state['blocker']).'</strong></div><a class="button" href="'.self::url($guid).'">Open tracker</a></div></article>';
-    }
-
-    private static function createForm(array $users,array $tenants): string
-    {
-        $userOptions='<option value="">Assign later</option>';
-        foreach ($users as $u) $userOptions.='<option value="'.self::e($u['user_guid']).'">'.self::e($u['display_name'].' · '.$u['email']).'</option>';
-        $tenantOptions='<option value="">Select existing ePaper tenant</option>';
-        foreach ($tenants as $t) $tenantOptions.='<option value="'.self::e($t['product_tenant_guid']).'">'.self::e($t['organisation_name'].' · '.$t['display_name']).'</option>';
-        return '<section id="new-publisher" class="card ob-create"><div class="ob-section-head"><div><h2>Add publisher domain</h2><p class="muted">Registers an EPAPER domain and its OAuth callback together. No code deployment or database copy.</p></div></div>'
-            .'<div class="ob-create-grid"><form method="post" action="/admin/onboarding" class="ob-create-panel"><h3>New publisher</h3>'.self::csrf().'<input type="hidden" name="mode" value="new">'
-            .'<label>Publisher name<input name="organisation_name" required maxlength="190" placeholder="Pune Mirror Media"></label>'
-            .'<label>Unique publisher code<input name="organisation_code" maxlength="64" required placeholder="PUNE_MIRROR"></label>'
-            .'<label>ePaper domain<input name="hostname" required placeholder="epaper.punemirror.com" autocomplete="off" spellcheck="false"></label>'
-            .'<label>Initial owner (existing user)<select name="owner_user_guid">'.$userOptions.'</select></label>'
-            .'<button class="primary" type="submit">Create publisher & domain</button></form>'
-            .'<form method="post" action="/admin/onboarding" class="ob-create-panel"><h3>Additional domain</h3>'.self::csrf().'<input type="hidden" name="mode" value="existing">'
-            .'<label>Existing EPAPER publisher<select name="product_tenant_guid" required>'.$tenantOptions.'</select></label>'
-            .'<label>Additional hostname<input name="hostname" required placeholder="news.example.com" autocomplete="off" spellcheck="false"></label>'
-            .'<label>Assign an existing owner (optional)<select name="owner_user_guid">'.$userOptions.'</select></label>'
-            .'<button type="submit">Attach domain to publisher</button><p class="muted">Multiple hostnames can share one tenant. Choose a new publisher when content and administrators must be separate.</p></form></div></section>';
-    }
-
     private static function detail(array $d,array $users): string
     {
         $guid=$d['domain_guid'];$d['reviewed']=isset(self::reviews()[$guid]);$state=self::state($d);
