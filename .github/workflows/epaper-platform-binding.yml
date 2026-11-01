@@ -54,3 +54,13 @@ jobs:
         run: |
           php tests/auth-tenant-escaping.php
           php codebase/tests/auth-tenant-escaping.php
+      - name: Clipping cache regression (Cloudways PHP disabled link)
+        run: |
+          php -l app/Services/ClipCropCache.php
+          php -l codebase/app/Services/ClipCropCache.php
+          php tests/clip-crop-cache.php
+          php codebase/tests/clip-crop-cache.php
+          php -d disable_functions=link tests/clip-crop-cache.php
+          php -d disable_functions=link codebase/tests/clip-crop-cache.php
+          php tests/clip-api-safe-error-contract.php
+          php codebase/tests/clip-api-safe-error-contract.php
