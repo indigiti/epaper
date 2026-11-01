@@ -1,0 +1,17 @@
+# Never commit live secrets or tenant newspaper content.
+# Existing tracked files require git rm --cached / an approved history rewrite.
+/codebase/config/config.php
+/codebase/config/runtime.php
+/codebase/config/*.local.php
+/codebase/.env
+/codebase/.env.*
+!/codebase/.env.example
+/codebase/storage/*
+/codebase/public_html/uploads/
+/codebase/public_html/media/
+/codebase/vendor/
+/codebase/node_modules/
+*.pem
+*.key
+*.p12
+*.pfx
