@@ -10,7 +10,20 @@ final class PlatformClient
         $base=rtrim((string)Config::get('platform.url','https://platform.digiti.in'),'/');$url=$base.$path.($query?'?'.http_build_query($query):'');$headers=['Accept: application/json','X-Digiti-Service-Token: '.(string)Config::get('platform.service_token'),'X-Request-Guid: '.Http::requestGuid(),'X-Correlation-Guid: '.Http::correlationGuid()];$payload=$body===null?null:json_encode($body,JSON_UNESCAPED_SLASHES|JSON_UNESCAPED_UNICODE);if($payload!==null)$headers[]='Content-Type: application/json';
         if(function_exists('curl_init')){$ch=curl_init($url);curl_setopt_array($ch,[CURLOPT_RETURNTRANSFER=>true,CURLOPT_CUSTOMREQUEST=>$method,CURLOPT_HTTPHEADER=>$headers,CURLOPT_TIMEOUT=>6,CURLOPT_CONNECTTIMEOUT=>2]);if($payload!==null)curl_setopt($ch,CURLOPT_POSTFIELDS,$payload);$raw=curl_exec($ch);$code=(int)curl_getinfo($ch,CURLINFO_HTTP_CODE);$err=curl_error($ch);curl_close($ch);if($raw===false)throw new \RuntimeException('Platform unavailable: '.$err);}
         else{$ctx=stream_context_create(['http'=>['method'=>$method,'header'=>implode("\r\n",$headers),'content'=>$payload??'','timeout'=>6,'ignore_errors'=>true]]);$raw=@file_get_contents($url,false,$ctx);$code=0;if(!empty($http_response_header[0])&&preg_match('/\s(\d{3})\s/',$http_response_header[0],$m))$code=(int)$m[1];if($raw===false)throw new \RuntimeException('Platform unavailable');}
-        $data=json_decode((string)$raw,true);if(!is_array($data))throw new \RuntimeException('Invalid Platform response');if($code>=400)throw new \RuntimeException((string)($data['message']??$data['code']??'Platform request failed'));return$data;
+        $data=json_decode((string)$raw,true);if(!is_array($data))throw new \RuntimeException('Invalid Platform response');if($code>=400){$reason=trim((string)($data['code']??''));if($reason==='')$reason=trim((string)($data['message']??''));throw new \RuntimeException($reason!==''?$reason:'PLATFORM_REQUEST_FAILED',$code);}return$data;
+    }
+    /** Stable, non-sensitive error codes for public readiness diagnostics. */
+    public static function diagnosticCode(\Throwable $error): string
+    {
+        return match(strtoupper(trim($error->getMessage()))){
+            'SERVICE_AUTH_INVALID','INVALID SERVICE TOKEN'=>'SERVICE_AUTH_INVALID',
+            'SERVICE_AUTH_REQUIRED','SERVICE TOKEN REQUIRED'=>'SERVICE_AUTH_REQUIRED',
+            'SERVICE_SCOPE_DENIED','SERVICE SCOPE DENIED'=>'SERVICE_SCOPE_DENIED',
+            'SERVICE_PRODUCT_INACTIVE'=>'SERVICE_PRODUCT_INACTIVE',
+            'SERVICE_PRODUCT_MISMATCH'=>'SERVICE_PRODUCT_MISMATCH',
+            'DOMAIN_NOT_ACTIVE'=>'DOMAIN_NOT_ACTIVE',
+            default=>'PLATFORM_RESOLVE_FAILED',
+        };
     }
     public function health(): array{try{return $this->call('GET','/health/live');}catch(\Throwable $e){return['ok'=>false,'status'=>'UNAVAILABLE','message'=>$e->getMessage()];}}
     public function resolveDomain(string $host): array{return $this->call('GET','/internal/v1/domains/resolve',null,['hostname'=>$host]);}

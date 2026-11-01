@@ -59,6 +59,11 @@ final class PlatformBinding
         $expectedProduct=strtolower(trim((string)($expected['product_guid']??'')));
         if($expectedProduct!=='' && $expectedProduct!==$productGuid)
             return $fail('CONFIGURED_PRODUCT_GUID_STALE');
+        // An optional default tenant pins only the canonical website.
+        // Custom publisher hostnames always resolve their own registered tenant.
+        $canonicalTenant=strtolower(trim((string)($expected['default_tenant_guid']??'')));
+        if($host===$canonical && $canonicalTenant!=='' && $canonicalTenant!==$tenantGuid)
+            return $fail('CONFIGURED_CANONICAL_TENANT_STALE');
         return ['ok'=>true,'code'=>'APPLICATION_BOUND'];
     }
 
