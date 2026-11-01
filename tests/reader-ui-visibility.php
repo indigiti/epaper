@@ -42,6 +42,9 @@ assertVisible(str_contains($css,'[data-reader-more-action="bookmark"]')
     && str_contains($css,'[data-reader-more-action="share"]')
     && str_contains($css,'[data-reader-more-action="offline"]'),
     'More menu cannot reveal a hidden bookmark, share or offline action');
+assertVisible(str_contains($css,'.reader-edition-switcher')
+    && str_contains($css,'[data-reader-edition-menu]'),
+    'Edition date control hides both reader dropdown and horizontal strip variants');
 assertVisible(str_contains($css,'.archive-date-rail')
     && str_contains($css,'.archive-month-row')
     && str_contains($css,'.archive-quick-row'),
