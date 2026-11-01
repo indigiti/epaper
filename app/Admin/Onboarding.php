@@ -141,8 +141,10 @@ final class Onboarding
             View::flash('This hostname is already registered. Its existing onboarding tracker is open below; do not create a duplicate.');
             Http::redirect(self::url($guid));
         }
-        $app=Store::one('SELECT a.application_guid,p.product_guid FROM applications a JOIN products p ON p.product_guid=a.product_guid WHERE p.product_key="EPAPER" AND a.status="ACTIVE" AND p.status="ACTIVE" ORDER BY (a.application_key="city_epaper") DESC LIMIT 1');
+        $app=Store::one('SELECT a.application_guid,p.product_guid,a.base_url FROM applications a JOIN products p ON p.product_guid=a.product_guid WHERE p.product_key="EPAPER" AND a.status="ACTIVE" AND p.status="ACTIVE" ORDER BY (a.application_key="city_epaper") DESC LIMIT 1');
         if (!$app) throw new \RuntimeException('Register an active EPAPER application before adding publisher domains.');
+        if(strtolower((string)(parse_url((string)$app['base_url'],PHP_URL_HOST)?:''))===$host)
+            throw new \InvalidArgumentException('The main ePaper application hostname cannot be created as a new publisher website. Restore its existing record or use the protected system-domain workflow.');
         $owner=(string)($_POST['owner_user_guid']??'');
         if ($owner!==''&&!Store::value('SELECT 1 FROM platform_users WHERE user_guid=? AND status="ACTIVE"',[self::gid($owner)])) throw new \InvalidArgumentException('The selected owner is not an active Platform user.');
         $newGuid=Store::tx(function() use($type,$host,$app,$owner):string {
