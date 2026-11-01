@@ -169,6 +169,20 @@ final class SettingsCatalog
         return self::groups()[$key] ?? null;
     }
 
+    /**
+     * Resolve an admin settings URL against the authoritative catalogue.
+     * This prevents newly registered settings groups from rendering a menu/tab
+     * but falling through to the generic admin 404 due to a stale route regex.
+     * Only exact, lowercase, single-segment slugs are accepted.
+     */
+    public static function routeGroup(string $path): ?string
+    {
+        if(!preg_match('#^/admin/settings/([a-z][a-z0-9_-]*)$#D',$path,$matches))
+            return null;
+        $group=$matches[1];
+        return self::group($group)!==null ? $group : null;
+    }
+
     public static function defaults(): array
     {
         $out=[];
