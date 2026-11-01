@@ -37,6 +37,8 @@ final class ReaderUiControls
             'ui.header_share'           => ['Reader header · Share page','select','on',$onOff],
             'ui.header_more'            => ['Reader header · More actions','select','on',$onOff],
             'ui.header_edition_switcher'=> ['Reader header · Edition date switcher','select','on',$onOff],
+            'ui.login_app_approval'      => ['Sign-in · App approval button','select','on',$onOff],
+            'ui.login_mobile_otp'        => ['Sign-in · Mobile OTP button','select','on',$onOff],
             'ui.archive_calendar'       => ['Archive · Month and date selector (entire panel)','select','on',$onOff],
             'ui.archive_month'          => ['Archive · Month arrows and heading','select','on',$onOff],
             'ui.archive_dates'          => ['Archive · Horizontal day/date rail','select','on',$onOff],
