@@ -1,0 +1,103 @@
+<?php
+declare(strict_types=1);
+
+$root=dirname(__DIR__);
+spl_autoload_register(static function(string $class) use($root):void {
+    if(!str_starts_with($class,'Digiti\\'))return;
+    $path=$root.'/app/'.str_replace('\\','/',substr($class,7)).'.php';
+    if(is_file($path))require_once $path;
+});
+
+use Digiti\Core\{Config,Database,Store,Uuid};
+use Digiti\Admin\{DomainMapping,Restore};
+
+function checkDb(bool $pass,string $message):void {
+    if(!$pass){fwrite(STDERR,"FAIL: ".$message."\n");exit(1);}
+    echo "PASS: ".$message."\n";
+}
+if(getenv('PLATFORM_TEST_MYSQL')!=='1'){echo "SKIP: isolated MySQL test not configured\n";exit(0);}
+
+$host=(string)(getenv('MYSQL_HOST')?:'127.0.0.1');
+$db=(string)(getenv('MYSQL_DATABASE')?:'platform_ci');
+$user=(string)(getenv('MYSQL_USER')?:'root');
+$pass=(string)(getenv('MYSQL_PASSWORD')?:'');
+$cfg="<?php return ".var_export([
+    'app'=>['env'=>'testing','url'=>'https://platform-ci.example.invalid','timezone'=>'UTC'],
+    'db'=>['host'=>$host,'port'=>3306,'name'=>$db,'user'=>$user,'pass'=>$pass,'charset'=>'utf8mb4'],
+    'redis'=>['enabled'=>false]
+],true).";";
+$cfgPath=$root.'/config/config.php';
+file_put_contents($cfgPath,$cfg);
+try{
+    Config::load($root);
+    $pdo=Database::pdo();
+    $schema=file_get_contents($root.'/database/schema.sql');
+    foreach(preg_split('/;\s*(?:\r?\n|$)/',$schema) as $statement){
+        $statement=trim($statement);
+        if($statement!=='')$pdo->exec($statement);
+    }
+
+    $ids=[];
+    foreach(['orgAMG','orgDCN','product','application','tenantAMG','tenantDCN','domain'] as $key)$ids[$key]=Uuid::v7();
+    $bin=static fn(string $key):string=>Uuid::toBinary($ids[$key]);
+    foreach(['orgAMG'=>['AMG','AMG'],'orgDCN'=>['DCN','DCN News']] as $key=>$data)
+        Store::exec('INSERT INTO organisations(organisation_guid,organisation_code,legal_name,display_name,status,created_at,updated_at)
+            VALUES(?,?,?,?,"ACTIVE",NOW(6),NOW(6))',[$bin($key),$data[0],$data[1],$data[1]]);
+    Store::exec('INSERT INTO products(product_guid,product_key,name,status,created_at,updated_at)
+        VALUES(?,"EPAPER","ePaper","ACTIVE",NOW(6),NOW(6))',[$bin('product')]);
+    Store::exec('INSERT INTO applications(application_guid,product_guid,application_key,name,base_url,status,created_at,updated_at)
+        VALUES(?,?,"EPAPER","EPAPER","https://epaper.digiti.in","ACTIVE",NOW(6),NOW(6))',
+        [$bin('application'),$bin('product')]);
+    foreach(['tenantAMG'=>['orgAMG','EPAPER'],'tenantDCN'=>['orgDCN','DCNEP']] as $key=>$args)
+        Store::exec('INSERT INTO product_tenants(product_tenant_guid,organisation_guid,product_guid,display_name,status,created_at,updated_at)
+            VALUES(?,?,?,?,"ACTIVE",NOW(6),NOW(6))',
+            [$bin($key),$bin($args[0]),$bin('product'),$args[1]]);
+    $hostName='epaper.dcnnews.co.in';
+    Store::exec('INSERT INTO domains(domain_guid,organisation_guid,product_guid,application_guid,
+        product_tenant_guid,hostname,normalized_hostname,domain_type,status,is_primary,verification_token,created_at,updated_at)
+        VALUES(?,?,?,?,?,?,?,"CUSTOMER_CUSTOM","REMOVED",0,"test-dns-token",NOW(6),NOW(6))',
+        [$bin('domain'),$bin('orgAMG'),$bin('product'),$bin('application'),$bin('tenantAMG'),$hostName,$hostName]);
+    $record=Store::one('SELECT * FROM domains WHERE domain_guid=?',[$bin('domain')]);
+    checkDb($record['domain_guid']===$ids['domain']&&$record['product_tenant_guid']===$ids['tenantAMG'],'binary GUIDs decode from real MySQL schema');
+    $check=(new ReflectionMethod(Restore::class,'checkDependencies'));
+    $check->invoke(null,'domains',$record);
+    checkDb(true,'archived domain meets valid parent checks without duplicate creation');
+    $candidate=Store::one('SELECT product_tenant_guid FROM product_tenants WHERE organisation_guid=? AND product_guid=?',
+        [$bin('orgDCN'),$bin('product')]);
+    checkDb($candidate['product_tenant_guid']===$ids['tenantDCN'],'DCNEP resolves to a different publisher tenant on same product');
+    $mutable=(new ReflectionMethod(DomainMapping::class,'mutable'));
+    $domainContext=['domain_type'=>'CUSTOMER_CUSTOM','status'=>'REMOVED','hostname'=>$hostName,'base_url'=>'https://epaper.digiti.in'];
+    checkDb(!$mutable->invoke(null,$domainContext),'archived customer domain cannot be switched before restore');
+    Store::exec('UPDATE domains SET status="AWAITING_DNS" WHERE domain_guid=?',[$bin('domain')]);
+    $domainContext['status']='AWAITING_DNS';
+    checkDb($mutable->invoke(null,$domainContext),'restored domain can be assigned to the DCNEP tenant');
+    $mappingHtml=DomainMapping::panel([
+        'domain_guid'=>$ids['domain'],'organisation'=>'AMG','tenant'=>'EPAPER','application'=>'EPAPER'
+    ]);
+    checkDb(str_contains($mappingHtml,'DCN News / DCNEP')&&str_contains($mappingHtml,$ids['tenantDCN']),
+        'live domain-edit dropdown includes the separate DCNEP tenant');
+    $updated=Store::exec('UPDATE domains SET organisation_guid=?,product_tenant_guid=?,status="AWAITING_DNS",
+        verified_at=NULL,ssl_ready_at=NULL,activated_at=NULL WHERE domain_guid=?',
+        [$bin('orgDCN'),$bin('tenantDCN'),$bin('domain')]);
+    checkDb($updated===1,'existing domain record can be reassigned without reinstalling ePaper');
+    $after=Store::one('SELECT domain_guid,organisation_guid,product_tenant_guid FROM domains WHERE domain_guid=?',
+        [$bin('domain')]);
+    checkDb($after['organisation_guid']===$ids['orgDCN']&&$after['product_tenant_guid']===$ids['tenantDCN'],
+        'tenant reassignment preserves the original domain ID');
+    $count=(int)Store::value('SELECT COUNT(*) FROM domains WHERE normalized_hostname=?',[$hostName]);
+    checkDb($count===1,'unique hostname is preserved after recovery and switching');
+    $joined=Store::one('SELECT d.domain_guid FROM domains d
+        JOIN applications a ON a.application_guid=d.application_guid AND a.product_guid=d.product_guid
+        JOIN product_tenants pt ON pt.product_tenant_guid=d.product_tenant_guid
+            AND pt.product_guid=d.product_guid AND pt.organisation_guid=d.organisation_guid
+        WHERE d.domain_guid=?',[$bin('domain')]);
+    checkDb($joined!==null,'real MySQL resolver consistency join accepts valid mapping');
+    Store::exec('UPDATE domains SET organisation_guid=? WHERE domain_guid=?',[$bin('orgAMG'),$bin('domain')]);
+    $invalid=Store::one('SELECT d.domain_guid FROM domains d JOIN product_tenants pt
+        ON pt.product_tenant_guid=d.product_tenant_guid AND pt.organisation_guid=d.organisation_guid
+        WHERE d.domain_guid=?',[$bin('domain')]);
+    checkDb($invalid===null,'real MySQL consistency join rejects cross-organisation mapping');
+    echo "PASS: database-backed Platform domain recovery integration checks complete\n";
+}finally{
+    @unlink($cfgPath);
+}
