@@ -68,4 +68,17 @@ verify(!str_contains($source,'UPDATE product_tenants')&&!str_contains($source,'U
 verify(str_contains($source,'application_redirect_uris'),'New OAuth callback registered on shared app');
 verify(str_contains($onboarding,'confirm_dedicated_deployment')&&
     str_contains($dashboard,'confirm_dedicated_deployment'),'New accidental separate canonical registration requires explicit deployment attestation');
+verify(str_contains($onboarding,'"domain.shared_application_rebind"'),
+    'Old go-live approval is invalidated after shared-app rebinding');
+$resolveAt=strpos($app,'private function resolveDomain():');
+$tenantAt=strpos($app,'private function tenantInfo(',$resolveAt===false?0:$resolveAt);
+$resolve=$resolveAt===false?'':substr($app,$resolveAt,$tenantAt===false?null:$tenantAt-$resolveAt);
+verify(str_contains($resolve,"'DOMAIN_SETUP_PENDING'") &&
+    str_contains($resolve,"'status'=>'AWAITING_DNS'"),
+    'Domain awaiting DNS is distinguished from an unknown domain');
+verify(strpos($resolve,"ServiceAuth::checkProduct(\$service,\$row['product_guid']);") <
+    strpos($resolve,"if(!in_array(\$row['status']"),
+    'Product scope enforced before pending hostname disclosure');
+verify(!str_contains($resolve,"RedisStore::setJson('domain:'.\$host,\$data,600);if(!in_array"),
+    'Pending domain cannot be cached as active');
 echo "PASS Shared ePaper application recovery contracts\n";
