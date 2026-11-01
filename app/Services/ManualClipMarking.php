@@ -98,6 +98,7 @@ final class ManualClipMarking
     public static function change(string $pageGuid,string $markGuid,string $mode): void
     {
         [$actor,$role]=self::actor();
+        if($role==='WEBDESK')throw new \RuntimeException('Only editors can change outline visibility');
         if(!Uuid::isValid($pageGuid)||!Uuid::isValid($markGuid)||!in_array($mode,['activate','hide'],true))
             throw new \InvalidArgumentException('Invalid marking action');
         $tenant=TenantData::tenantBin();
@@ -124,6 +125,7 @@ final class ManualClipMarking
     public static function remove(string $pageGuid,string $markGuid): void
     {
         [$actor,$role]=self::actor();
+        if($role==='WEBDESK')throw new \RuntimeException('Only editors can remove an outline');
         if(!Uuid::isValid($pageGuid)||!Uuid::isValid($markGuid))
             throw new \InvalidArgumentException('Invalid outline');
         $tenant=TenantData::tenantBin();
@@ -150,6 +152,7 @@ final class ManualClipMarking
     public static function importPrivateClip(string $pageGuid,string $slug): string
     {
         [$actor,$role]=self::actor();
+        if($role==='WEBDESK')throw new \RuntimeException('Only editors can import an existing private clipping');
         if(!Uuid::isValid($pageGuid)||!preg_match('/^[a-z0-9]{18}$/D',$slug))
             throw new \InvalidArgumentException('Invalid clipping');
         $clip=Store::one(
