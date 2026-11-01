@@ -869,7 +869,7 @@ final class App
     private function runAdmin(string $path,string $method): never
     {
         Auth::requireAdmin();if($method==='POST')Http::verifyCsrf();
-        \EpaperSaas\Services\AdminRoutePolicy::enforce($path);
+        \EpaperSaas\Services\AdminRoutePolicy::enforce($path,$method);
         if($path==='/admin/system/testing'||$path==='/admin/system/testing.json'||$path==='/admin/system/testing/run')StagingAcceptanceController::dispatch($path,$method);
         if($path==='/admin/manual-clipping'||str_starts_with($path,'/admin/manual-clipping/'))\EpaperSaas\Controllers\AdminManualClippingController::dispatch($path,$method);
         if($path==='/admin/ai-clipping'&&$method==='GET')AdminAiClippingController::index();
@@ -901,6 +901,8 @@ final class App
 
     private function adminDashboard(): never
     {
+        if(strtoupper((string)(Auth::currentMembership()['role_key']??''))==='WEBDESK')
+            Http::redirect('/admin/editions');
         $runtime=PublishingRuntime::snapshot();$tb=TenantData::tenantBin();
         $totals=Store::all('SELECT status,COUNT(*) n FROM ep_editions WHERE tenant_guid=? GROUP BY status',[$tb]);
         $counts=array_column($totals,'n','status');
@@ -1174,6 +1176,10 @@ final class App
 
     private function adminEditions(string $method): never
     {
+        if(strtoupper((string)(Auth::currentMembership()['role_key']??''))==='WEBDESK'){
+            if($method==='POST')$this->createEdition();
+            \EpaperSaas\Views\WebDeskEditionView::index();
+        }
         if($method==='POST'){$this->createEdition();}
         $pubs=TenantData::toGuidRows(Store::all('SELECT publication_guid,name FROM ep_publications WHERE tenant_guid=? AND status="ACTIVE" ORDER BY name',[TenantData::tenantBin()]),['publication_guid']);
         $cities=TenantData::toGuidRows(Store::all('SELECT city_guid,name FROM ep_cities WHERE tenant_guid=? AND status="ACTIVE" ORDER BY name',[TenantData::tenantBin()]),['city_guid']);
@@ -1213,7 +1219,7 @@ final class App
         $g=Uuid::v7();$p=Store::one('SELECT name,slug FROM ep_publications WHERE tenant_guid=? AND publication_guid=?',[TenantData::tenantBin(),Uuid::toBinary($pub)]);if(!$p)$this->adminError('Publication not found');
         $slug=$this->slug($p['slug'].'-'.$date.'-'.substr(str_replace('-','',$g),-6));$dir=dirname(__DIR__).'/storage/uploads/'.RequestContext::tenantGuid().'/'.$g;@mkdir($dir,0775,true);$dst=$dir.'/source.pdf';if(!move_uploaded_file($_FILES['pdf']['tmp_name'],$dst))$this->adminError('Could not store the uploaded PDF');$rel=str_replace(dirname(__DIR__).'/storage/','',$dst);
         $city=!empty($_POST['city_guid'])?Uuid::toBinary($_POST['city_guid']):null;$lang=!empty($_POST['language_guid'])?Uuid::toBinary($_POST['language_guid']):null;$u=Auth::user();
-        $publishMode=strtoupper(trim((string)($_POST['publish_mode']??'MANUAL')));if(!in_array($publishMode,['MANUAL','AUTO_READY','SCHEDULED'],true))$publishMode='MANUAL';
+        $publishMode=strtoupper(trim((string)($_POST['publish_mode']??'MANUAL')));if(!in_array($publishMode,['MANUAL','AUTO_READY','SCHEDULED'],true))$publishMode='MANUAL';if(strtoupper((string)(Auth::currentMembership()['role_key']??''))==='WEBDESK')$publishMode='MANUAL';
         $scheduleTz=null;$scheduledAt=null;if($publishMode==='SCHEDULED'){[$scheduledAt,$scheduleTz]=$this->parseScheduledInput((string)($_POST['scheduled_at']??''),(string)($_POST['schedule_timezone']??Config::get('app.timezone','Asia/Kolkata')));}
         Store::exec('INSERT INTO ep_editions(edition_guid,tenant_guid,publication_guid,city_guid,language_guid,edition_date,title,slug,source_pdf_path,status,publish_mode,schedule_timezone,scheduled_at,created_by_user_guid,updated_by_user_guid,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,"DRAFT",?,?,?,?,?,NOW(6),NOW(6))',[Uuid::toBinary($g),TenantData::tenantBin(),Uuid::toBinary($pub),$city,$lang,$date,trim((string)($_POST['title']??''))?:$p['name'].' '.$date,$slug,$rel,$publishMode,$scheduleTz,$scheduledAt,$u?Uuid::toBinary($u['user_guid']):null,$u?Uuid::toBinary($u['user_guid']):null]);
         $jobGuid=QueueService::enqueueEditionRender($g,'normal',['processing_profile'=>'default','publish_intent'=>$publishMode]);Audit::log('edition.created','edition',$g,'SUCCESS',['slug'=>$slug,'publish_mode'=>$publishMode,'scheduled_at'=>$scheduledAt,'schedule_timezone'=>$scheduleTz,'job_guid'=>$jobGuid]);PlatformClient::instance()->usage(RequestContext::tenantGuid(),'EPAPER.EDITIONS',1);Http::redirect('/admin/editions');
@@ -1353,7 +1359,7 @@ final class App
         $guard='epdi_ops_'.substr(hash('sha256',RequestContext::tenantGuid().'|'.$guid),0,40);if((int)Store::value('SELECT GET_LOCK(?,0)',[$guard])!==1)$this->adminError('Another edition action is in progress.');
         if(EditionOperations::active($guid))$this->adminError('Processing jobs are still active. Use Cancel processing or Recover first.');
 
-        $row=Store::one('SELECT status FROM ep_editions WHERE tenant_guid=? AND edition_guid=?',[TenantData::tenantBin(),Uuid::toBinary($guid)]);if(!$row||!in_array($row['status'],['READY','SCHEDULED'],true))$this->adminError('Only ready editions can be published');
+        $row=Store::one('SELECT status FROM ep_editions WHERE tenant_guid=? AND edition_guid=?',[TenantData::tenantBin(),Uuid::toBinary($guid)]);if(!$row||!in_array($row['status'],strtoupper((string)(Auth::currentMembership()['role_key']??''))==='WEBDESK'?['READY']:['READY','SCHEDULED'],true))$this->adminError('Only ready editions can be published');
         Store::exec('UPDATE ep_editions SET status="PUBLISHED",publish_mode="MANUAL",scheduled_at=NULL,schedule_timezone=NULL,published_at=NOW(6),updated_at=NOW(6),version=version+1 WHERE tenant_guid=? AND edition_guid=?',[TenantData::tenantBin(),Uuid::toBinary($guid)]);Audit::log('edition.published','edition',$guid);RuntimeCache::broadcast(RequestContext::tenantGuid(),['dashboard','reader_state','public-editions']);RuntimeCache::queueWarm(RequestContext::tenantGuid(),$guid);Http::redirect('/admin/editions');
     }
 
