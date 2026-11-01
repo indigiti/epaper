@@ -54,10 +54,22 @@ jobs:
         run: php tests/frontend-layouts.php --fixtures
       - name: Chromium browser smoke for frontend and reader skins
         run: |
-          npm install --no-save --no-package-lock playwright@1.56.1
+          npm install --no-save --no-package-lock playwright@1.56.1 @axe-core/playwright@4.10.2
           npx playwright install --with-deps chromium
           node tests/theme-browser-smoke.mjs
           node tests/frontend-home-browser.mjs
+      - name: Real staging reader E2E, accessibility and responsive evidence
+        env:
+          EPDI_READER_TEST_URL: ${{ secrets.EPDI_READER_TEST_URL }}
+          EPDI_TEST_UNPUBLISHED_PAGE_GUID: ${{ secrets.EPDI_TEST_UNPUBLISHED_PAGE_GUID }}
+        run: node tests/reader-live-browser.mjs
+      - name: Upload staging reader screenshots and report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: staging-reader-e2e
+          path: codebase/tests/reader-live-screenshots/*
+          if-no-files-found: ignore
       - name: Upload frontend layout screenshots
         if: always()
         uses: actions/upload-artifact@v4
