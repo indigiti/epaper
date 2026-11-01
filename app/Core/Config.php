@@ -7,9 +7,19 @@ final class Config
 
     public static function load(string $root): void
     {
-        $file = $root . '/config/config.php';
-        if (!is_file($file)) {
-            throw new \RuntimeException('Platform is not configured. Run /install.php.');
+        $privateDir = trim((string)(getenv('DIGITI_PRIVATE_CONFIG_DIR') ?: ''));
+        if ($privateDir !== '') {
+            $candidate = realpath($privateDir);
+            $publicRoot = realpath($root.'/public_html');
+            if (!$candidate || !is_dir($candidate) || ($publicRoot && ($candidate === $publicRoot || str_starts_with($candidate, $publicRoot.DIRECTORY_SEPARATOR)))) {
+                throw new \RuntimeException('Platform private configuration directory is invalid or public');
+            }
+            $file = $candidate.'/config.php';
+        } else {
+            $file = $root.'/config/config.php';
+        }
+        if (!is_file($file) || !is_readable($file)) {
+            throw new \RuntimeException('Platform private runtime configuration is missing');
         }
         $data = require $file;
         if (!is_array($data)) {
