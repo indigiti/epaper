@@ -66,7 +66,7 @@ final class Restore
     {
         $check=static function(?string $table,?string $key,?string $foreign,string $label): void {
             if($table===null||$foreign===null)return;
-            $status=Store::value("SELECT status FROM $table WHERE $key=?",[$foreign]);
+            $status=Store::value("SELECT status FROM $table WHERE $key=?",[Uuid::toBinary($foreign)]);
             if($status===null||$status==='REMOVED')
                 throw new \InvalidArgumentException("Restore the $label before this record.");
         };
@@ -81,13 +81,13 @@ final class Restore
             $check('product_tenants','product_tenant_guid',$record['product_tenant_guid']??null,'publisher tenant');
             if(!in_array($record['domain_type'],['CUSTOMER_CUSTOM','CUSTOMER_SUBDOMAIN'],true))
                 throw new \InvalidArgumentException('System domains require a separate infrastructure recovery process.');
-            $app=Store::one('SELECT base_url FROM applications WHERE application_guid=?',[$record['application_guid']]);
+            $app=Store::one('SELECT base_url FROM applications WHERE application_guid=?',[Uuid::toBinary($record['application_guid'])]);
             $canonical=(string)(parse_url((string)($app['base_url']??''),PHP_URL_HOST)?:'');
             if($canonical!=='' && strcasecmp($canonical,(string)$record['hostname'])===0)
                 throw new \InvalidArgumentException('The canonical application domain cannot be restored through customer-domain tools.');
             // Keep the original hostname and its unique key. Never insert a duplicate record.
             $duplicate=Store::value('SELECT COUNT(*) FROM domains WHERE normalized_hostname=? AND domain_guid<>?',[
-                $record['normalized_hostname'],$record['domain_guid']
+                $record['normalized_hostname'],Uuid::toBinary($record['domain_guid'])
             ]);
             if((int)$duplicate>0)throw new \InvalidArgumentException('Another domain already uses this hostname.');
         }
@@ -108,7 +108,7 @@ final class Restore
         };
         if($column!==null) {
             // Static whitelist; never use user input as an SQL identifier.
-            foreach(Store::all("SELECT hostname FROM domains WHERE $column=?",[$row[$column]]) as $d)
+            foreach(Store::all("SELECT hostname FROM domains WHERE $column=?",[Uuid::toBinary($row[$column])]) as $d)
                 RedisStore::del('domain:'.$d['hostname']);
         }
         if($type==='product-tenants') RedisStore::del('entitlements:'.$guid);
