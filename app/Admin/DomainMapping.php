@@ -61,8 +61,10 @@ final class DomainMapping
         $tenantOptions='';
         $quickChoices='';
         $alternativeCount=0;
+        $currentTenantListed=false;
         foreach($tenants as $tenant) {
             $isCurrent=$tenant['product_tenant_guid']===$domain['product_tenant_guid'];
+            if($isCurrent)$currentTenantListed=true;
             $label=$tenant['organisation_name'].' / '.$tenant['tenant_name'];
             $tenantOptions.='<option value="'.self::e($tenant['product_tenant_guid']).'"'.($isCurrent?' selected':'').'>'
                 .self::e($label).($isCurrent?' (current)':'').'</option>';
@@ -75,12 +77,18 @@ final class DomainMapping
                     .'<small>Switch this website to this publisher account</small></span></label>';
             }
         }
+        if(!$currentTenantListed)$tenantOptions='<option value="" selected disabled>Current newspaper unavailable — select a publisher</option>'.$tenantOptions;
+        $quickChoices='<label class="domain-mapping-choice"><input type="radio" name="tenant_quickpick" value="" checked>'
+            .'<span><strong>Use the dropdown selection</strong><small>No alternative selected</small></span></label>'.$quickChoices;
         $appOptions='';
+        $currentApplicationListed=false;
         foreach($applications as $app) {
             $isCurrent=$app['application_guid']===$domain['application_guid'];
+            if($isCurrent)$currentApplicationListed=true;
             $appOptions.='<option value="'.self::e($app['application_guid']).'"'.($isCurrent?' selected':'').'>'
                 .self::e($app['name'].' · '.$app['base_url']).'</option>';
         }
+        if(!$currentApplicationListed)$appOptions='<option value="" selected disabled>Current application unavailable — select a compatible application</option>'.$appOptions;
         $eligibility='<p class="domain-mapping-inventory">'.count($tenants).' eligible publisher account(s)'
             .' · '.count($applications).' compatible application(s)</p>';
         if($alternativeCount===0) {
