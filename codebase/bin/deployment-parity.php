@@ -17,7 +17,8 @@ $strict=in_array('--strict',$args,true);
 $webroot=$get('--webroot')?:($_SERVER['DOCUMENT_ROOT']??'');
 $webroot=$webroot!==''?(realpath($webroot)?:''):'';
 $storage=realpath($root.'/storage')?:'';
-$config=realpath($root.'/config')?:'';
+$privateConfig=trim((string)(getenv('EPDI_PRIVATE_CONFIG_DIR')?:''));
+$config=realpath($privateConfig!==''?$privateConfig:$root.'/config')?:'';
 $within=static function(string $path,string $parent): bool {
     return $path!==''&&$parent!==''&&($path===$parent||str_starts_with($path,$parent.DIRECTORY_SEPARATOR));
 };
@@ -35,12 +36,15 @@ $data=[
     'config_outside_docroot'=>$config!==''&&$webroot!==''&&!$within($config,$webroot),
     'storage_present'=>$storage!=='',
     'config_present'=>$config!=='',
-    'runtime_config_present'=>is_file($root.'/config/config.php'),
+    'runtime_config_present'=>$config!==''&&is_readable($config.'/config.php'),
+    'private_config_dir_enabled'=>$privateConfig!=='',
+    'storage_is_external_mount'=>is_link($root.'/storage'),
 ];
 $issues=[];
 if($strict){
     foreach(['docroot_is_public_html','storage_outside_docroot','config_outside_docroot','storage_present','config_present','runtime_config_present']as$key)if(!$data[$key])$issues[]=$key;
     if($missing)$issues[]='required_extensions_missing';
+    if(!$data['runtime_config_present'])$issues[]='runtime_config_missing_or_unreadable';
 }
 if($compare=$get('--compare')){
     $expected=is_file($compare)?json_decode((string)file_get_contents($compare),true):null;
