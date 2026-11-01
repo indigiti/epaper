@@ -53,6 +53,8 @@ jobs:
         run: find app public_html bin tests -type f -name '*.php' -print0 | xargs -0 -n1 php -l
       - name: Onboarding contract checks
         run: php tests/onboarding-source-contract.php
+      - name: Application connection setup, tenant isolation and no-secret preview
+        run: php tests/app-connection-setup.php
       - name: Operator UI behaviour and navigation smoke checks
         run: php tests/operator-ui-checks.php
       - name: Registry icon, restoration and staging reset checks
