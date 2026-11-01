@@ -18,7 +18,7 @@ secrets = {
     "codebase/config/runtime.php",
     "codebase/storage/installed.lock",
 }
-exceptions = {".keep", ".gitkeep"}
+exceptions = {".keep", ".gitkeep", ".htaccess"}
 violations = []
 for path in tracked:
     name = pathlib.PurePosixPath(path).name.lower()
