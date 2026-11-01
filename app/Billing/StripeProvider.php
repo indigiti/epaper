@@ -14,7 +14,11 @@ final class StripeProvider implements PaymentProviderInterface
     {
         $secret=(string)Config::get('billing.stripe_webhook_secret','');$header=$headers['stripe-signature']??'';if(!$secret||!$header)return false;
         $parts=[];foreach(explode(',',$header)as$p){[$k,$v]=array_pad(explode('=',$p,2),2,'');$parts[$k]=$v;}
-        if(empty($parts['t'])||empty($parts['v1']))return false;$expected=hash_hmac('sha256',$parts['t'].'.'.$payload,$secret);return hash_equals($expected,$parts['v1']);
+        if(empty($parts['t'])||empty($parts['v1'])||!ctype_digit((string)$parts['t']))return false;
+        $issued=(int)$parts['t'];
+        if($issued<=0 || abs(time()-$issued)>300)return false;
+        $expected=hash_hmac('sha256',$parts['t'].'.'.$payload,$secret);
+        return hash_equals($expected,(string)$parts['v1']);
     }
     public function normalizeWebhook(string $payload,array $headers): array{return json_decode($payload,true)?:[];}
 }
