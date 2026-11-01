@@ -39,6 +39,8 @@ final class View
             ['/admin/errors','Errors'],
             ['/admin/impersonation','Support tools'],
         ];
+        if(\Digiti\Admin\StagingReset::enabled())
+            $advanced[]=['/admin/staging-reset','Staging reset'];
         $common='<span class="platform-menu-label">EVERYDAY TASKS</span>';
         foreach($main as [$url,$label]) $common.=self::menuLink($path,$url,$label);
         $detailOpen=false;
