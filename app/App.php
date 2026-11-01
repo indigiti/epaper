@@ -1359,7 +1359,7 @@ final class App
         $guard='epdi_ops_'.substr(hash('sha256',RequestContext::tenantGuid().'|'.$guid),0,40);if((int)Store::value('SELECT GET_LOCK(?,0)',[$guard])!==1)$this->adminError('Another edition action is in progress.');
         if(EditionOperations::active($guid))$this->adminError('Processing jobs are still active. Use Cancel processing or Recover first.');
 
-        $row=Store::one('SELECT status FROM ep_editions WHERE tenant_guid=? AND edition_guid=?',[TenantData::tenantBin(),Uuid::toBinary($guid)]);if(!$row||!in_array($row['status'],['READY','SCHEDULED'],true))$this->adminError('Only ready editions can be published');
+        $row=Store::one('SELECT status FROM ep_editions WHERE tenant_guid=? AND edition_guid=?',[TenantData::tenantBin(),Uuid::toBinary($guid)]);if(!$row||!in_array($row['status'],strtoupper((string)(Auth::currentMembership()['role_key']??''))==='WEBDESK'?['READY']:['READY','SCHEDULED'],true))$this->adminError('Only ready editions can be published');
         Store::exec('UPDATE ep_editions SET status="PUBLISHED",publish_mode="MANUAL",scheduled_at=NULL,schedule_timezone=NULL,published_at=NOW(6),updated_at=NOW(6),version=version+1 WHERE tenant_guid=? AND edition_guid=?',[TenantData::tenantBin(),Uuid::toBinary($guid)]);Audit::log('edition.published','edition',$guid);RuntimeCache::broadcast(RequestContext::tenantGuid(),['dashboard','reader_state','public-editions']);RuntimeCache::queueWarm(RequestContext::tenantGuid(),$guid);Http::redirect('/admin/editions');
     }
 
