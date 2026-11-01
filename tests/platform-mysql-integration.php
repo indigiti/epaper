@@ -97,6 +97,46 @@ try{
         ON pt.product_tenant_guid=d.product_tenant_guid AND pt.organisation_guid=d.organisation_guid
         WHERE d.domain_guid=?',[$bin('domain')]);
     checkDb($invalid===null,'real MySQL consistency join rejects cross-organisation mapping');
+
+    // Application hostname recovery: no new product, tenant or domain installation.
+    $canonicalGuid=Uuid::v7();
+    Store::exec('INSERT INTO domains(domain_guid,organisation_guid,product_guid,application_guid,
+        product_tenant_guid,hostname,normalized_hostname,domain_type,status,is_primary,verification_token,created_at,updated_at)
+        VALUES(?,?,?,?,?,?,?,"SAAS_DEFAULT","REMOVED",0,"canonical-dns-token",NOW(6),NOW(6))',[
+        Uuid::toBinary($canonicalGuid),$bin('orgAMG'),$bin('product'),
+        $bin('application'),$bin('tenantAMG'),'epaper.digiti.in','epaper.digiti.in'
+    ]);
+    $canonicalRecord=Store::one('SELECT * FROM domains WHERE domain_guid=?',[Uuid::toBinary($canonicalGuid)]);
+    $canonical=(new ReflectionMethod(Restore::class,'canonicalDomain'));
+    checkDb($canonical->invoke(null,$canonicalRecord),'archived SAAS_DEFAULT ePaper hostname recognized as canonical app host');
+    $check->invoke(null,'domains',$canonicalRecord);
+    checkDb(true,'application hostname may recover without creating/restoring any product when parents are active');
+    Store::exec('UPDATE products SET status="SUSPENDED" WHERE product_guid=?',[$bin('product')]);
+    $rejected=false;
+    try{$check->invoke(null,'domains',$canonicalRecord);}catch(\InvalidArgumentException $e){
+        $rejected=str_contains($e->getMessage(),'product is SUSPENDED');
+    }
+    checkDb($rejected,'canonical recovery refuses suspended product rather than bypassing product safety');
+    Store::exec('UPDATE products SET status="ACTIVE" WHERE product_guid=?',[$bin('product')]);
+    Store::exec('UPDATE domains SET domain_type="PLATFORM" WHERE domain_guid=?',[Uuid::toBinary($canonicalGuid)]);
+    $notEpaperType=Store::one('SELECT * FROM domains WHERE domain_guid=?',[Uuid::toBinary($canonicalGuid)]);
+    checkDb(!$canonical->invoke(null,$notEpaperType),'Platform infrastructure type cannot use ePaper canonical recovery');
+    $rejected=false;
+    try{$check->invoke(null,'domains',$notEpaperType);}catch(\InvalidArgumentException $e){
+        $rejected=str_contains($e->getMessage(),'System infrastructure hostnames');
+    }
+    checkDb($rejected,'canonical recovery blocks Platform infrastructure records');
+    Store::exec('UPDATE domains SET domain_type="SAAS_DEFAULT",status="AWAITING_DNS",is_primary=0 WHERE domain_guid=?',[Uuid::toBinary($canonicalGuid)]);
+    $restored=Store::one('SELECT domain_guid,status,product_guid,application_guid,product_tenant_guid FROM domains
+        WHERE domain_guid=?',[Uuid::toBinary($canonicalGuid)]);
+    checkDb($restored['domain_guid']===$canonicalGuid && $restored['status']==='AWAITING_DNS'
+        && $restored['product_guid']===$ids['product']
+        && $restored['application_guid']===$ids['application']
+        && $restored['product_tenant_guid']===$ids['tenantAMG'],
+        'canonical recovery preserves original domain ID, product, ePaper application and tenant');
+    checkDb((int)Store::value('SELECT COUNT(*) FROM products WHERE product_key="EPAPER"')===1,
+        'canonical recovery does not create an additional product');
+
     echo "PASS: database-backed Platform domain recovery integration checks complete\n";
 }finally{
     @unlink($cfgPath);
