@@ -12,7 +12,7 @@ final class AdminManualClippingController
     private static function allow(): void
     {
         $role=strtoupper((string)(Auth::currentMembership()['role_key']??''));
-        if(!in_array($role,['OWNER','ADMIN','PUBLISHER_ADMIN','EDITOR'],true)){
+        if(!in_array($role,['OWNER','ADMIN','PUBLISHER_ADMIN','EDITOR','WEBDESK'],true)){
             http_response_code(403);exit('Editorial clipping permission required');
         }
         Http::privateNoStore();
