@@ -123,6 +123,11 @@ final class SettingsCatalog
                     'reader.offline_edition_limit' => ['Offline editions per device','number','7',null],
                 ],
             ],
+            'interface' => [
+                'label' => 'Interface Visibility',
+                'description' => 'Choose which public navigation, reader buttons and archive date controls readers see. These are display preferences, not access permissions. For individual top-menu links use Reader Navigation and publish that menu separately. Essential previous/next page navigation remains available.',
+                'fields' => ReaderUiControls::fields(),
+            ],
             'processing' => [
                 'label' => 'Processing',
                 'description' => 'PDF rendering, generated media, OCR and recovery defaults. RabbitMQ/Supervisor transport remains configured under Infrastructure.',
