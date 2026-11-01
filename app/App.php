@@ -181,7 +181,7 @@ final class App
 
     private function platformHealth(): never
     {
-        $d=DomainResolver::diagnose();Http::json(['ok'=>$d['ok'],'status'=>$d['ok']?'PLATFORM_BOUND':'SETUP_REQUIRED','version'=>$this->version(),'diagnostic'=>$d,'request_guid'=>Http::requestGuid()],200);
+        $d=DomainResolver::diagnose();Http::privateNoStore();Http::json(['ok'=>$d['ok'],'status'=>$d['ok']?'PLATFORM_BOUND':'SETUP_REQUIRED','version'=>$this->version(),'diagnostic'=>$d,'request_guid'=>Http::requestGuid()],$d['ok']?200:503);
     }
     private function queueHealth(): never
     {
@@ -201,7 +201,51 @@ final class App
     }
     private function canonicalSetupRequired(\Throwable $e): never
     {
-        $d=DomainResolver::diagnose();$action=(string)($d['recommended_action']??'CHECK_PLATFORM_BINDING');$domain=$d['domain']??[];$message=(string)($domain['message']??$e->getMessage());$safe=['Service token required'=>'The ePaper SaaS service token has not been configured.','Invalid service token'=>'The configured ePaper SaaS service token is not valid.','Service scope denied'=>'The service account does not have the required Platform scope.','Domain is not active'=>'The canonical ePaper domain is not ACTIVE in Digiti Platform.','Domain is not registered for EPAPER'=>'This hostname is not registered to the EPAPER product.','Resolved domain has no product tenant'=>'The Platform domain record is missing its product tenant.'];$summary=$safe[$message]??'The canonical ePaper hostname is not yet bound to an active EPAPER tenant.';$steps='<ol class="setup-steps"><li>In Digiti Platform, ensure an ACTIVE organisation and EPAPER product tenant exist.</li><li>Create an ACTIVE ePaper SaaS service account with <code>domains.resolve</code> and <code>tenant.read</code> at minimum.</li><li>Register <code>'.$this->e(Http::host()).'</code> to the ePaper SaaS application and product tenant, or configure the canonical product tenant GUID.</li><li>Confirm the domain status is <strong>ACTIVE</strong>, then retry this page.</li></ol>';$details='<div class="panel"><h2>Platform binding required</h2><p>'.$this->e($summary).'</p>'.$steps.'<p><a class="btn primary" href="/health/platform">Open safe Platform diagnostic</a> <a class="btn ghost" href="/health/ready">System readiness</a></p><p class="muted">Diagnostic action: <code>'.$this->e($action).'</code> · Request: <code>'.$this->e(Http::requestGuid()).'</code></p></div>';http_response_code(503);View::layout('Platform setup required',$details,['brand'=>'ePaper SaaS']);
+        // This route runs before tenant resolution. Do not call View::layout:
+        // it reads tenant preferences, which creates a SECOND exception and
+        // hides the original Platform integration failure behind HTTP 500.
+        try {
+            $d=DomainResolver::diagnose();
+            $code=(string)($d['recommended_action']??'CHECK_PLATFORM_BINDING');
+        } catch(\Throwable) {
+            $code='CHECK_PLATFORM_BINDING';
+        }
+        $safe=[
+            'CONFIGURE_SERVICE_TOKEN'=>'The ePaper application needs an active service token for its current Platform product.',
+            'CONFIGURED_APPLICATION_GUID_STALE'=>'The configured ePaper application GUID does not match the active Platform domain registration.',
+            'CONFIGURED_PRODUCT_GUID_STALE'=>'The configured ePaper product GUID does not match the active Platform product.',
+            'APPLICATION_BASE_URL_MISMATCH'=>'The domain is linked to a different application Base URL in Platform.',
+            'PLATFORM_RESOLVE_FAILED'=>'ePaper could not verify this hostname using its Platform service account. Check the service token and product scope.',
+            'CHECK_PUBLISHER_TENANT'=>'The publisher tenant could not be verified as ACTIVE in Platform.',
+            'DOMAIN_IDENTITY_INCOMPLETE'=>'The Platform domain is missing its application, product or publisher tenant binding.',
+            'HOSTNAME_MISMATCH'=>'Platform returned a different hostname than the current website.',
+            'DOMAIN_NOT_ACTIVE'=>'Platform does not currently authorize this hostname for public routing.',
+            'UNSAFE_CANONICAL_FALLBACK'=>'The legacy fallback publisher is not sufficiently pinned to the current product/application.',
+        ];
+        $description=$safe[$code]??'The ePaper website and its registered Platform application are not yet correctly connected.';
+        http_response_code(503);
+        header('Content-Type: text/html; charset=utf-8');
+        Http::privateNoStore();
+        $request=Http::requestGuid();
+        $html='<!doctype html><html lang="en"><meta charset="utf-8">'
+            .'<meta name="viewport" content="width=device-width,initial-scale=1">'
+            .'<meta name="robots" content="noindex,nofollow">'
+            .'<title>ePaper connection needs attention</title>'
+            .'<style>body{margin:0;min-height:100vh;display:grid;place-items:center;background:#f6f6f8;color:#171923;font:16px system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}'
+            .'.card{width:min(570px,calc(100% - 48px));padding:30px;background:#fff;border:1px solid #e5e7eb;border-radius:18px;box-shadow:0 18px 46px #14203812}'
+            .'h1{font-size:26px;line-height:1.2;margin:0 0 14px}p{line-height:1.6;color:#475569}'
+            .'code{overflow-wrap:anywhere;font-size:12px;background:#f1f5f9;padding:3px 6px;border-radius:6px}'
+            .'a{color:#1d4ed8;text-decoration:underline}</style>'
+            .'<main class="card"><h1>ePaper connection needs attention</h1>'
+            .'<p>'.htmlspecialchars($description,ENT_QUOTES|ENT_SUBSTITUTE,'UTF-8').'</p>'
+            .'<p>The Platform domain may be ACTIVE while the ePaper installation still has outdated application credentials. '
+            .'Do not delete or recreate the publisher to fix this.</p>'
+            .'<p>Administrator checks: <a href="/health/platform">Platform binding</a> · '
+            .'<a href="/health/ready">Application readiness</a></p>'
+            .'<p>Diagnostic: <code>'.htmlspecialchars($code,ENT_QUOTES|ENT_SUBSTITUTE,'UTF-8').'</code>'
+            .' · Request: <code>'.htmlspecialchars($request,ENT_QUOTES|ENT_SUBSTITUTE,'UTF-8').'</code></p></main></html>';
+        echo $html;
+        exit;
     }
     private function version(): string{return Build::version();}
     private function e(mixed $v): string{return View::e($v);}
@@ -1947,7 +1991,10 @@ $h.='<section class="panel"><div class="section-head"><div><h2>RabbitMQ queues</
     }
     private function healthReady(): never
     {
-        $checks=$this->healthChecks(false);$ok=!in_array(false,array_column($checks,'ok'),true);Http::json(['ok'=>$ok,'status'=>$ok?'READY':'DEGRADED','version'=>$this->version(),'checks'=>$checks,'request_guid'=>Http::requestGuid()],$ok?200:503);
+        $checks=$this->healthChecks(false);
+        $binding=DomainResolver::diagnose();
+        $checks['Platform publisher binding']=['ok'=>(bool)$binding['ok'],'detail'=>(string)$binding['recommended_action']];
+        $ok=!in_array(false,array_column($checks,'ok'),true);Http::json(['ok'=>$ok,'status'=>$ok?'READY':'DEGRADED','version'=>$this->version(),'checks'=>$checks,'request_guid'=>Http::requestGuid()],$ok?200:503);
     }
     private function healthChecks(bool $platformTenant=true): array
     {
