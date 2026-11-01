@@ -57,6 +57,8 @@ jobs:
         run: php tests/app-connection-setup.php
       - name: Publisher login prerequisite and restricted grant contracts
         run: php tests/publisher-login-check.php
+      - name: Tenant-scoped WebDesk publisher role management
+        run: php tests/platform-webdesk-role.php
       - name: Shared ePaper application and existing publisher domain recovery
         run: php tests/shared-app-recovery.php
       - name: Operator UI behaviour and navigation smoke checks

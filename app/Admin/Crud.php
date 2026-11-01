@@ -13,6 +13,7 @@ final class Crud
             '#^/admin/organisations/([0-9a-f-]{36})/remove$#' => 'organisationRemove',
             '#^/admin/users/([0-9a-f-]{36})/edit$#' => 'userEdit',
             '#^/admin/users/([0-9a-f-]{36})/status$#' => 'userStatus',
+            '#^/admin/users/([0-9a-f-]{36})/membership-role$#' => 'userMembershipRole',
             '#^/admin/users/([0-9a-f-]{36})/remove$#' => 'userRemove',
             '#^/admin/products/([0-9a-f-]{36})/edit$#' => 'productEdit',
             '#^/admin/products/([0-9a-f-]{36})/status$#' => 'productStatus',
@@ -153,9 +154,72 @@ final class Crud
     {
         $r=Store::one('SELECT user_guid,email,display_name,status,mfa_enabled FROM platform_users WHERE user_guid=?',[self::guidBin($guid)]);if(!$r)throw new \RuntimeException('User not found.');
         if($method==='POST'){self::ensureNotRemoved('user',$guid);self::rejectArchiveStatus($_POST);$email=strtolower(trim($_POST['email']??''));if(!filter_var($email,FILTER_VALIDATE_EMAIL))throw new \InvalidArgumentException('Valid email required.');$name=trim($_POST['display_name']??'');$status=self::allowed($_POST['status']??'ACTIVE',['ACTIVE','SUSPENDED'],'ACTIVE');$new=(string)($_POST['new_password']??'');if($new!==''&&strlen($new)<10)throw new \InvalidArgumentException('New password must be at least 10 characters.');Store::tx(function()use($email,$name,$status,$new,$guid):void {Store::exec('UPDATE platform_users SET email=?,display_name=?,status=?,updated_at=NOW(6) WHERE user_guid=?',[$email,$name,$status,self::guidBin($guid)]);if($new!=='')Store::exec('UPDATE platform_users SET password_hash=?,updated_at=NOW(6) WHERE user_guid=?',[password_hash($new,PASSWORD_DEFAULT),self::guidBin($guid)]);});Audit::log('user.update','platform_user',$guid);self::redirect('/admin/users','User updated.');}
-        $memberships=Store::all('SELECT m.membership_guid,m.role_key,m.status,o.display_name organisation FROM memberships m JOIN organisations o ON o.organisation_guid=m.organisation_guid WHERE m.user_guid=? ORDER BY o.display_name',[self::guidBin($guid)]);$m='';foreach($memberships as$x)$m.='<tr><td>'.self::e($x['organisation']).'</td><td>'.self::e($x['role_key']).'</td><td>'.self::status($x['status']).'</td></tr>';if(!$m)$m='<tr><td colspan="3" class="muted">No memberships.</td></tr>';
-        $body='<section class="card"><h2>Edit global user</h2><form method="post" class="form-grid">'.self::csrf().'<label>Name<input name="display_name" value="'.self::e($r['display_name']).'" required></label><label>Email<input type="email" name="email" value="'.self::e($r['email']).'" required></label><label>Status<select name="status">'.self::option('ACTIVE','ACTIVE',$r['status']).self::option('SUSPENDED','SUSPENDED',$r['status']).'</select></label><label>New password <span class="muted">optional</span><input type="password" name="new_password" minlength="10"></label><div class="form-action"><button class="primary">Update user</button><a class="button" href="/admin/users">Cancel</a></div></form></section><section class="card"><h2>Memberships</h2><div class="table-wrap"><table><thead><tr><th>Organisation</th><th>Role</th><th>Status</th></tr></thead><tbody>'.$m.'</tbody></table></div></section>';View::layout('Edit User',$body,['subtitle'=>$r['email']]);
+        $memberships=Store::all('SELECT m.membership_guid,m.role_key,m.status,o.display_name organisation FROM memberships m JOIN organisations o ON o.organisation_guid=m.organisation_guid WHERE m.user_guid=? ORDER BY o.display_name',[self::guidBin($guid)]);$m='';
+        foreach($memberships as $x){
+            $m.='<tr><td>'.self::e($x['organisation']).'</td><td>'.self::e($x['role_key']).'</td><td>'.self::status($x['status']).'</td><td>';
+            if($x['status']==='ACTIVE'){
+                $opts='';
+                foreach(['OWNER','ADMIN','MANAGER','VIEWER','WEBDESK','PUBLISHER_ADMIN','EDITOR','OPERATOR'] as $role)
+                    $opts.=self::option($role,$role==='WEBDESK'?'WebDesk':$role,(string)$x['role_key']);
+                $m.='<form method="post" action="/admin/users/'.self::e($guid).'/membership-role">'
+                    .self::csrf().'<input type="hidden" name="membership_guid" value="'.self::e($x['membership_guid']).'">'
+                    .'<label>Publisher role<select name="role_key" required>'.$opts.'</select></label>'
+                    .'<button class="button" type="submit">Update role</button></form>';
+            }else $m.='Inactive membership';
+            $m.='</td></tr>';
+        }
+        if(!$m)$m='<tr><td colspan="4" class="muted">No memberships.</td></tr>';
+        $body='<section class="card"><h2>Edit global user</h2><form method="post" class="form-grid">'.self::csrf().'<label>Name<input name="display_name" value="'.self::e($r['display_name']).'" required></label><label>Email<input type="email" name="email" value="'.self::e($r['email']).'" required></label><label>Status<select name="status">'.self::option('ACTIVE','ACTIVE',$r['status']).self::option('SUSPENDED','SUSPENDED',$r['status']).'</select></label><label>New password <span class="muted">optional</span><input type="password" name="new_password" minlength="10"></label><div class="form-action"><button class="primary">Update user</button><a class="button" href="/admin/users">Cancel</a></div></form></section><section class="card"><h2>Memberships</h2><div class="table-wrap"><table><thead><tr><th>Organisation</th><th>Role</th><th>Status</th><th>Role assignment</th></tr></thead><tbody>'.$m.'</tbody></table></div></section>';View::layout('Edit User',$body,['subtitle'=>$r['email']]);
     }
+    private static function userMembershipRole(string $guid,string $method): never
+    {
+        if($method!=='POST')Http::redirect('/admin/users/'.$guid.'/edit');
+        $admin=\Digiti\Core\Auth::requireAdmin();
+        $role=Store::value('SELECT role_key FROM platform_admins WHERE admin_guid=? AND status="ACTIVE"',
+            [self::guidBin((string)$admin['admin_guid'])]);
+        if($role!=='SUPER_ADMIN')throw new \RuntimeException('Only a Platform super administrator can assign publisher roles.');
+        $memberGuid=(string)($_POST['membership_guid']??'');
+        $selected=strtoupper(trim((string)($_POST['role_key']??'')));
+        $allowed=['OWNER','ADMIN','MANAGER','VIEWER','WEBDESK',
+            'PUBLISHER_ADMIN','EDITOR','OPERATOR'];
+        if(!in_array($selected,$allowed,true))throw new \InvalidArgumentException('Unknown publisher role');
+        Store::tx(static function()use($guid,$memberGuid,$selected):void{
+            $owner=Store::one('SELECT organisation_guid FROM memberships WHERE membership_guid=? AND user_guid=?',
+                [self::guidBin($memberGuid),self::guidBin($guid)]);
+            if(!$owner)throw new \InvalidArgumentException('Publisher membership not found');
+            // Serialize role changes within an organisation so concurrent demotions
+            // cannot silently remove its final OWNER/ADMIN.
+            Store::one('SELECT organisation_guid FROM organisations WHERE organisation_guid=? FOR UPDATE',
+                [$owner['organisation_guid']]);
+            $record=Store::one('SELECT m.role_key,m.status,u.status user_status,o.status org_status '
+                .'FROM memberships m JOIN platform_users u ON u.user_guid=m.user_guid '
+                .'JOIN organisations o ON o.organisation_guid=m.organisation_guid '
+                .'WHERE m.membership_guid=? AND m.user_guid=? FOR UPDATE',
+                [self::guidBin($memberGuid),self::guidBin($guid)]);
+            if(!$record||$record['status']!=='ACTIVE'||$record['user_status']!=='ACTIVE'
+                ||$record['org_status']!=='ACTIVE')
+                throw new \InvalidArgumentException('Publisher user and membership must be active');
+            if($record['role_key']===$selected)return;
+            if(in_array((string)$record['role_key'],['OWNER','ADMIN','PUBLISHER_ADMIN'],true)
+                && !in_array($selected,['OWNER','ADMIN','PUBLISHER_ADMIN'],true)){
+                $remaining=(int)Store::value('SELECT COUNT(*) FROM memberships m '
+                    .'JOIN platform_users u ON u.user_guid=m.user_guid '
+                    .'WHERE m.organisation_guid=? AND m.membership_guid<>? AND m.status="ACTIVE" '
+                    .'AND u.status="ACTIVE" AND m.role_key IN ("OWNER","ADMIN","PUBLISHER_ADMIN")',
+                    [$owner['organisation_guid'],self::guidBin($memberGuid)]);
+                if($remaining<1)throw new \InvalidArgumentException(
+                    'Assign another active publisher owner/admin before converting the last owner to WebDesk.'
+                );
+            }
+            Store::exec('UPDATE memberships SET role_key=?,updated_at=NOW(6) '
+                .'WHERE membership_guid=? AND user_guid=? AND status="ACTIVE"',
+                [$selected,self::guidBin($memberGuid),self::guidBin($guid)]);
+            Audit::log('membership.role_changed','membership',$memberGuid,'SUCCESS',
+                ['previous_role'=>$record['role_key'],'role'=>$selected,'publisher_user_guid'=>$guid]);
+        });
+        self::redirect('/admin/users/'.$guid.'/edit','Publisher role changed. Sign in again for updated access.');
+    }
+
     private static function userStatus(string $guid,string $method): never { if($method!=='POST')Http::redirect('/admin/users');self::ensureNotRemoved('user',$guid);$status=self::allowed($_POST['status']??'SUSPENDED',['ACTIVE','SUSPENDED'],'SUSPENDED');Store::exec('UPDATE platform_users SET status=?,updated_at=NOW(6) WHERE user_guid=?',[$status,self::guidBin($guid)]);Audit::log('user.status','platform_user',$guid);self::redirect('/admin/users','User status updated.'); }
     private static function userRemove(string $guid,string $method): never
     {
