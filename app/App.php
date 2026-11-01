@@ -491,13 +491,15 @@ final class App
         if(!$verified)Http::json(['ok'=>false,'code'=>'WEBHOOK_SIGNATURE_INVALID'],400);
         $data=$adapter->normalizeWebhook($payload,$headers);
         $ref=match($provider){
-            'razorpay'=>(string)($headers['x-razorpay-event-id']??''),
+            'razorpay'=>'body:'.hash('sha256',$payload),
             'stripe'=>(string)($data['id']??''),
             default=>'',
         };
-        // Provider event IDs are unique. A body digest is a safe fallback
-        // for verified but malformed/legacy deliveries; never dedupe by
-        // event TYPE (which would silently drop other payments).
+        // Stripe event IDs are authenticated inside the signed payload.
+        // Razorpay signs the body, not the event ID header, so use a body
+        // digest for replay-resistant deduplication while retaining the
+        // x-razorpay-event-id header for audit/diagnostics.
+        // Never dedupe by event TYPE (which drops unrelated payments).
         if($ref===''||strlen($ref)>190)$ref=hash('sha256',$payload);
         $sanitized=$headers;
         foreach(['authorization','cookie','set-cookie','x-api-key','x-digiti-service-token',
