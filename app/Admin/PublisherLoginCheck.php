@@ -68,7 +68,7 @@ final class PublisherLoginCheck
             'membership'=>$membership!==null && (string)($membership['status']??'')==='ACTIVE',
             'publisher_role'=>$membership!==null && in_array(
                 (string)($membership['role_key']??''),
-                ['OWNER','ADMIN','PUBLISHER_ADMIN','EDITOR','OPERATOR'],true),
+                ['OWNER','ADMIN','PUBLISHER_ADMIN','EDITOR','OPERATOR','WEBDESK'],true),
         ];
         return $checks;
     }
