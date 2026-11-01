@@ -60,6 +60,7 @@ final class Restore
                 .'<p class="muted">The original record and history are preserved. Dependent accounts, privileges, DNS and SSL readiness are not silently reactivated.</p>'
                 .($canonical?'<div class="platform-restore-warning"><strong>Canonical application domain:</strong> This hostname belongs to the installed ePaper application, not a separate publisher. Restore the original record only; its product, application and tenant must all be active and correctly related. Routing will restart at AWAITING_DNS, not go live automatically. No ePaper content or other publisher data is moved.</div>':'')
                 .($blocker?'<div class="platform-restore-warning" role="alert"><strong>Recovery blocked:</strong> '.View::esc($blocker).'</div>':'')
+                .($type==='domains'?self::dependencyGuide($record):'')
                 .'<form method="post" action="/admin/'.View::esc($type).'/'.View::esc($guid).'/restore">'
                 .'<input type="hidden" name="_csrf" value="'.View::esc(Http::csrf()).'">'
                 .'<label>Type <strong>'.View::esc($label).'</strong> to confirm'
@@ -146,6 +147,69 @@ final class Restore
         return $canonical!=='' && strcasecmp((string)$record['hostname'],$canonical)===0;
     }
 
+    /**
+     * Present a read-only recovery plan from real linked rows. Nothing is
+     * changed here. Each operation opens the existing protected edit/restore
+     * form and still requires the operator's explicit confirmation.
+     */
+    private static function dependencyGuide(array $domain): string
+    {
+        $parents=[
+            ['Product','products','product_guid','product_key','name'],
+            ['Organisation','organisations','organisation_guid','organisation_code','display_name'],
+            ['Application','applications','application_guid','application_key','name'],
+            ['Publisher tenant','product-tenants','product_tenant_guid',null,'display_name'],
+        ];
+        $html='<section class="platform-dependency-guide" aria-labelledby="platform-dependency-heading">'
+            .'<h3 id="platform-dependency-heading">Repair required records in this order</h3>'
+            .'<p>These are the records already linked to this website. Do not create a new EPAPER product or another domain. '
+            .'Restore archived records, activate suspended ones, then return here to restore the hostname.</p><ol>';
+        $allReady=true;
+        $rows=[];
+        foreach($parents as [$name,$route,$column,$codeColumn,$titleColumn]) {
+            $guid=(string)($domain[$column]??'');
+            $table=str_replace('-','_',$route);
+            $table=$route==='product-tenants'?'product_tenants':$table;
+            $lookup=match($route){
+                'products'=>'product_guid',
+                'organisations'=>'organisation_guid',
+                'applications'=>'application_guid',
+                'product-tenants'=>'product_tenant_guid',
+                default=>throw new \LogicException('Unsupported dependency'),
+            };
+            $columns=$codeColumn ? "$codeColumn record_code,$titleColumn display_label,status" : "$titleColumn display_label,status";
+            $row=$guid!==''?Store::one("SELECT $columns FROM $table WHERE $lookup=? LIMIT 1",[
+                Uuid::toBinary($guid)
+            ]):null;
+            $status=$row===null?'MISSING':(string)$row['status'];
+            $ready=$status==='ACTIVE';
+            if(!$ready)$allReady=false;
+            $display=$row?trim((string)($row['record_code']??$row['display_label']??$name)):$name.' (record missing)';
+            $url='/admin/'.$route.'/'.rawurlencode($guid);
+            $task=$status==='REMOVED'?'Restore existing '.$name:
+                ($status==='ACTIVE'?'Ready':($status==='MISSING'?'Contact administrator':'Review and activate '.$name));
+            $link=$status==='REMOVED'?$url.'/restore':$url.'/edit';
+            $action=($ready||$status==='MISSING')
+                ?'<span class="platform-dependency-state">'.($ready?'Ready':'Manual investigation needed').'</span>'
+                :'<a class="button" href="'.View::esc($link).'">'.View::esc($task).'</a>';
+            $html.='<li class="platform-dependency-item">'
+                .'<div><strong>'.View::esc($name).': '.View::esc($display).'</strong>'
+                .'<small>'.View::esc($status).($status==='REMOVED'?' — restore first, then activate from its Edit screen':'').'</small></div>'
+                .$action.'</li>';
+            $rows[$column]=$row;
+        }
+        $html.='</ol>';
+        $productKey=(string)($rows['product_guid']['record_code']??'');
+        $application=$rows['application_guid']??null;
+        if($productKey!==''&&$productKey!=='EPAPER')
+            $html.='<div class="platform-restore-warning">This hostname refers to product '.View::esc($productKey)
+                .', not EPAPER. Do not restore it as the main ePaper site without correcting the original relationship.</div>';
+        if($allReady) $html.='<p><strong>All parent records are active.</strong> Confirm the original domain below to restart its verification.</p>';
+        $html.='<p><a href="/admin/domains/'.rawurlencode((string)$domain['domain_guid']).'/restore">'
+            .'Return to this hostname after repairing the records</a></p></section>';
+        return $html;
+    }
+
     private static function requireSystemDomainAdmin(): void
     {
         $admin=Auth::requireAdmin();
@@ -160,8 +224,8 @@ final class Restore
         $check=static function(?string $table,?string $key,?string $foreign,string $label): void {
             if($table===null||$foreign===null)return;
             $status=Store::value("SELECT status FROM $table WHERE $key=?",[Uuid::toBinary($foreign)]);
-            if($status===null||$status==='REMOVED')
-                throw new \InvalidArgumentException("Restore the $label before this record.");
+            if($status===null) throw new \InvalidArgumentException("The linked $label record is missing. Do not create a replacement without reviewing the original references.");
+            if($status==='REMOVED') throw new \InvalidArgumentException("The linked $label is archived (REMOVED). Restore it, then activate it before restoring this hostname.");
         };
         if(in_array($type,['applications','product-tenants','domains','commercial/plans'],true)
             || ($type==='service-accounts' && $record['product_guid']!==null)) {
