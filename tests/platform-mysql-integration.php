@@ -109,6 +109,31 @@ try{
     $canonicalRecord=Store::one('SELECT * FROM domains WHERE domain_guid=?',[Uuid::toBinary($canonicalGuid)]);
     $canonical=(new ReflectionMethod(Restore::class,'canonicalDomain'));
     checkDb($canonical->invoke(null,$canonicalRecord),'archived SAAS_DEFAULT ePaper hostname recognized as canonical app host');
+    // Mimic cascading archive: the product, application and tenant are all
+    // REMOVED, while their original GUIDs and domain record remain intact.
+    Store::exec('UPDATE products SET status="REMOVED" WHERE product_guid=?',[$bin('product')]);
+    Store::exec('UPDATE applications SET status="REMOVED" WHERE application_guid=?',[$bin('application')]);
+    Store::exec('UPDATE product_tenants SET status="REMOVED" WHERE product_tenant_guid=?',[$bin('tenantAMG')]);
+    $guide=(new ReflectionMethod(Restore::class,'dependencyGuide'))->invoke(null,$canonicalRecord);
+    checkDb(str_contains($guide,'/admin/products/'.$ids['product'].'/restore'),
+        'blocked canonical recovery links to the exact archived EPAPER product');
+    checkDb(str_contains($guide,'/admin/applications/'.$ids['application'].'/restore'),
+        'blocked canonical recovery links to archived original application');
+    checkDb(str_contains($guide,'/admin/product-tenants/'.$ids['tenantAMG'].'/restore'),
+        'blocked canonical recovery links to the original AMG tenant');
+    checkDb(strpos($guide,'Product:')<strpos($guide,'Application:')
+        &&strpos($guide,'Application:')<strpos($guide,'Publisher tenant:'),
+        'dependency recovery steps appear in parent-first order');
+    checkDb(str_contains($guide,'restore first, then activate'),
+        'an archived parent explicitly requires Restore then Activate');
+    $rejected=false;
+    try{$check->invoke(null,'domains',$canonicalRecord);}catch(\InvalidArgumentException $e){
+        $rejected=str_contains($e->getMessage(),'linked product is archived');
+    }
+    checkDb($rejected,'archived product blocks domain until repaired');
+    Store::exec('UPDATE products SET status="ACTIVE" WHERE product_guid=?',[$bin('product')]);
+    Store::exec('UPDATE applications SET status="ACTIVE" WHERE application_guid=?',[$bin('application')]);
+    Store::exec('UPDATE product_tenants SET status="ACTIVE" WHERE product_tenant_guid=?',[$bin('tenantAMG')]);
     $check->invoke(null,'domains',$canonicalRecord);
     checkDb(true,'application hostname may recover without creating/restoring any product when parents are active');
     Store::exec('UPDATE products SET status="SUSPENDED" WHERE product_guid=?',[$bin('product')]);
