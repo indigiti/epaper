@@ -66,14 +66,14 @@ final class View
         $cssFingerprint=$fingerprint('app.css',$version);
         $onboarding=isset($_SERVER['REQUEST_URI'])&&str_starts_with((string)$_SERVER['REQUEST_URI'],'/admin/onboarding');
         $onboardingFingerprint=$onboarding?$fingerprint('onboarding.css','missing'):'';
-        $uiFingerprint=$admin?$fingerprint('platform-ui.css','missing'):'';
+        $uiFingerprint=$fingerprint('platform-ui.css','missing');
         $path=parse_url($_SERVER['REQUEST_URI']??'/admin',PHP_URL_PATH)?:'/admin';
         if($admin) header('Cache-Control: private, no-store, max-age=0');
         ?><!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
         <meta name="color-scheme" content="light dark"><title><?=self::esc($title)?> · Digiti Platform</title>
         <link rel="stylesheet" href="/assets/app.css?v=<?=self::esc($cssFingerprint)?>">
         <?php if($onboarding):?><link rel="stylesheet" href="/assets/onboarding.css?v=<?=self::esc($onboardingFingerprint)?>"><?php endif;?>
-        <?php if($admin):?><link rel="stylesheet" href="/assets/platform-ui.css?v=<?=self::esc($uiFingerprint)?>"><?php endif;?>
+        <link rel="stylesheet" href="/assets/platform-ui.css?v=<?=self::esc($uiFingerprint)?>">
         </head><body class="<?=$admin?'platform-authenticated':'platform-guest'?>">
         <a class="platform-skip" href="#platform-content">Skip to content</a>
         <header class="platform-topbar"><a class="platform-brand" href="/admin"><span class="platform-brand-mark" aria-hidden="true">D</span>
