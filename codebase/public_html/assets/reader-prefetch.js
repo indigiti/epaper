@@ -49,7 +49,7 @@
   function predict(dx,dy){
     if(Math.abs(dx)<24||Math.abs(dx)<Math.abs(dy)*1.15)return;
     const now=performance.now();if(now-directionLock<160)return;directionLock=now;
-    const target=dx<0?currentPage()+1:currentPage()-1;stats.lastDirection=dx<0?'next':'previous';warm(target,{decodePreview:true,highres:mode()==='high'});
+    const target=dx<0?currentPage()+1:currentPage()-1;stats.lastDirection=dx<0?'next':'previous';const q=mode();warm(target,{decodePreview:q!=='low',highres:q==='high'});
   }
   const stage=document.querySelector('[data-page-stage]')||root;
   stage.addEventListener('pointerdown',e=>{if(e.pointerType==='mouse'&&e.button!==0)return;startX=e.clientX;startY=e.clientY},{passive:true});
