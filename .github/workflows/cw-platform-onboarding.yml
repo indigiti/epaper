@@ -9,6 +9,15 @@ on:
       - 'config/**'
       - 'tests/**'
       - '.github/workflows/cw-platform-onboarding.yml'
+  pull_request:
+    branches: [cw-platform]
+    paths:
+      - 'app/**'
+      - 'public_html/**'
+      - 'config/**'
+      - 'database/**'
+      - 'tests/**'
+      - '.github/workflows/cw-platform-onboarding.yml'
   workflow_dispatch:
 
 permissions:
@@ -31,3 +40,5 @@ jobs:
         run: php tests/operator-ui-checks.php
       - name: Registry icon, restoration and staging reset checks
         run: php tests/registry-action-checks.php
+      - name: Cross-module functional and recovery audit
+        run: php tests/platform-functional-audit.php
