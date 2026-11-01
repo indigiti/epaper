@@ -65,6 +65,16 @@ $crud=file_get_contents($root.'/app/Admin/Crud.php');
 check(str_contains($app,'DomainMapping::save('),'new domain-mapping POST endpoint is available');
 check(str_contains($crud,'DomainMapping::panel($r)'),'domain editor displays the dropdown workflow');
 check(str_contains($mapping,'name="product_tenant_guid"')&&str_contains($mapping,'name="application_guid"'),'both tenant and application have dropdowns');
+
+check(str_contains($mapping,'tenant_quickpick')&&str_contains($mapping,'domain-mapping-choice-list'),'publisher alternative rendered without requiring native dropdown');
+check(str_contains($mapping,'eligible publisher account(s)')&&str_contains($mapping,'compatible application(s)'),'eligible option counts shown');
+check(str_contains($mapping,'Why DCN / DCNEP is missing:')&&str_contains($mapping,"$issues[]='different product'"),'DCN unavailable reason shown safely');
+$requested=(new ReflectionMethod(\Digiti\Admin\DomainMapping::class,'requestedTenant'));
+$amg='01a05e76-d968-7e72-a4ef-aec784cf0547';
+$dcn='01a195d7-3a9a-761d-bde8-3965e712ccd1';
+check($requested->invoke(null,['product_tenant_guid'=>$amg])===$amg,'normal dropdown value accepted');
+check($requested->invoke(null,['product_tenant_guid'=>$amg,'tenant_quickpick'=>$dcn])===$dcn,'explicit DCN choice overrides stuck native dropdown');
+
 check(str_contains($mapping,'WHERE pt.product_guid=? AND pt.status="ACTIVE"'),'tenant dropdown is product-scoped and active-only');
 check(str_contains($mapping,'WHERE product_guid=? AND status="ACTIVE"'),'application dropdown is compatible and active-only');
 check(str_contains($mapping,'Type the exact domain name')&&str_contains($mapping,'confirm_content'),'mapping update requires operator confirmation');
