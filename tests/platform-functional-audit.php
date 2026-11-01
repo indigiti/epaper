@@ -73,6 +73,13 @@ ok(str_contains($restore,'registry.restore'),'restore audit preserved');
 
 ok(str_contains($restore,'Restore ePaper application hostname'),'canonical ePaper recovery has its own guided screen');
 ok(str_contains($restore,'confirm_canonical'),'canonical recovery requires extra explicit acknowledgement');
+
+ok(str_contains($restore,'self::dependencyGuide($record)'),'domain Restore displays real parent dependency inventory');
+ok(str_contains($restore,'Repair required records in this order'),'recovery page explains remediation order');
+ok(str_contains($restore,"'/restore':$url.'/edit'"),'archived parents link to Restore and suspended parents to Edit');
+ok(str_contains($restore,'The linked $label is archived (REMOVED)'),'generic blocker identifies archived parent rather than a vague rejection');
+ok(str_contains($restore,"in_array($type,['products','organisations','applications','product-tenants'],true)"),'restored parents open their Edit screen for deliberate activation');
+
 ok(str_contains($restore,'$role!==\'SUPER_ADMIN\''),'canonical recovery restricted to Platform super administrators');
 ok(str_contains($restore,'$canonical=self::canonicalDomain($record)'),'archived canonical record classified against application base URL');
 ok(str_contains($restore,'tenant_product_guid')&&str_contains($restore,'application_product_guid'),'canonical recovery checks product/organisation consistency');
