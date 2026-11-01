@@ -3,7 +3,7 @@ declare(strict_types=1);
 
 namespace Digiti\Admin;
 
-use Digiti\Core\{Auth,Http,RedisStore,Store,Uuid,View};
+use Digiti\Core\{Auth,Config,Http,RedisStore,Store,Uuid,View};
 
 /**
  * Explicit, audited mapping change for EXISTING customer domains only.
@@ -50,8 +50,11 @@ final class DomainMapping
             return '<section class="card"><h2>Publisher & application assignment</h2>'
                 .'<p class="muted">This is a system or canonical application domain. Its publisher/application mapping is protected from changes here.</p>'
                 .'<p><strong>Newspaper account:</strong> '.$currentTenant.' · <strong>Application:</strong> '.$currentApp.'</p>'
-                .'<p><a class="button" href="/admin/domains/'.rawurlencode((string)$domain['domain_guid']).'/shared-application">Check shared-app recovery</a></p>'
-                .'<p class="muted">A hostname wrongly registered as a second canonical application can be converted to an alias only after super-admin review and same-product checks.</p></section>';
+                .(strtolower((string)$domain['hostname'])===strtolower((string)(parse_url((string)Config::get('integrations.epaper_shared_base_url','https://epaper.digiti.in'),PHP_URL_HOST)?:''))
+                    ?''
+                    :'<p><a class="button" href="/admin/domains/'.rawurlencode((string)$domain['domain_guid']).'/shared-application">Check shared-app recovery</a></p>'
+                        .'<p class="muted">A hostname wrongly registered as a second canonical application can be converted to an alias only after super-admin review and same-product checks.</p>')
+                .'</section>';
         }
         $tenants=Store::all('SELECT pt.product_tenant_guid,pt.display_name tenant_name,o.display_name organisation_name
             FROM product_tenants pt JOIN organisations o ON o.organisation_guid=pt.organisation_guid

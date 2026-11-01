@@ -367,6 +367,7 @@ final class Onboarding
             ]);
         }
         $sharedAppNotice=$canonicalHost!=='' && strcasecmp($canonicalHost,$hostname)===0
+            && strcasecmp($hostname,(string)(parse_url((string)Config::get('integrations.epaper_shared_base_url','https://epaper.digiti.in'),PHP_URL_HOST)?:''))!==0
             ?'<div class="ob-tenant-warning"><strong>Is this a separate ePaper installation?</strong> '
                 .'If this publisher hostname actually shares the main ePaper Cloudways codebase, it must belong to that shared application and have its own tenant. '
                 .'<a class="button" href="/admin/domains/'.rawurlencode((string)$guid).'/shared-application">Check application binding and repair</a></div>'
