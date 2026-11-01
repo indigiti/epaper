@@ -75,9 +75,9 @@ final class AdminFeatureCatalog
         if($full){
             $groups['ADVANCED'][]=['Audit Trail','/admin/audit','Administrative changes and security events','clock'];
             $groups['ADVANCED'][]=['Release Audit','/admin/system/release-audit','Deployment integrity','file-check'];
-            $groups['ADVANCED'][]=['Storage & Backups','/admin/storage','Storage diagnostics','hard-drive'];
+            $groups['OPERATIONS'][]=['Tenant Usage & Storage','/admin/storage','Per-publisher storage, database usage and safe maintenance','hard-drive'];
         }
-        if($operator)$groups['ADVANCED'][]=['Performance & Cache','/admin/performance','Speed and delivery','gauge'];
+        if($operator)$groups['OPERATIONS'][]=['Performance & Cache','/admin/performance','Speed and delivery','gauge'];
         if($infra){
             $groups['ADVANCED'][]=['Infrastructure','/admin/system/infrastructure','RabbitMQ and service configuration','cpu'];
             $groups['ADVANCED'][]=['Supervisor Doctor','/admin/system/infrastructure/supervisor','Worker lane diagnostics','workflow'];
