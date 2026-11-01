@@ -309,9 +309,41 @@ final class App
     }
     private function recordUsage(): never
     {
-        ServiceAuth::requireScope('usage.write');$d=Http::bodyJson();$tenant=$d['product_tenant_guid']??'';$featureKey=$d['feature_key']??'';$delta=(float)($d['delta']??0);$period=$d['period_key']??gmdate('Y-m');$f=Store::one('SELECT feature_guid FROM features WHERE feature_key=?',[$featureKey]);if(!$f)Http::json(['ok'=>false,'code'=>'FEATURE_NOT_FOUND'],404);$existing=Store::one('SELECT usage_guid FROM usage_meters WHERE product_tenant_guid=? AND feature_guid=? AND period_key=?',[Uuid::toBinary($tenant),Uuid::toBinary($f['feature_guid']),$period]);if($existing)Store::exec('UPDATE usage_meters SET used_value=GREATEST(0,used_value+?),updated_at=NOW(6) WHERE usage_guid=?',[$delta,Uuid::toBinary($existing['usage_guid'])]);else Store::exec('INSERT INTO usage_meters(usage_guid,product_tenant_guid,feature_guid,period_key,used_value,reserved_value,updated_at) VALUES(?,?,?,?,?,0,NOW(6))',[Uuid::toBinary(Uuid::v7()),Uuid::toBinary($tenant),Uuid::toBinary($f['feature_guid']),$period,max(0,$delta)]);Http::json(['ok'=>true]);
+        $service=ServiceAuth::requireScope('usage.write');
+        $d=Http::bodyJson();
+        $tenantGuid=(string)($d['product_tenant_guid']??'');
+        $tenant=ServiceAuth::checkTenant($service,$tenantGuid);
+        if($tenant['status']!=='ACTIVE'||$tenant['product_status']!=='ACTIVE'
+            ||$tenant['organisation_status']!=='ACTIVE')
+            Http::json(['ok'=>false,'code'=>'TENANT_INACTIVE'],403);
+        $featureKey=trim((string)($d['feature_key']??''));
+        $period=(string)($d['period_key']??gmdate('Y-m'));
+        $raw=$d['delta']??null;
+        if(!is_numeric($raw)||!is_finite((float)$raw)|| (float)$raw<=0 || (float)$raw>1000000
+            ||!preg_match('/^20[0-9]{2}-(?:0[1-9]|1[0-2])$/',$period)) {
+            Http::json(['ok'=>false,'code'=>'USAGE_REQUEST_INVALID',
+                'message'=>'Provide a positive finite usage delta and YYYY-MM period'],400);
+        }
+        $feature=Store::one('SELECT feature_guid,product_guid FROM features WHERE feature_key=?',[$featureKey]);
+        if(!$feature)Http::json(['ok'=>false,'code'=>'FEATURE_NOT_FOUND'],404);
+        if($feature['product_guid']!==null && $feature['product_guid']!==$tenant['product_guid'])
+            Http::json(['ok'=>false,'code'=>'FEATURE_PRODUCT_MISMATCH'],403);
+        $delta=(float)$raw;
+        // Unique index (tenant, feature, period) makes concurrent inserts safe.
+        // Producers must send each usage increment only once; an idempotent
+        // event journal is still required for retry-safe metering.
+        Store::exec('INSERT INTO usage_meters(usage_guid,product_tenant_guid,feature_guid,
+            period_key,used_value,reserved_value,updated_at)
+            VALUES(?,?,?,?,?,0,NOW(6))
+            ON DUPLICATE KEY UPDATE used_value=used_value+VALUES(used_value),updated_at=NOW(6)',[
+            Uuid::toBinary(Uuid::v7()),Uuid::toBinary($tenantGuid),
+            Uuid::toBinary($feature['feature_guid']),$period,$delta
+        ]);
+        RedisStore::del('entitlements:'.$tenantGuid);
+        Http::json(['ok'=>true]);
     }
-    private function recordExternalAudit(): never
+
+        private function recordExternalAudit(): never
     {
         $service=ServiceAuth::requireScope('audit.write');$d=Http::bodyJson();$tenant=$d['tenant_guid']??null;
         if($tenant)ServiceAuth::checkTenant($service,(string)$tenant);$resource=$d['resource_guid']??null;$actor=$d['actor_user_guid']??null;$membership=$d['membership_guid']??null;$imp=$d['impersonator_user_guid']??null;$request=$d['request_guid']??null;$corr=$d['correlation_guid']??null;Store::exec('INSERT INTO audit_events(audit_event_guid,tenant_guid,occurred_at,actor_type,actor_user_guid,membership_guid,impersonator_user_guid,action,resource_type,resource_guid,result,request_guid,correlation_guid,metadata) VALUES(?,?,NOW(6),?,?,?,?,?,?,?,?,?,?,?)',[Uuid::toBinary(Uuid::v7()),$tenant?Uuid::toBinary($tenant):null,$d['actor_type']??'SYSTEM',$actor?Uuid::toBinary($actor):null,$membership?Uuid::toBinary($membership):null,$imp?Uuid::toBinary($imp):null,$d['action']??'unknown',$d['resource_type']??'unknown',$resource?Uuid::toBinary($resource):null,$d['result']??'SUCCESS',$request?Uuid::toBinary($request):null,$corr?Uuid::toBinary($corr):null,json_encode($d['metadata']??[]) ]);Http::json(['ok'=>true]);
