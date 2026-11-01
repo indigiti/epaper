@@ -6,7 +6,7 @@ return [
  'db'=>['host'=>'127.0.0.1','port'=>3306,'name'=>'digiti_epaper','user'=>'','pass'=>'','charset'=>'utf8mb4'],
  'redis'=>['enabled'=>true,'host'=>'127.0.0.1','port'=>6379,'username'=>null,'password'=>null,'database'=>0,'prefix'=>'digiti:prod:epaper:'],
  'platform'=>[
-   'url'=>'https://platform.digiti.in','product_key'=>'EPAPER','application_key'=>'city_epaper','application_guid'=>'','oauth_client_id'=>'','service_token'=>'','default_tenant_guid'=>'','default_organisation_guid'=>'','domain_cache_ttl'=>600,'tenant_cache_ttl'=>900,'local_tenant_sync_ttl'=>600,
+   'url'=>'https://platform.digiti.in','product_key'=>'EP-DI','product_guid'=>'','application_key'=>'','application_guid'=>'','oauth_client_id'=>'','service_token'=>'','default_tenant_guid'=>'','default_organisation_guid'=>'','allow_canonical_fallback'=>false,'domain_cache_ttl'=>600,'tenant_cache_ttl'=>900,'local_tenant_sync_ttl'=>600,
  ],
  'auth'=>[
    'admin_roles'=>['OWNER','ADMIN','PUBLISHER_ADMIN','EDITOR','OPERATOR'],
