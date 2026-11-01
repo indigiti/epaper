@@ -34,6 +34,7 @@ return [
         'default_provider' => 'manual',
         'razorpay_key_id' => '',
         'razorpay_key_secret' => '',
+        'razorpay_webhook_secret' => '',
         'stripe_secret' => '',
         'stripe_webhook_secret' => '',
     ],
