@@ -74,13 +74,33 @@ final class ClipCropCache
                     if(is_file($tmp))@unlink($tmp);
                 }
             }
-            // Hard links deduplicate physical bytes on the same filesystem.
-            // Different filesystems or hosting restrictions fall back to a copy.
-            if(!@link($cache,$destination)){
-                if(!@copy($cache,$destination))
-                    throw new \RuntimeException('Could not materialize the clipping image');
-                $mode='copy';
-            }else $mode='link';
+            // Hard links deduplicate physical bytes. Cloudways and hardened
+            // PHP-FPM pools may disable link() entirely via disable_functions:
+            // calling a disabled function causes a fatal Error, even with @.
+            // Cache acceleration must never prevent a reader from clipping.
+            $linked=false;
+            if(function_exists('link')){
+                try{$linked=@link($cache,$destination);}catch(\Throwable){$linked=false;}
+            }
+            if($linked){
+                $mode='link';
+            }else{
+                $copied=false;
+                if(function_exists('copy')){
+                    try{$copied=@copy($cache,$destination);}catch(\Throwable){$copied=false;}
+                }
+                if($copied){
+                    $mode='copy';
+                }else{
+                    // Restricted filesystems/functions must not block crop creation.
+                    // Regenerate only this reader's destination; leave cache intact.
+                    if(is_file($destination))@unlink($destination);
+                    $render($destination);
+                    if(!is_file($destination)||filesize($destination)<1)
+                        throw new \RuntimeException('Could not materialize the clipping image');
+                    $mode='render';
+                }
+            }
             @touch($cache); // Enforce sliding cache retention independent of clip expiry.
             // Incremental, bounded stale-cache cleanup. Never deletes reader clip
             // paths; disabled/erroring housekeeping does not block clip creation.

@@ -111,6 +111,10 @@ jobs:
           php -l app/Services/ManualClipMarking.php
           php -l app/Services/SchemaDoctor.php
           php tests/clip-crop-cache.php
+          # Mirror Cloudways PHP-FPM hardening. Disabled PHP builtins disappear,
+          # and calling link() without function_exists triggers a fatal Error.
+          php -d disable_functions=link tests/clip-crop-cache.php
+          php -d disable_functions=link codebase/tests/clip-crop-cache.php
           php tests/clip-reuse-contract.php
           php -l app/Services/OfficialClipService.php
           php tests/official-clip-contract.php

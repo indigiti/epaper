@@ -36,6 +36,12 @@ try{
  if($first['hit']!==false||$calls!==1)throw new RuntimeException('First clip must generate one crop');
  $second=$make($tenant,$page,$box);
  if($second['hit']!==true||$calls!==1)throw new RuntimeException('Second reader must reuse exactly one crop');
+ // On Cloudways PHP-FPM link() is absent from the runtime. Verify that the
+ // cache still serves readers through copy(), rather than throwing a fatal.
+ if(!function_exists('link')&&function_exists('copy')){
+    if($first['mode']!=='copy'||$second['mode']!=='copy')
+        throw new RuntimeException('Disabled link() must use copy mode');
+ }
  if(file_get_contents($dest[0])!==file_get_contents($dest[1]))
   throw new RuntimeException('Shared cached crop differs from user media');
  if($dest[0]===$dest[1])throw new RuntimeException('Readers may not share storage record paths');
