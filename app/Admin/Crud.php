@@ -13,6 +13,7 @@ final class Crud
             '#^/admin/organisations/([0-9a-f-]{36})/remove$#' => 'organisationRemove',
             '#^/admin/users/([0-9a-f-]{36})/edit$#' => 'userEdit',
             '#^/admin/users/([0-9a-f-]{36})/status$#' => 'userStatus',
+            '#^/admin/users/([0-9a-f-]{36})/membership-role$#' => 'userMembershipRole',
             '#^/admin/users/([0-9a-f-]{36})/remove$#' => 'userRemove',
             '#^/admin/products/([0-9a-f-]{36})/edit$#' => 'productEdit',
             '#^/admin/products/([0-9a-f-]{36})/status$#' => 'productStatus',
