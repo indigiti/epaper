@@ -230,7 +230,7 @@ final class Auth
     }
     public static function requireAdmin(): array
     {
-        self::requireUser();$m=self::currentMembership();$roles=Config::get('auth.admin_roles',['OWNER','ADMIN','PUBLISHER_ADMIN','EDITOR','OPERATOR']);if(!$m||!in_array(strtoupper((string)($m['role_key']??'')),$roles,true)){http_response_code(403);View::layout('Access denied','<section class="empty-state"><h1>Access denied</h1><p>Your Digiti membership does not grant access to this publisher dashboard.</p></section>');}RequestContext::set(RequestContext::all()+['membership_guid'=>$m['membership_guid']??null,'role_key'=>$m['role_key']??null,'user_guid'=>self::user()['user_guid']??null]);return$m;
+        self::requireUser();$m=self::currentMembership();$roles=Config::get('auth.admin_roles',['OWNER','ADMIN','PUBLISHER_ADMIN','EDITOR','OPERATOR']);if(!$m||(!in_array(strtoupper((string)($m['role_key']??'')),$roles,true)&&strtoupper((string)($m['role_key']??''))!=='WEBDESK')){http_response_code(403);View::layout('Access denied','<section class="empty-state"><h1>Access denied</h1><p>Your Digiti membership does not grant access to this publisher dashboard.</p></section>');}RequestContext::set(RequestContext::all()+['membership_guid'=>$m['membership_guid']??null,'role_key'=>$m['role_key']??null,'user_guid'=>self::user()['user_guid']??null]);return$m;
     }
     public static function canInfrastructureAdmin(): bool
     {

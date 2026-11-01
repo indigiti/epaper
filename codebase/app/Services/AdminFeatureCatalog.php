@@ -12,6 +12,14 @@ final class AdminFeatureCatalog
     public static function groups(string $role,bool $aiEnabled,bool $infra): array
     {
         $role=strtoupper($role);
+        if($role==='WEBDESK')return [
+            'OVERVIEW'=>[['Publishing Desk','/admin','Your newspaper publishing workspace','layout-dashboard']],
+            'PUBLISHING'=>[
+                ['Upload & publish','/admin/editions','Upload PDFs and publish ready editions','newspaper'],
+                ['Article outlines','/admin/manual-clipping','Mark newspaper articles for readers','scan-text'],
+            ],
+            'ACCOUNT'=>[['My Account','/admin/account','View your publisher identity','user-round']],
+        ];
         $editor=in_array($role,['OWNER','ADMIN','PUBLISHER_ADMIN','EDITOR'],true);
         $operator=in_array($role,['OWNER','ADMIN','PUBLISHER_ADMIN','EDITOR','OPERATOR'],true);
         $full=in_array($role,['OWNER','ADMIN','PUBLISHER_ADMIN'],true);
