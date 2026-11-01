@@ -192,12 +192,11 @@ final class Onboarding
             }
             $dGuid=Uuid::v7();
             $token='digiti_'.bin2hex(random_bytes(16));
-            Store::exec('INSERT INTO domains(domain_guid,organisation_guid,product_guid,application_guid,product_tenant_guid,hostname,normalized_hostname,domain_type,status,is_primary,verification_token,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,"AWAITING_DNS",0,?,NOW(6),NOW(6))',[
-                self::gid($dGuid),self::gid($orgGuid),self::gid($app['product_guid']),self::gid($app['application_guid']),self::gid($tenantGuid),$host,$host,$domainType,$token
-            ]);
-            Store::exec('INSERT INTO application_redirect_uris(redirect_guid,application_guid,redirect_uri,status,created_at) VALUES(?,?,?,"ACTIVE",NOW(6)) ON DUPLICATE KEY UPDATE status="ACTIVE"',[
-                self::gid(Uuid::v7()),self::gid($app['application_guid']),'https://'.$host.'/auth/callback'
-            ]);
+            CanonicalDomainRegistration::insertDomain($dGuid,$host,$token,[
+                'product_tenant_guid'=>$tenantGuid,
+                'organisation_guid'=>$orgGuid,
+                'product_guid'=>$app['product_guid']
+            ],$app,$domainType);
             if($owner!==''){
                 $membership=Store::one('SELECT membership_guid,role_key,status FROM memberships WHERE organisation_guid=? AND user_guid=?',[self::gid($orgGuid),self::gid($owner)]);
                 if (!$membership) Store::exec('INSERT INTO memberships(membership_guid,organisation_guid,user_guid,role_key,status,created_at,updated_at) VALUES(?,?,?,"OWNER","ACTIVE",NOW(6),NOW(6))',[self::gid(Uuid::v7()),self::gid($orgGuid),self::gid($owner)]);
@@ -206,7 +205,7 @@ final class Onboarding
             return $dGuid;
         });
         \Digiti\Core\Audit::log('domain.onboarding.created','domain',$newGuid,'SUCCESS',['mode'=>$type,'hostname'=>$host,'domain_type'=>$domainType]);
-        View::flash(($domainType==='SAAS_DEFAULT'?'Main ePaper application hostname registered. ':'Publisher domain registered. ').'Complete owner access, subscription and DNS checks before go-live.');
+        View::flash(($domainType==='SAAS_DEFAULT'?'Canonical application hostname registered. ':'Publisher domain registered. ').'Complete owner access, subscription and DNS checks before go-live.');
         Http::redirect(self::url($newGuid));
     }
 
