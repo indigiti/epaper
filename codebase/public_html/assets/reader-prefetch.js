@@ -41,7 +41,7 @@
   function schedule(){
     const c=currentPage(),q=mode();
     // Adjacent PREVIEW pages are decoded before the user asks for them.
-    warm(c+1,{decodePreview:true,highres:q==='high'});warm(c-1,{decodePreview:true,highres:false});
+    if(q!=='low'){warm(c+1,{decodePreview:true,highres:q==='high'});warm(c-1,{decodePreview:true,highres:false});}
     // Keep the second forward/backward state hot without paying image bandwidth in Low Data.
     const idle=window.requestIdleCallback||((fn)=>setTimeout(fn,180));
     idle(()=>{state(c+2);state(c-2);if(q!=='low')warm(c+2,{decodePreview:true,highres:false});trim()},{timeout:800});
