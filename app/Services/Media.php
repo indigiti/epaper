@@ -27,6 +27,26 @@ final class Media
         $path=$base?realpath($base.'/'.ltrim($relative,'/')):false;
         return $base&&$path&&str_starts_with($path,$base.DIRECTORY_SEPARATOR)&&is_file($path)?$path:null;
     }
+    /**
+     * An edition asset is always stored below the resolved publisher's media root.
+     * Do not trust storage_path from a DB row to authorize another tenant's file.
+     */
+    public static function isTenantPageAssetPath(string $relative,string $tenantGuid): bool
+    {
+        if(!Uuid::isValid($tenantGuid)||$relative===''||$relative[0]==='/'||str_contains($relative,'\\')||str_contains($relative,"\0"))return false;
+        if(!str_starts_with(strtolower($relative),'media/'.strtolower($tenantGuid).'/'))return false;
+        foreach(explode('/',$relative) as $part)if($part===''||$part==='.'||$part==='..')return false;
+        return true;
+    }
+    public static function tenantPageAssetPath(string $relative): ?string
+    {
+        $tenant=RequestContext::tenantGuid();
+        if(!self::isTenantPageAssetPath($relative,$tenant))return null;
+        $storage=realpath(dirname(__DIR__,2).'/storage');
+        $tenantRoot=$storage?realpath($storage.'/media/'.$tenant):false;
+        $file=$storage?realpath($storage.'/'.$relative):false;
+        return $tenantRoot&&$file&&str_starts_with($file,$tenantRoot.DIRECTORY_SEPARATOR)&&is_file($file)?$file:null;
+    }
     public static function send(string $token): never
     {
         $d=self::verify($token);$a=self::asset($d['a']);if(!$a)throw new \RuntimeException('Media asset not found');$status=Store::value('SELECT e.status FROM ep_page_assets a JOIN ep_pages p ON p.tenant_guid=a.tenant_guid AND p.page_guid=a.page_guid JOIN ep_editions e ON e.tenant_guid=p.tenant_guid AND e.edition_guid=p.edition_guid WHERE a.tenant_guid=? AND a.asset_guid=?',[Uuid::toBinary(RequestContext::tenantGuid()),Uuid::toBinary($d['a'])]);
@@ -36,6 +56,6 @@ final class Media
             if(!$staff)throw new \RuntimeException('Media is not publicly available');
         }
         $relative=ltrim((string)$a['storage_path'],'/');
-        $path=self::safeStoragePath($relative);if(!$path)throw new \RuntimeException('Media file missing');header('Content-Type: '.$a['mime_type']);header('Content-Length: '.filesize($path));$remaining=max(0,(int)($d['e']??time())-time());header('Cache-Control: private, max-age='.min($remaining,300).', must-revalidate');header('X-Content-Type-Options: nosniff');header('Cross-Origin-Resource-Policy: same-origin');header('Referrer-Policy: no-referrer');header('Vary: Accept-Encoding');header('Accept-Ranges: bytes');$xAccel=trim((string)Config::get('media.x_accel_prefix',''));if($xAccel!==''){PerformanceTelemetry::mediaDelivery('x-accel');header('X-EPDI-Media-Delivery: x-accel');header('X-Accel-Redirect: '.rtrim($xAccel,'/').'/'.$relative);exit;}PerformanceTelemetry::mediaDelivery('php');header('X-EPDI-Media-Delivery: php');readfile($path);exit;
+        $path=self::tenantPageAssetPath($relative);if(!$path)throw new \RuntimeException('Media file missing or tenant storage path invalid');header('Content-Type: '.$a['mime_type']);header('Content-Length: '.filesize($path));$remaining=max(0,(int)($d['e']??time())-time());header('Cache-Control: private, max-age='.min($remaining,300).', must-revalidate');header('X-Content-Type-Options: nosniff');header('Cross-Origin-Resource-Policy: same-origin');header('Referrer-Policy: no-referrer');header('Vary: Accept-Encoding');header('Accept-Ranges: bytes');$xAccel=trim((string)Config::get('media.x_accel_prefix',''));if($xAccel!==''){PerformanceTelemetry::mediaDelivery('x-accel');header('X-EPDI-Media-Delivery: x-accel');header('X-Accel-Redirect: '.rtrim($xAccel,'/').'/'.$relative);exit;}PerformanceTelemetry::mediaDelivery('php');header('X-EPDI-Media-Delivery: php');readfile($path);exit;
     }
 }

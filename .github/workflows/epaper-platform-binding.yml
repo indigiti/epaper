@@ -18,7 +18,9 @@ on:
       - 'public_html/manifest.webmanifest'
       - 'codebase/public_html/manifest.webmanifest'
       - 'tests/pwa-manifest-contract.php'
+      - 'tests/tenant-media-public-cover-contract.php'
       - 'codebase/tests/pwa-manifest-contract.php'
+      - 'codebase/tests/tenant-media-public-cover-contract.php'
       - 'public_html/assets/reader-edge-navigation.js'
       - 'public_html/assets/reader-edge-navigation.css'
       - 'codebase/public_html/assets/reader-edge-navigation.js'
@@ -50,7 +52,9 @@ on:
       - 'public_html/manifest.webmanifest'
       - 'codebase/public_html/manifest.webmanifest'
       - 'tests/pwa-manifest-contract.php'
+      - 'tests/tenant-media-public-cover-contract.php'
       - 'codebase/tests/pwa-manifest-contract.php'
+      - 'codebase/tests/tenant-media-public-cover-contract.php'
       - 'public_html/assets/reader-edge-navigation.js'
       - 'public_html/assets/reader-edge-navigation.css'
       - 'codebase/public_html/assets/reader-edge-navigation.js'
@@ -112,6 +116,16 @@ jobs:
           php codebase/tests/reader-edge-navigation-contract.php
           node --check public_html/assets/reader-edge-navigation.js
           node --check codebase/public_html/assets/reader-edge-navigation.js
+      - name: Tenant media isolation, published cover URLs and missing-image fallback
+        run: |
+          php -l app/Services/Media.php
+          php -l codebase/app/Services/Media.php
+          php -l app/Services/DomainResolver.php
+          php -l codebase/app/Services/DomainResolver.php
+          php -l app/App.php
+          php -l codebase/app/App.php
+          php tests/tenant-media-public-cover-contract.php
+          php codebase/tests/tenant-media-public-cover-contract.php
       - name: Tenant-specific PWA identity and manifest isolation
         run: |
           php -l app/Services/PwaManifest.php
