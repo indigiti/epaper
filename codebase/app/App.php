@@ -470,7 +470,33 @@ final class App
 
     private function socialPageThumb(string $slug,int $pageNo): never
     {
-        $manifest=EditionManifest::bySlug($slug);$ed=$manifest['edition']??null;if(!$ed||($ed['status']??'')!=='PUBLISHED'){http_response_code(404);exit;}$page=$manifest?EditionManifest::page($manifest,$pageNo):null;if(!$page){http_response_code(404);exit;}$asset=$this->joinedPageAsset($page,'THUMB')??$this->joinedPageAsset($page,'PREVIEW');if(!$asset||empty($asset['storage_path'])){http_response_code(404);exit;}$full=dirname(__DIR__).'/storage/'.ltrim((string)$asset['storage_path'],'/');if(!is_file($full)){http_response_code(404);exit;}$size=(int)filesize($full);$mtime=(int)filemtime($full);$etag='"'.sha1((string)($asset['asset_guid']??$slug.'-'.$pageNo).'|'.$size.'|'.$mtime).'"';if(trim((string)($_SERVER['HTTP_IF_NONE_MATCH']??''))===$etag){http_response_code(304);header('ETag: '.$etag);exit;}header('Content-Type: image/webp');header('Content-Length: '.$size);header('Content-Disposition: inline; filename="'.preg_replace('/[^a-z0-9_-]+/i','-',strtolower($slug)).'-page-'.$pageNo.'-thumb.webp"');header('Cache-Control: public, max-age=86400, stale-while-revalidate=604800');header('ETag: '.$etag);header('X-Content-Type-Options: nosniff');readfile($full);exit;
+        // A permanent, same-origin URL for published cover images. Unlike signed
+        // reader media it stays usable in cached homepages, SEO and social previews.
+        if($pageNo<1){http_response_code(404);exit;}
+        $manifest=EditionManifest::bySlug($slug);
+        $ed=$manifest['edition']??null;
+        if(!$ed||($ed['status']??'')!=='PUBLISHED'){http_response_code(404);exit;}
+        $page=EditionManifest::page($manifest,$pageNo);
+        if(!$page){http_response_code(404);exit;}
+        $asset=null;$full=null;
+        foreach(['THUMB','PREVIEW'] as $type){
+            $candidate=$this->joinedPageAsset($page,$type);
+            if(!$candidate||empty($candidate['storage_path']))continue;
+            $found=Media::tenantPageAssetPath((string)$candidate['storage_path']);
+            if($found){$asset=$candidate;$full=$found;break;}
+        }
+        if(!$asset||!$full){http_response_code(404);header('Cache-Control: no-store');exit;}
+        $size=(int)filesize($full);$mtime=(int)filemtime($full);
+        $etag='"'.sha1((string)$asset['asset_guid'].'|'.$size.'|'.$mtime).'"';
+        header('ETag: '.$etag);
+        header('Cache-Control: public, max-age=300, stale-while-revalidate=600');
+        header('X-Content-Type-Options: nosniff');
+        header('Cross-Origin-Resource-Policy: same-origin');
+        if(trim((string)($_SERVER['HTTP_IF_NONE_MATCH']??''))===$etag){http_response_code(304);exit;}
+        header('Content-Type: image/webp');
+        header('Content-Length: '.$size);
+        header('Content-Disposition: inline; filename="'.preg_replace('/[^a-z0-9_-]+/i','-',strtolower($slug)).'-page-'.$pageNo.'-thumb.webp"');
+        readfile($full);exit;
     }
     private function reader(string $slug,int $pageNo): never
     {
@@ -535,12 +561,16 @@ final class App
 
     private function editionCoverUrl(array $edition,string $preferred='THUMB'): ?string
     {
-        $preferred=strtolower($preferred);
-        // Listing/newsstand surfaces are strict-thumbnail by design. Never escalate a
-        // 170–420px cover card to PREVIEW/HIGHRES merely because a thumbnail is missing.
-        $order=match($preferred){'thumb'=>['thumb'],'preview'=>['preview','thumb'],'highres'=>['highres','preview'],default=>['thumb']};
-        foreach($order as$prefix){$guid=(string)($edition[$prefix.'_asset_guid']??'');if($guid!==''&&Uuid::isValid($guid))return '/media/'.Media::token($guid,86400);}
-        return null;
+        // Public newsstands need stable URLs, not short-lived signed reader tokens.
+        // Serving the image rechecks the publisher tenant and PUBLISHED edition.
+        $slug=(string)($edition['slug']??'');
+        if($slug===''||!preg_match('/^[a-zA-Z0-9_-]+$/',$slug))return null;
+        if((int)($edition['page_count']??0)<1)return null;
+        $hasCover=false;
+        foreach(['thumb','preview'] as $type){
+            if(Uuid::isValid((string)($edition[$type.'_asset_guid']??''))){$hasCover=true;break;}
+        }
+        return $hasCover?'/social/edition/'.rawurlencode($slug).'/page/1.webp':null;
     }
 
     private function joinedPageAsset(array $page,string $type): ?array
