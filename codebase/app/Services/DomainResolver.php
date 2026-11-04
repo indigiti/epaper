@@ -175,6 +175,9 @@ final class DomainResolver
     {
         $tenant=(string)($d['product_tenant_guid']??'');if(!$tenant)throw new \RuntimeException('Resolved domain has no product tenant');
         $info=is_array($d['_tenant_info']??null)?$d['_tenant_info']:self::tenantInfo($tenant,true);
+        // A valid domain binding is not permission to reactivate a suspended publisher.
+        $tenantStatus=strtoupper(trim((string)($info['status']??'')));
+        if($tenantStatus!==''&&$tenantStatus!=='ACTIVE')throw new \RuntimeException('PUBLISHER_TENANT_INACTIVE');
         self::ensureTenant($tenant,$d,$info,$cached);
         $ctx=['request_guid'=>Http::requestGuid(),'correlation_guid'=>Http::correlationGuid(),'hostname'=>$host,'domain_guid'=>$d['domain_guid']??null,'organisation_guid'=>$d['organisation_guid']??($info['organisation_guid']??null),'product_guid'=>$d['product_guid']??($info['product_guid']??null),'application_guid'=>$d['application_guid']??null,'tenant_guid'=>$tenant,'tenant_name'=>$info['display_name']??$info['organisation_name']??'ePaper SaaS','domain_cached'=>$cached];RequestContext::set($ctx);return$ctx;
     }
