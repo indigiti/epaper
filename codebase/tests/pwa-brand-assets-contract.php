@@ -59,6 +59,10 @@ try {
     iconCheck(str_contains($app,'name="pwa_logo"')&&str_contains($app,'PwaIconAssets::generate('),
         'Brand editor exposes dedicated PWA logo upload and processing');
     iconCheck(str_contains($view,'brand.apple_touch_icon_path'),'Apple home-screen uses tenant-managed icon');
+    iconCheck(strpos($app,'$pendingPwaIcons=PwaIconAssets::generate(')<strpos($app,"TenantData::setSetting('brand.site_name'"),
+        'PWA icon processing failures occur before publisher branding changes');
+    iconCheck(str_contains($app,'pwa-icon-previews'),'PWA management previews standard and maskable sizes');
+    iconCheck(str_contains($app,'Verified publisher: '),'Brand settings distinguish publisher identity from site label');
     iconCheck(str_contains($app,'restorePwaIconsFromMark('),'Removing PWA logo restores Square brand mark fallback');
 }finally{
     foreach(glob($dir.'/uploads/branding/'.$tenant.'/*')?:[] as $file)@unlink($file);
