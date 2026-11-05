@@ -30,6 +30,46 @@ try{
     const frame=page.locator('#reader'),count=+(await frame.getAttribute('data-page-count')||'1');
     const dimensions=await page.evaluate(()=>({width:document.documentElement.scrollWidth,viewport:window.innerWidth}));
     assert.ok(dimensions.width<=dimensions.viewport+8,`${device.name}: horizontal document overflow ${JSON.stringify(dimensions)}`);
+    // Verify the book SVG remains visible, rather than a clipped 1px span, on touch widths.
+    const flipIcon=await page.locator('.reader-view-glyph').evaluate(el=>{
+      const style=getComputedStyle(el),rect=el.getBoundingClientRect();
+      return {width:rect.width,height:rect.height,clip:style.clip,visibility:style.visibility};
+    });
+    assert.ok(flipIcon.width>=16&&flipIcon.height>=16&&flipIcon.clip==='auto'&&flipIcon.visibility==='visible',
+      device.name+': Flip SVG is clipped or invisible '+JSON.stringify(flipIcon));
+    for(const selector of ['[data-reader-view-toggle]','[data-quality-toggle]','[data-zoom-in]','[data-fullscreen]']){
+      const control=page.locator(selector);
+      assert.ok(await control.getAttribute('title'),device.name+': missing hover tooltip for '+selector);
+      assert.ok(await control.getAttribute('aria-label'),device.name+': missing accessible label for '+selector);
+    }
+    const viewportMenuBounds=async selector=>{
+      const box=await page.locator(selector).boundingBox();
+      assert.ok(box&&box.x>=-2&&box.x+box.width<=device.width+2,
+        device.name+': menu escapes horizontal viewport '+selector+' '+JSON.stringify(box));
+    };
+    await page.locator('[data-reader-view-toggle]').click();
+    assert.ok(await page.locator('[data-reader-view-menu]').isVisible(),device.name+': view dropdown did not open');
+    await viewportMenuBounds('[data-reader-view-menu]');
+    await page.locator('[data-quality-toggle]').click();
+    assert.ok(!(await page.locator('[data-reader-view-menu]').isVisible()),device.name+': view menu stayed open behind quality');
+    assert.ok(await page.locator('[data-quality-menu]').isVisible(),device.name+': quality menu did not open');
+    await viewportMenuBounds('[data-quality-menu]');
+    await page.locator('[data-reader-view-toggle]').click();
+    assert.ok(!(await page.locator('[data-quality-menu]').isVisible()),device.name+': quality menu stayed open behind view');
+    await page.keyboard.press('Escape');
+    assert.ok(!(await page.locator('[data-reader-view-menu]').isVisible()),device.name+': Escape must close the reading-mode menu');
+    await page.locator('[data-quality-toggle]').focus();
+    await page.keyboard.press('ArrowDown');
+    assert.ok(await page.locator('[data-quality-menu]').isVisible(),device.name+': ArrowDown must open image-quality menu');
+    assert.ok(await page.locator('[data-quality-mode="auto"]').evaluate(el=>el===document.activeElement),
+      device.name+': ArrowDown must focus the first quality option');
+    await page.keyboard.press('Escape');
+    await page.locator('[data-reader-view-toggle]').focus();
+    await page.keyboard.press('ArrowDown');
+    assert.ok(await page.locator('[data-reader-view-menu]').isVisible(),device.name+': ArrowDown must open reading-mode menu');
+    assert.ok(await page.locator('[data-reader-view-mode="flip"]').evaluate(el=>el===document.activeElement),
+      device.name+': ArrowDown must focus first reading-mode option');
+    await page.keyboard.press('Escape');
     if(device.width<=720){
       const more=page.locator('[data-reader-more-toggle]');assert.ok(await more.isVisible(),device.name+': overflow menu missing');await more.click();assert.ok(await page.locator('[data-reader-more-menu]').isVisible());await page.keyboard.press('Escape');assert.ok(!(await page.locator('[data-reader-more-menu]').isVisible()),'Escape must close overflow menu');
     }
