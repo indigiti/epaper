@@ -228,8 +228,8 @@ final class AiClippingReadinessView
             .'<p class="ai-muted">Ready for review: '.number_format(max(0,(int)($snapshot['counts']['PENDING']??0)))
             .' · Reviewed: '.number_format(max(0,(int)($snapshot['counts']['REVIEWED']??0)))
             .' · Rejected: '.number_format(max(0,(int)($snapshot['counts']['REJECTED']??0))).'</p>';
-        if($enabled&&($snapshot['review_url']??null)==='/admin/ai-review'){
-            $html.='<a class="btn primary" href="/admin/ai-review">Open AI Editorial Review</a>';
+        if($enabled&&($snapshot['review_url']??null)==='/admin/article-review'){
+            $html.='<a class="btn primary" href="/admin/article-review">Open Article Review</a>';
         }else{
             $html.='<p class="ai-muted">Editorial review becomes available after the private feature flag, database and worker acceptance are complete.</p>';
         }

@@ -63,7 +63,7 @@ final class AiClippingReadiness
         return [
             'enabled'=>$enabled,'status'=>$status,'checks'=>$checks,
             'counts'=>$schema['counts'],
-            'review_url'=>$enabled&&$schema['state']==='AVAILABLE'?'/admin/ai-review':null,
+            'review_url'=>$enabled&&$schema['state']==='AVAILABLE'?'/admin/article-review':null,
             'setup'=>AiClippingWebSetup::gate(),
             'queue'=>[
                 'driver'=>in_array($driver,['rabbitmq','database'],true)?$driver:'unknown',

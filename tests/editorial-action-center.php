@@ -42,7 +42,7 @@ foreach($repo->calls as $call){
 $html=\EpaperSaas\Services\EditorialActionView::render($editor);
 if(str_contains($html,'<script>')||!str_contains($html,'&lt;script&gt;'))
  throw new RuntimeException('Injected HTML in title');
-foreach(['/admin/processing/'.$guid,'/admin/ai-review/'.$guid,'/admin/editions?date=2026-10-18'] as $route)
+foreach(['/admin/processing/'.$guid,'/admin/article-review/'.$guid,'/admin/editions?date=2026-10-18'] as $route)
  if(!str_contains($html,$route))throw new RuntimeException('Action URL missing '.$route);
 $repo->calls=[];
 $disabled=$svc->snapshot('tenant-binary',[],'EDITOR',false);

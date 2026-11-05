@@ -11,7 +11,7 @@ final class AdminWorkspace
     {
         $e=static fn(mixed $x):string=>View::e($x);
         $all=AdminFeatureCatalog::flatten($groups);
-        $preferred=['/admin/editions','/admin/processing','/admin/ai-review',
+        $preferred=['/admin/editions','/admin/processing','/admin/article-review',
             '/admin/navigation','/admin/system/testing','/admin/system/health'];
         $quick=[];
         foreach($preferred as $target)foreach($all as $item)if($item[1]===$target){$quick[]=$item;break;}
