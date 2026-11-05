@@ -16,6 +16,8 @@ final class SettingsCatalog
                     'appearance.auth_theme' => ['Authentication theme','select','Default',['Default','Split Editorial','Gradient Focus','Minimal Access']],
                     'appearance.public_color_mode' => ['Public / Reader color default','select','light',['light','system','dark']],
                     'appearance.public_color_switcher' => ['Public / Reader light-dark switcher','select','on',['on','off']],
+                    'appearance.frontend_orbit' => ['Frontend · Circular pastel clouds','select','off',['off','on']],
+                    'appearance.reader_orbit' => ['Reader · Circular pastel clouds','select','off',['off','on']],
                     'appearance.density' => ['Admin density','select','Comfortable',['Comfortable','Compact']],
                 ],
             ],
