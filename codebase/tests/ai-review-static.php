@@ -26,7 +26,7 @@ $checks=[
  'legacy review URL preserved'=>str_contains($editor,'(?:article-review|ai-review)'),
  'reviewed story needed for draft'=>str_contains($drafts,"'REVIEWED'")&&str_contains($drafts,"'article_group'")&&str_contains($editor,"'/draft'")===false&&str_contains($editor,"/draft"),
  'explicit draft stays private'=>str_contains($drafts,'"DRAFT"')&&!str_contains($drafts,'"PUBLISHED"')&&!str_contains($drafts,'ClipService'),
- 'idempotent source group slug'=>str_contains($drafts,"hash('sha256',$group)")&&str_contains($drafts,"SELECT article_guid,page_guid,edition_guid"),
+ 'idempotent source group slug'=>str_contains($drafts,'hash(\'sha256\',$group)')&&str_contains($drafts,"SELECT article_guid,page_guid,edition_guid"),
 
  'new route editor-only'=>str_contains(file_get_contents($root.'/app/Services/AdminRoutePolicy.php'),"'/admin/article-review'"),
 
