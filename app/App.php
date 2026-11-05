@@ -358,7 +358,7 @@ final class App
                 'highlights'=>$highlights,
             ]);
         }
-        $homeContent=\EpaperSaas\Services\PublicHalo::decorate($homeContent,$selectedHomeTheme);
+        if((string)TenantData::setting('appearance.frontend_orbit','off')!=='on')$homeContent=\EpaperSaas\Services\PublicHalo::decorate($homeContent,$selectedHomeTheme);
         View::layout('Today',$homeContent,['brand'=>$this->brandName(),'canonical_url'=>Http::origin().'/', 'lang'=>(string)TenantData::setting('seo.default_language','en-IN'),'structured_data'=>[$org,$website], 'home_halo'=>str_contains($homeContent,'data-epaper-halo')]);
     }
 
