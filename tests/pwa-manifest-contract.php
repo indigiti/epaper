@@ -36,8 +36,10 @@ try{
  $s['brand.pwa_icon_512_path']='/uploads/branding/'.$b.'/pwa-512.png';
  $s['brand.accent']='bad';
  $z=PwaManifest::build($s,'Ignored',$a,$dir);
- checkPwa($z['icons'][0]['src']==='/assets/icon-192.png'&&$z['icons'][1]['src']==='/assets/icon-512.png'
-    &&$z['theme_color']==='#2563eb','Invalid asset URLs and theme colors safely fall back');
+ checkPwa(str_contains($z['icons'][0]['src'],$a.'/pwa-192.png')
+    &&str_contains($z['icons'][1]['src'],$a.'/pwa-512.png')
+    &&$z['theme_color']==='#2563eb',
+    'Invalid asset URLs use verified publisher-owned mark fallback and safe theme color');
  checkPwa(PwaManifest::source($s,$a,$dir)==='MARK','Legacy square mark remains an available icon source');
  $fingerprint='0123456789abcdef';$customPrefix='/uploads/branding/'.$a.'/pwa-custom-'.$fingerprint.'-';
  foreach(['192','512','maskable-512','apple-touch'] as $variant)file_put_contents($dir.$customPrefix.$variant.'.png','fixture');
