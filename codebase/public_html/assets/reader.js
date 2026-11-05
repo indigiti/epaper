@@ -5,6 +5,68 @@ const stage=$('[data-page-stage]'),doc=$('[data-document]'),fallback=$('[data-pa
 let pageNo=+root.dataset.pageNumber,pageCount=+root.dataset.pageCount,pageGuid=root.dataset.pageGuid,editionGuid=root.dataset.editionGuid,sourceW=+root.dataset.sourceWidth||1,sourceH=+root.dataset.sourceHeight||1,currentPreview=root.dataset.previewImage||root.dataset.fallbackImage||fallback.src,currentHigh=root.dataset.highresImage||currentPreview;
 const defaultFit=(root.dataset.defaultFit==='width'?'width':'page');let fitMode=localStorage.getItem('epaper.fitMode')||defaultFit,zoom=1,tx=0,ty=0,manualScale=1,clipMode=false,articlePick=false,articleText='',draw=null,drag=null,pointers=new Map(),pinch=null,pagePending=false,navAbort=null,tileRequest=0,lastActivity=0,resizeTimer=null,renderFrame=0,pendingRenderTiles=false,activeTileManifestGuid='',activeTileManifest=null;const tileNodes=new Map();
 const storedScroll=localStorage.getItem('reader.scrollZoomEnabled');let scrollZoom=storedScroll===null?(root.dataset.scrollZoomDefault==='on'):storedScroll==='true';const storedQuality=localStorage.getItem('reader.qualityMode');let qualityMode=['auto','low','high'].includes(storedQuality)?storedQuality:'auto',qualityLoadToken=0,qualityTimer=null;const clipVisibility=root.dataset.clipVisibility||'PRIVATE',clipEnabled=root.dataset.clippingEnabled!=='off',articleEnabled=root.dataset.smartArticleEnabled!=='off',prefetchEnabled=root.dataset.prefetchEnabled!=='off',offlineEnabled=root.dataset.offlineEnabled!=='off';const maxAbs=4,edgePad=16;const clipButton=$('[data-clip]'),articleButton=$('[data-article-mode]'),offlineButton=$('[data-reader-offline]'),pagesButton=$('[data-toggle-pages]'),qualityButton=$('[data-quality-toggle]'),qualityMenu=$('[data-quality-menu]');if(!clipEnabled)clipButton.hidden=true;if(!articleEnabled)articleButton.hidden=true;if(!offlineEnabled)offlineButton.hidden=true;
+// One event-delegated coordinator owns mutually exclusive toolbar menus, including
+// the reading-mode control inserted by reader-flip.js after this script executes.
+const readerMenuPairs=[
+  ['[data-reader-view-toggle]','[data-reader-view-menu]'],
+  ['[data-quality-toggle]','[data-quality-menu]'],
+  ['[data-reader-edition-trigger]','[data-reader-edition-panel]'],
+  ['[data-reader-more-toggle]','[data-reader-more-menu]']
+];
+function closeOtherReaderMenus(activeToggle){
+  for(const [toggleSelector,panelSelector] of readerMenuPairs){
+    const toggle=$(toggleSelector),panel=$(panelSelector);
+    if(toggle&&toggle!==activeToggle&&panel){
+      panel.classList.add('hidden');
+      toggle.setAttribute('aria-expanded','false');
+    }
+  }
+}
+document.addEventListener('click',e=>{
+  const toggle=e.target.closest?.('[data-reader-view-toggle],[data-quality-toggle],[data-reader-edition-trigger],[data-reader-more-toggle]');
+  if(toggle&&root.contains(toggle))closeOtherReaderMenus(toggle);
+},true);
+document.addEventListener('keydown',e=>{
+  if(e.key!=='Escape'||e.defaultPrevented)return;
+  for(const [toggleSelector,panelSelector] of readerMenuPairs){
+    const toggle=$(toggleSelector),panel=$(panelSelector);
+    if(!toggle||!panel||panel.classList.contains('hidden'))continue;
+    panel.classList.add('hidden');
+    toggle.setAttribute('aria-expanded','false');
+    toggle.focus();
+    e.preventDefault();
+    break;
+  }
+});
+// Use actual button tooltips, not image alt text, for icon-only reader actions.
+const readerTooltipTitles={
+  '[data-toggle-pages]':'Show or hide newspaper page thumbnails',
+  '.reader-header-actions a[href="/search"]':'Search newspaper text',
+  '[data-quality-toggle]':'Choose newspaper image loading quality',
+  '[data-reader-bookmark]':'Bookmark this newspaper page',
+  '[data-reader-offline]':'Save this edition for offline reading',
+  '[data-reader-share]':'Share this newspaper page',
+  '[data-reader-more-toggle]':'More reader actions',
+  '[data-reader-edition-trigger]':'Choose a back edition by date',
+  '[data-reader-prev]':'Go to previous newspaper page',
+  '[data-reader-next]':'Go to next newspaper page',
+  '[data-zoom-in]':'Zoom in on newspaper',
+  '[data-zoom-out]':'Zoom out of newspaper',
+  '[data-scroll-zoom]':'Enable or disable mouse-wheel zoom',
+  '[data-fit-page]':'Fit the full newspaper page to the screen',
+  '[data-fit-width]':'Fit newspaper to screen width',
+  '[data-reset-view]':'Reset newspaper zoom and position',
+  '[data-fullscreen]':'Enter or exit fullscreen reading',
+  '[data-article-mode]':'Select an article to read',
+  '[data-reader-text-mode]':'Read this page as accessible text',
+  '[data-clip]':'Select and save a newspaper clipping'
+};
+for(const [selector,description] of Object.entries(readerTooltipTitles)){
+  const button=$(selector);
+  if(!button)continue;
+  button.title=description;
+  if(!button.hasAttribute('aria-label'))button.setAttribute('aria-label',description);
+}
 doc.style.left='0';doc.style.top='0';doc.style.width=sourceW+'px';doc.style.height=sourceH+'px';
 function isMobileReader(){return matchMedia('(max-width:900px)').matches}
 function setPagesOpen(on,{persist=true}={}){root.classList.toggle('pages-open',!!on);pagesButton?.setAttribute('aria-expanded',on?'true':'false');if(persist&&!isMobileReader())localStorage.setItem('reader.pagesOpen',on?'true':'false');requestAnimationFrame(()=>syncReaderViewport())}
@@ -12,13 +74,13 @@ const storedPages=localStorage.getItem('reader.pagesOpen');setPagesOpen(isMobile
 function networkIsSlow(){const c=navigator.connection;return !!(c?.saveData||['slow-2g','2g','3g'].includes(c?.effectiveType)||(Number.isFinite(c?.downlink)&&c.downlink>0&&c.downlink<1))}
 function effectiveQuality(){if(qualityMode==='low')return'low';if(qualityMode==='high')return'high';return networkIsSlow()?'low':'auto'}
 function qualityLabel(){return qualityMode==='low'?'Low Data':qualityMode==='high'?'High Quality':'Auto'}
-function updateQualityUi(){const label=$('[data-quality-label]');if(label)label.textContent=qualityLabel();qualityButton?.setAttribute('data-mode',qualityMode);qualityButton?.setAttribute('aria-label',`Data quality: ${qualityLabel()}`);$$('[data-quality-mode]').forEach(b=>b.setAttribute('aria-checked',b.dataset.qualityMode===qualityMode?'true':'false'));root.dataset.qualityMode=qualityMode;root.dataset.effectiveQuality=effectiveQuality()}
+function updateQualityUi(){const label=$('[data-quality-label]');if(label)label.textContent=qualityLabel();qualityButton?.setAttribute('data-mode',qualityMode);qualityButton?.setAttribute('aria-label',`Data quality: ${qualityLabel()}`);if(qualityButton)qualityButton.title=`Image quality: ${qualityLabel()} — choose how pages load`;$$('[data-quality-mode]').forEach(b=>b.setAttribute('aria-checked',b.dataset.qualityMode===qualityMode?'true':'false'));root.dataset.qualityMode=qualityMode;root.dataset.effectiveQuality=effectiveQuality()}
 function closeQualityMenu(){qualityMenu?.classList.add('hidden');qualityButton?.setAttribute('aria-expanded','false')}
 function loadImage(src,token){if(!src)return Promise.resolve(false);return new Promise(resolve=>{const i=new Image();i.decoding='async';i.onload=async()=>{try{await i.decode?.()}catch{}if(token!==qualityLoadToken)return resolve(false);fallback.src=src;resolve(true)};i.onerror=()=>resolve(false);i.src=src})}
 function applyQuality({announce=false}={}){clearTimeout(qualityTimer);const token=++qualityLoadToken,eff=effectiveQuality();updateQualityUi();if(eff==='low'){if(currentPreview&&fallback.src!==currentPreview)loadImage(currentPreview,token);clearTiles(false);++tileRequest}else if(qualityMode==='high'){loadImage(currentHigh||currentPreview,token)}else{if(currentPreview&&!fallback.src)fallback.src=currentPreview;qualityTimer=setTimeout(()=>loadImage(currentHigh||currentPreview,token),420)}if(announce)epaperToast?.(qualityMode==='auto'?(eff==='low'?'Data Saver Auto · slow connection':'Data Saver Auto'):qualityLabel());scheduleTiles(absScale());track('reader_quality_mode',{mode:qualityMode,effective:eff})}
 qualityButton?.addEventListener('click',e=>{e.stopPropagation();if(isMobileReader())setPagesOpen(false,{persist:false});const open=qualityMenu?.classList.contains('hidden');qualityMenu?.classList.toggle('hidden',!open);qualityButton.setAttribute('aria-expanded',open?'true':'false')});
-qualityButton?.addEventListener('keydown',e=>{if(e.key!=='ArrowDown'&&e.key!=='ArrowUp')return;e.preventDefault();if(qualityMenu?.classList.contains('hidden'))qualityButton.click();const options=$('[role="menuitemradio"]',qualityMenu);(e.key==='ArrowDown'?options[0]:options[options.length-1])?.focus()});
-qualityMenu?.addEventListener('keydown',e=>{const options=$('[role="menuitemradio"]',qualityMenu),index=options.indexOf(document.activeElement);if(e.key==='Escape'){e.preventDefault();closeQualityMenu();qualityButton?.focus();return}if(e.key==='Tab'){closeQualityMenu();return}if(!['ArrowDown','ArrowUp','Home','End'].includes(e.key))return;e.preventDefault();const next=e.key==='Home'?0:e.key==='End'?options.length-1:(index+(e.key==='ArrowDown'?1:-1)+options.length)%options.length;options[next]?.focus()});
+qualityButton?.addEventListener('keydown',e=>{if(e.key!=='ArrowDown'&&e.key!=='ArrowUp')return;e.preventDefault();if(qualityMenu?.classList.contains('hidden'))qualityButton.click();const options=$$('[role="menuitemradio"]',qualityMenu);(e.key==='ArrowDown'?options[0]:options[options.length-1])?.focus()});
+qualityMenu?.addEventListener('keydown',e=>{const options=$$('[role="menuitemradio"]',qualityMenu),index=options.indexOf(document.activeElement);if(e.key==='Escape'){e.preventDefault();closeQualityMenu();qualityButton?.focus();return}if(e.key==='Tab'){closeQualityMenu();return}if(!['ArrowDown','ArrowUp','Home','End'].includes(e.key))return;e.preventDefault();const next=e.key==='Home'?0:e.key==='End'?options.length-1:(index+(e.key==='ArrowDown'?1:-1)+options.length)%options.length;options[next]?.focus()});
 qualityMenu?.addEventListener('click',e=>{const b=e.target.closest('[data-quality-mode]');if(!b)return;qualityMode=b.dataset.qualityMode;localStorage.setItem('reader.qualityMode',qualityMode);closeQualityMenu();applyQuality({announce:true})});
 document.addEventListener('click',e=>{if(!e.target.closest('.reader-quality-control'))closeQualityMenu()});
 navigator.connection?.addEventListener?.('change',()=>{if(qualityMode==='auto')applyQuality()});

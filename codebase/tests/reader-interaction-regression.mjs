@@ -20,6 +20,17 @@ assert.match(flip,/closest\?\.\('input,textarea,select,/,'Flip keyboard must gua
 assert.doesNotMatch(flip,/best\.intersectionRatio<\.55/,'Continuous pages must not need 55% viewport visibility');
 assert.match(prefetch,/if\(q!=='low'\)\{warm\(c\+1/,'Low Data must not automatically prefetch adjacent previews');
 assert.match(reader,/effectiveQuality\(\)==='low'\|\|scale<threshold/,'Low Data must disable tiles');
+const readerCss=read('reader.css');
+assert.match(readerCss,/\.reader-header-tool>span:not\(\.reader-view-glyph\)/,'Mobile header must not visually hide the Flip icon');
+assert.match(readerCss,/\.reader-view-trigger > \.reader-view-glyph/,'Flip icon must retain visible dimensions on mobile');
+assert.match(reader,/function closeOtherReaderMenus\(activeToggle\)/,'Toolbar menus must share a single close-others coordinator');
+for(const name of ['reader-view','quality','reader-edition','reader-more']){
+  assert.ok(reader.includes('[data-'+name+'-'),name+' toolbar selector must be coordinated');
+}
+assert.match(reader,/const options=\$\$\('\[role="menuitemradio"\]',qualityMenu\)/,'Image-quality keyboard navigation must iterate all options');
+assert.match(flip,/const options=\$\$\('\[role="menuitemradio"\]',viewMenu\)/,'Reading-mode keyboard navigation must iterate all options');
+assert.match(reader,/button\.title=description/,'All reader action icons should expose mouse-hover tooltips');
+assert.match(flip,/viewToggle\.title='Reading mode:/,'Dynamically inserted Flip control must expose its own tooltip');
 assert.match(reader,/function selectionNormalized\(\)/,'Clipping must normalize coordinates');
 assert.match(reader,/selection\.addEventListener\('pointerdown'/,'Clipping handles must support resizing');
 assert.match(reader,/\[data-reader-text-mode\]/,'OCR reader mode must be accessible');
