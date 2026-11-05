@@ -95,5 +95,9 @@ jobs:
         run: |
           php tests/ai-review-static.php
           php tests/article-review-drafts.php
+      - name: Publisher brand and PWA identity contracts
+        run: |
+          php tests/brand-identity-contract.php
+          php tests/pwa-manifest-contract.php
       - name: Existing complete source regressions
         run: php bin/release-check.php

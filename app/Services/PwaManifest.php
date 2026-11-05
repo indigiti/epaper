@@ -13,13 +13,12 @@ final class PwaManifest
         if(function_exists('mb_substr'))return mb_substr($text,0,$max,'UTF-8');
         return implode('',array_slice(preg_split('//u',$text,-1,PREG_SPLIT_NO_EMPTY)?:[],0,$max));
     }
-    private static function generic(string $s):bool{return $s===''||strcasecmp($s,'ePaper SaaS')===0;}
     public static function name(array $settings,string $tenantName):string
     {
-        $name=self::clip($settings['brand.pwa_name']??'',60);
-        if(self::generic($name))$name=self::clip($settings['brand.site_name']??'',60);
-        if(self::generic($name))$name=self::clip($tenantName,60);
-        return self::generic($name)?'ePaper':$name;
+        $appName=self::clip($settings['brand.pwa_name']??'',60);
+        return BrandIdentity::generic($appName)
+            ? self::clip(BrandIdentity::websiteName($settings,$tenantName),60)
+            : $appName;
     }
     private static function icon(array $s,string $key,string $tenant,string $file,string $fallback,string $webRoot):string
     {

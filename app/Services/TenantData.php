@@ -122,10 +122,11 @@ final class TenantData
 
     public static function brand(): array
     {
+        $settings = self::scopedSettings();
         return [
-            'site_name' => self::setting('brand.site_name', RequestContext::get('tenant_name', 'ePaper SaaS')),
-            'tagline' => self::setting('brand.tagline', 'Digital newspaper'),
-            'accent' => self::setting('brand.accent', '#2563eb'),
+            'site_name' => BrandIdentity::websiteName($settings,(string)RequestContext::get('tenant_name','')),
+            'tagline' => $settings['brand.tagline'] ?? 'Digital newspaper',
+            'accent' => $settings['brand.accent'] ?? '#2563eb',
         ];
     }
 

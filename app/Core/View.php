@@ -65,8 +65,10 @@ final class View
         $sectionIcons=['OVERVIEW'=>'layout-dashboard','PUBLISHING'=>'newspaper','EDITORIAL'=>'file-text',
             'DISCOVERY'=>'compass','AUDIENCE'=>'users','SETTINGS'=>'settings',
             'OPERATIONS'=>'workflow','ADVANCED'=>'cpu'];
+        $brandMark=trim((string)TenantData::setting('brand.mark_path',''));
+        $emblem=$brandMark!==''?'<img src="'.self::e($brandMark).'" alt="" decoding="async">':\EpaperSaas\Services\AdminIcons::svg('newspaper');
         $html='<div class="sidebar-context admin-sidebar-identity">'
-            .'<span class="admin-sidebar-emblem" aria-hidden="true">'.\EpaperSaas\Services\AdminIcons::svg('newspaper').'</span>'
+            .'<span class="admin-sidebar-emblem" aria-hidden="true">'.$emblem.'</span>'
             .'<span class="admin-sidebar-brand-copy"><strong>'.self::e($tenant).'</strong>'
             .'<small>Publishing Studio</small></span>'
             .'<button type="button" class="admin-sidebar-collapse" data-admin-sidebar-collapse'
@@ -304,9 +306,9 @@ final class View
     public static function layout(string $title,string $body,array $opts=[]): never
     {
         $ctx=RequestContext::all();$brand=$opts['brand']??($ctx['tenant_name']??'ePaper SaaS');$admin=(bool)($opts['admin']??false);$account=(bool)($opts['account']??false);$reader=(bool)($opts['reader']??false);$clipCompact=(bool)($opts['clip_ui']??false);$auth=(bool)($opts['auth']??false);$readerEditionStrip=$reader?trim((string)($opts['reader_edition_strip']??'')):'';$readerHasEditionStrip=$readerEditionStrip!=='';
-        // Admin and account branding always follows the tenant's chosen website name,
-        // not the Platform organisation/tenant display name supplied to older controllers.
-        if(($admin||$account)&&!empty($ctx['tenant_guid']))$brand=(string)TenantData::brand()['site_name'];
+        // Canonical website identity across public, reader, authentication, account and admin.
+        // Never let a controller's stale tenant-name option override publisher website settings.
+        if(!empty($ctx['tenant_guid']))$brand=(string)TenantData::brand()['site_name'];
         $appearanceAdmin=$admin && self::currentPath()==='/admin/settings/appearance';
         $effectsAdmin=$admin && self::currentPath()==='/admin/settings/effects';
         $homeHalo=(!$admin&&!$account&&!$reader&&!$auth) && (bool)($opts['home_halo']??false);
