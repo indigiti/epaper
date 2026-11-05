@@ -13,7 +13,7 @@ final class EditorialActionView
         $h='<section class="editorial-actions" aria-labelledby="editorial-actions-heading">'
           .'<div class="editorial-actions-heading"><div><span class="eyebrow">TODAY’S WORK</span>'
           .'<h2 id="editorial-actions-heading">Editorial Action Center</h2>'
-          .'<p>Find editions, failed processing and pending AI clipping reviews in one place.</p></div>'
+          .'<p>Find editions, failed processing and pending article reviews in one place.</p></div>'
           .'<span class="editorial-action-caption">Tenant-scoped · Read only</span></div>'
           .'<div class="editorial-action-grid">';
         foreach($snapshot['groups'] as $g){

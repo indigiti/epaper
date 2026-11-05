@@ -9,7 +9,7 @@ $worker=file_get_contents($root.'/app/Services/ProcessingPipeline.php');
 $schema=file_get_contents($root.'/database/upgrade-ai-page-candidates-20261018.sql');
 $config=file_get_contents($root.'/config/config.example.php');
 $checks=[
- 'guarded admin route'=>str_contains($app,"if(\$path==='/admin/ai-review'")&&str_contains($app,'Auth::requireAdmin();if($method===\'POST\')Http::verifyCsrf();'),
+ 'guarded admin route'=>str_contains($app,"if(\$path==='/admin/article-review'")&&str_contains($app,'Auth::requireAdmin();if($method===\'POST\')Http::verifyCsrf();'),
  'editor role restriction'=>str_contains($editor,"['OWNER','ADMIN','PUBLISHER_ADMIN','EDITOR']"),
  'review transactions'=>str_contains($editor,'Store::tx('),
  'tenant and revision compare-and-swap'=>str_contains($editor,'WHERE tenant_guid=? AND page_guid=? AND version=?'),
@@ -20,6 +20,11 @@ $checks=[
  'default off'=>str_contains($config,"'ai_clipping'=>['enabled'=>false"),
  'nonfatal worker integration'=>str_contains($worker,'if(AiCandidatePipeline::enabled())')&&str_contains($worker,'AI_CANDIDATE_STAGE_FAILED'),
  'isolated candidate schema'=>str_contains($schema,'UNIQUE KEY uk_ai_candidate_tenant_page (tenant_guid,page_guid)'),
+ 'paginated review queue'=>str_contains($editor,'$perPage=24')&&str_contains($editor,' OFFSET '),
+ 'edition, status filter'=>str_contains($editor,'article-review-controls')&&str_contains($editor,'name="edition"'),
+ 'legacy review URL preserved'=>str_contains($editor,'(?:article-review|ai-review)'),
+ 'new route editor-only'=>str_contains(file_get_contents($root.'/app/Services/AdminRoutePolicy.php'),"'/admin/article-review'"),
+
 ];
 $bad=0;
 foreach($checks as$name=>$ok){echo ($ok?'PASS ':'FAIL ').$name."\n";if(!$ok)$bad++;}

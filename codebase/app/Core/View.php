@@ -57,7 +57,7 @@ final class View
         $groups=\EpaperSaas\Services\AdminFeatureCatalog::groups(
             $role,\EpaperSaas\Services\AiCandidatePipeline::enabled(),$canInfra
         );
-        $tenant=(string)(RequestContext::get('tenant_name')?:'ePaper SaaS');
+        $tenant=(string)TenantData::brand()['site_name'];
         $user=Auth::user()??[];
         $displayName=trim((string)($user['display_name']??$user['full_name']??$user['name']??''));
         $email=trim((string)($user['email']??''));

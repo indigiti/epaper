@@ -24,9 +24,9 @@ final class AiEditorialReview
     {
         self::allow();
         Http::privateNoStore();
-        if($path==='/admin/ai-review'&&$method==='GET')self::index();
-        if(preg_match('#^/admin/ai-review/([0-9a-f-]{36})/preview$#i',$path,$m)&&$method==='GET')self::preview($m[1]);
-        if(preg_match('#^/admin/ai-review/([0-9a-f-]{36})$#i',$path,$m)){
+        if(in_array($path,['/admin/article-review','/admin/ai-review'],true)&&$method==='GET')self::index();
+        if(preg_match('#^/admin/(?:article-review|ai-review)/([0-9a-f-]{36})/(preview|thumb)$#i',$path,$m)&&$method==='GET')self::preview($m[1],$m[2]==='thumb');
+        if(preg_match('#^/admin/(?:article-review|ai-review)/([0-9a-f-]{36})$#i',$path,$m)){
             if($method==='GET')self::detail($m[1]);
             if($method==='POST')self::mutate($m[1]);
         }
@@ -36,24 +36,100 @@ final class AiEditorialReview
     private static function row(string $pageGuid,bool $lock=false): ?array
     {
         if(!Uuid::isValid($pageGuid))return null;
-        return Store::one('SELECT c.*,p.width,p.height,p.page_number FROM ep_ai_page_candidates c JOIN ep_pages p ON p.tenant_guid=c.tenant_guid AND p.page_guid=c.page_guid AND p.edition_guid=c.edition_guid WHERE c.tenant_guid=? AND c.page_guid=?'.($lock?' FOR UPDATE':''),[
+        return Store::one('SELECT c.*,p.width,p.height,p.page_number,p.section_guid,e.edition_date,e.publication_guid,e.city_guid,e.language_guid,pub.name publication_name FROM ep_ai_page_candidates c JOIN ep_pages p ON p.tenant_guid=c.tenant_guid AND p.page_guid=c.page_guid AND p.edition_guid=c.edition_guid JOIN ep_editions e ON e.tenant_guid=c.tenant_guid AND e.edition_guid=c.edition_guid JOIN ep_publications pub ON pub.tenant_guid=e.tenant_guid AND pub.publication_guid=e.publication_guid WHERE c.tenant_guid=? AND c.page_guid=?'.($lock?' FOR UPDATE':''),[
             Uuid::toBinary(RequestContext::tenantGuid()),Uuid::toBinary($pageGuid)
         ]);
     }
 
     private static function index(): never
     {
-        $rows=Store::all('SELECT c.page_guid,c.status,c.version,c.updated_at,p.page_number FROM ep_ai_page_candidates c JOIN ep_pages p ON p.tenant_guid=c.tenant_guid AND p.page_guid=c.page_guid AND p.edition_guid=c.edition_guid WHERE c.tenant_guid=? ORDER BY c.updated_at DESC LIMIT 50',[
-            Uuid::toBinary(RequestContext::tenantGuid())
-        ]);
-        $html='<section class="admin-section"><span class="eyebrow">EDITORIAL WORKSPACE</span><h1>AI page review</h1><p class="muted">Private OCR candidates only. Nothing here publishes an article or creates a clip.</p><div class="data-list">';
-        foreach($rows as$r){
-            $page=Uuid::fromBinary($r['page_guid']);
-            $html.='<a class="btn ghost" style="margin:5px" href="/admin/ai-review/'.View::e($page).'">Page '.(int)$r['page_number'].' · '.View::e((string)$r['status']).' · revision '.(int)$r['version'].'</a>';
+        $tenant=TenantData::tenantBin();
+        $status=strtoupper(trim((string)($_GET['status']??'PENDING')));
+        if(!in_array($status,['ALL','PENDING','REVIEWED','REJECTED'],true))$status='PENDING';
+        $edition=trim((string)($_GET['edition']??''));
+        if($edition!==''&&!Uuid::isValid($edition))$edition='';
+        $page=max(1,min(10000,(int)($_GET['page']??1)));$perPage=24;
+        $where='c.tenant_guid=?';$params=[$tenant];
+        if($edition!==''){$where.=' AND c.edition_guid=?';$params[]=Uuid::toBinary($edition);}
+        $counts=['PENDING'=>0,'REVIEWED'=>0,'REJECTED'=>0];
+        foreach(Store::all('SELECT c.status,COUNT(*) total FROM ep_ai_page_candidates c WHERE '.$where.' GROUP BY c.status',$params) as $r){
+            $s=(string)$r['status'];if(isset($counts[$s]))$counts[$s]=(int)$r['total'];
         }
-        if(!$rows)$html.='<p class="muted">No AI candidates yet. Run OCR in isolated staging with the feature flag enabled and the migration applied.</p>';
-        $html.='</div></section>';
-        View::layout('AI page review',$html,['brand'=>(string)RequestContext::get('tenant_name','ePaper SaaS'),'admin'=>true]);
+        $total=$status==='ALL'?array_sum($counts):($counts[$status]??0);
+        $pages=max(1,(int)ceil($total/$perPage));$page=min($page,$pages);
+        $query=$where.($status==='ALL'?'':' AND c.status=?');
+        $searchParams=$params;if($status!=='ALL')$searchParams[]=$status;
+        $rows=Store::all('SELECT c.page_guid,c.edition_guid,c.status,c.version,p.page_number,e.edition_date,pub.name publication_name FROM ep_ai_page_candidates c JOIN ep_pages p ON p.tenant_guid=c.tenant_guid AND p.page_guid=c.page_guid AND p.edition_guid=c.edition_guid JOIN ep_editions e ON e.tenant_guid=c.tenant_guid AND e.edition_guid=c.edition_guid JOIN ep_publications pub ON pub.tenant_guid=e.tenant_guid AND pub.publication_guid=e.publication_guid WHERE '.$query.' ORDER BY e.edition_date DESC,c.edition_guid DESC,p.page_number ASC LIMIT '.(int)$perPage.' OFFSET '.(int)(($page-1)*$perPage),$searchParams);
+        $editions=Store::all('SELECT e.edition_guid,e.edition_date,pub.name publication_name FROM ep_editions e JOIN ep_publications pub ON pub.tenant_guid=e.tenant_guid AND pub.publication_guid=e.publication_guid WHERE e.tenant_guid=? AND EXISTS (SELECT 1 FROM ep_ai_page_candidates c WHERE c.tenant_guid=e.tenant_guid AND c.edition_guid=e.edition_guid) ORDER BY e.edition_date DESC LIMIT 150',[$tenant]);
+        $url=static function(array $more=[])use($status,$edition):string{
+            $params=array_merge(['status'=>$status,'edition'=>$edition],$more);
+            return '/admin/article-review?'.http_build_query(array_filter($params,static fn($v)=>$v!==null&&$v!==''),'','&',PHP_QUERY_RFC3986);
+        };
+        $html=<<<'HTML'
+<style>
+.article-review{max-width:1480px;margin:0 auto;color:var(--console-text,#1b2a40);min-width:0}
+.article-review h1{font-size:clamp(28px,3vw,38px);letter-spacing:-.035em;margin:6px 0 10px}
+.article-review-head{display:flex;align-items:end;justify-content:space-between;flex-wrap:wrap;gap:16px;margin-bottom:22px}
+.article-review-head p{max-width:720px;line-height:1.5}
+.article-review-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-bottom:18px}
+.article-review-stat{display:flex;flex-direction:column;gap:5px;padding:18px;background:var(--console-surface,#fff);border:1px solid var(--console-border,#dce5ee);border-radius:15px;color:inherit!important;text-decoration:none!important}
+.article-review-stat strong{font-size:28px;line-height:1.1}.article-review-stat span{color:var(--console-muted,#607087);font-size:12px}
+.article-review-stat.active{outline:2px solid var(--console-accent,#16857e);outline-offset:-2px}
+.article-review-controls{display:flex;gap:12px;flex-wrap:wrap;align-items:end;border:1px solid var(--console-border,#dce5ee);background:var(--console-surface,#fff);border-radius:14px;padding:15px}
+.article-review-controls label{font-size:12px;font-weight:700;min-width:180px;flex:1}
+.article-review-controls select{display:block;margin-top:6px;width:100%;height:42px}
+.article-review-edition{margin:20px 0}.article-review-edition h2{font-size:17px;margin:0 0 12px}
+.article-review-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:13px}
+.article-review-card{display:flex;align-items:center;gap:13px;border:1px solid var(--console-border,#dce5ee);background:var(--console-surface,#fff);padding:13px;border-radius:14px;text-decoration:none!important;color:inherit!important}
+.article-review-card:is(:hover,:focus-visible){border-color:var(--console-accent,#11887e);box-shadow:0 7px 25px #17273b18}
+.article-review-card img{width:65px;height:86px;object-fit:cover;object-position:top;border-radius:5px;background:var(--console-surface-soft,#edf3f9);border:1px solid var(--console-border,#dce5ee);flex-shrink:0}
+.article-review-card span{display:grid;gap:6px}.article-review-card strong{font-size:15px}
+.article-review-card small{color:var(--console-muted,#607087);font-size:12px}
+.article-review-state{font-size:10px;font-weight:800;letter-spacing:.07em;color:var(--console-accent,#16857e)}
+.article-review-state.pending{color:#a36b20}.article-review-state.rejected{color:#bf5050}
+.article-review-pages{display:flex;align-items:center;justify-content:center;gap:15px;margin-top:28px}
+@media(max-width:680px){.article-review-stats{gap:6px}.article-review-stat{padding:12px}.article-review-stat strong{font-size:22px}.article-review-controls label{min-width:100%}}
+</style>
+<section class="article-review"><div class="article-review-head"><div><span class="eyebrow">EDITORIAL WORKSPACE</span><h1>Article Review</h1>
+<p class="muted">Review OCR article regions by newspaper and edition. All corrections remain private; nothing here publishes articles or clippings.</p></div>
+<a class="btn ghost" href="/admin/articles">Open Articles →</a></div>
+HTML;
+        $html.='<div class="article-review-stats">';
+        foreach(['PENDING'=>'Pending review','REVIEWED'=>'Reviewed','REJECTED'=>'Rejected'] as $key=>$label){
+            $html.='<a class="article-review-stat'.($status===$key?' active':'').'" href="'.View::e($url(['status'=>$key])).'"><strong>'.(int)$counts[$key].'</strong><span>'.View::e($label).'</span></a>';
+        }
+        $html.='</div><form class="article-review-controls" method="get" action="/admin/article-review"><label>Review status<select name="status">';
+        foreach(['PENDING'=>'Pending','ALL'=>'All statuses','REVIEWED'=>'Reviewed','REJECTED'=>'Rejected'] as $key=>$label)$html.='<option value="'.$key.'"'.($status===$key?' selected':'').'>'.$label.'</option>';
+        $html.='</select></label><label>Edition<select name="edition"><option value="">All editions</option>';
+        foreach($editions as $entry){
+            $id=Uuid::fromBinary($entry['edition_guid']);
+            $title=(string)$entry['publication_name'].' · '.date('d M Y',strtotime((string)$entry['edition_date']));
+            $html.='<option value="'.View::e($id).'"'.($edition===$id?' selected':'').'>'.View::e($title).'</option>';
+        }
+        $html.='</select></label><button type="submit" class="btn primary">Apply filters</button><a class="btn ghost" href="/admin/article-review">Reset</a></form>';
+        $html.='<p class="muted" style="margin-top:18px">'.(int)$total.' matching pages · Page '.$page.' of '.$pages.'</p>';
+        $last=null;
+        foreach($rows as $entry){
+            $edGuid=Uuid::fromBinary($entry['edition_guid']);$guid=Uuid::fromBinary($entry['page_guid']);
+            if($last!==$edGuid){
+                if($last!==null)$html.='</div></section>';
+                $last=$edGuid;
+                $html.='<section class="article-review-edition"><h2>'.View::e((string)$entry['publication_name']).' · '.View::e(date('d M Y',strtotime((string)$entry['edition_date']))).'</h2><div class="article-review-cards">';
+            }
+            $st=strtoupper((string)$entry['status']);
+            $html.='<a class="article-review-card" href="/admin/article-review/'.View::e($guid).'"><img loading="lazy" decoding="async" src="/admin/article-review/'.View::e($guid).'/thumb" alt="Page '.(int)$entry['page_number'].' thumbnail"><span><strong>Page '.(int)$entry['page_number'].'</strong><b class="article-review-state '.View::e(strtolower($st)).'">'.View::e($st).'</b><small>Revision '.(int)$entry['version'].' · Open review →</small></span></a>';
+        }
+        if($last!==null)$html.='</div></section>';
+        if(!$rows)$html.='<section class="panel"><h2>No matching review pages</h2><p class="muted">Try another edition/status. AI candidates appear only when OCR and optional AI processing have produced them.</p></section>';
+        if($pages>1){
+            $html.='<nav class="article-review-pages" aria-label="Review pagination">';
+            if($page>1)$html.='<a class="btn ghost" href="'.View::e($url(['page'=>$page-1])).'">← Previous</a>';
+            $html.='<span>Page '.$page.' of '.$pages.'</span>';
+            if($page<$pages)$html.='<a class="btn ghost" href="'.View::e($url(['page'=>$page+1])).'">Next →</a>';
+            $html.='</nav>';
+        }
+        $html.='</section>';
+        View::layout('Article Review',$html,['brand'=>(string)TenantData::brand()['site_name'],'admin'=>true]);
     }
 
     private static function candidates(array $row): array
@@ -79,8 +155,8 @@ final class AiEditorialReview
         $w=(int)$row['width'];$h=(int)$row['height'];
         $csrf=View::e(Http::csrf());$page=View::e($pageGuid);$version=(int)$row['version'];
         $html='<style>.ai-review-grid{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(290px,.85fr);gap:18px;align-items:start}.ai-paper{position:relative;border:1px solid #64748b;border-radius:12px;overflow:hidden;background:#eceff1}.ai-paper img{width:100%;height:auto;display:block}.ai-box{position:absolute;border:2px solid #2563eb;background:rgba(37,99,235,.11);color:#fff;font-size:10px;text-shadow:0 1px 3px #000;overflow:hidden;cursor:pointer}.ai-box.image{border-color:#f97316;background:rgba(249,115,22,.12)}.ai-edit{padding:12px;border:1px solid #cbd5e1;border-radius:12px;margin-bottom:12px}.ai-fields{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:7px}.ai-fields label{font-size:11px}.ai-fields input{width:100%;min-width:0;padding:6px}.ai-edit textarea{width:100%;min-height:55px}.ai-forms{max-height:76vh;overflow:auto}.ai-actions{display:flex;flex-wrap:wrap;gap:10px;margin:12px 0}@media(max-width:850px){.ai-review-grid{grid-template-columns:1fr}.ai-forms{max-height:none}}</style>';
-        $html.='<section class="admin-section"><p><a href="/admin/ai-review">← All AI pages</a></p><span class="eyebrow">REVIEW ONLY — PRIVATE</span><h1>Page '.(int)$row['page_number'].' · candidate review</h1><p class="muted">Edit classification, OCR text, or pixel boundary. The blue/orange boxes show machine suggestions; none are verified articles.</p><p>Status: <strong>'.View::e((string)$row['status']).'</strong> · revision '.$version.' · '.count($doc['regions']).' regions. Coordinates are in the original '.$w.' × '.$h.' pixel grid.</p>';
-        $html.='<div class="ai-actions"><form method="post"><input type="hidden" name="_csrf" value="'.$csrf.'"><input type="hidden" name="version" value="'.$version.'"><input type="hidden" name="mode" value="approve"><label><input required type="checkbox" name="confirm" value="yes"> I reviewed the candidate regions</label> <button class="btn primary" type="submit">Mark reviewed (no publishing)</button></form><form method="post"><input type="hidden" name="_csrf" value="'.$csrf.'"><input type="hidden" name="version" value="'.$version.'"><input type="hidden" name="mode" value="reject"><button class="btn ghost" type="submit">Reject proposals</button></form></div>';
+        $html.='<section class="admin-section"><p><a href="/admin/article-review">← Article Review queue</a></p><span class="eyebrow">PRIVATE EDITORIAL REVIEW</span><h1>'.View::e((string)$row['publication_name']).' · Page '.(int)$row['page_number'].'</h1><p class="muted">'.View::e(date('d M Y',strtotime((string)$row['edition_date']))).'</p><p class="muted">Edit classification, OCR text, or pixel boundary. The blue/orange boxes show machine suggestions; none are verified articles.</p><p>Status: <strong>'.View::e((string)$row['status']).'</strong> · revision '.$version.' · '.count($doc['regions']).' regions. Coordinates are in the original '.$w.' × '.$h.' pixel grid.</p>';
+        $html.='<div class="ai-actions"><form method="post"><input type="hidden" name="_csrf" value="'.$csrf.'"><input type="hidden" name="version" value="'.$version.'"><input type="hidden" name="mode" value="approve"><label><input required type="checkbox" name="confirm" value="yes"> I reviewed the candidate regions</label> <button class="btn primary" type="submit">Approve reviewed regions (no publishing)</button></form><form method="post"><input type="hidden" name="_csrf" value="'.$csrf.'"><input type="hidden" name="version" value="'.$version.'"><input type="hidden" name="mode" value="reject"><button class="btn ghost" type="submit">Reject proposals</button></form></div>';
         $html.='<div class="ai-review-grid"><div><div class="ai-paper" data-page-width="'.$w.'" data-page-height="'.$h.'"><img src="/admin/ai-review/'.$page.'/preview" alt="Private newspaper page preview with candidate region overlay">';
         $count=0;
         foreach($doc['regions'] as$reg){
@@ -173,15 +249,15 @@ final class AiEditorialReview
 })();
 </script>
 HTML;
-        View::layout('AI editorial review',$html,['brand'=>(string)RequestContext::get('tenant_name','ePaper SaaS'),'admin'=>true]);
+        View::layout('Article Review',$html,['brand'=>(string)TenantData::brand()['site_name'],'admin'=>true]);
     }
 
-    private static function preview(string $pageGuid): never
+    private static function preview(string $pageGuid,bool $thumb=false): never
     {
         $row=self::row($pageGuid);
         if(!$row){http_response_code(404);exit;}
         $tenant=RequestContext::tenantGuid();
-        $asset=Store::one('SELECT a.storage_path,a.mime_type,a.byte_size FROM ep_page_assets a WHERE a.tenant_guid=? AND a.page_guid=? AND a.asset_type="PREVIEW"',[
+        $asset=Store::one('SELECT a.storage_path,a.mime_type,a.byte_size FROM ep_page_assets a WHERE a.tenant_guid=? AND a.page_guid=? AND a.asset_type IN ("THUMB","PREVIEW") '.($thumb?'ORDER BY FIELD(a.asset_type,"THUMB","PREVIEW")':'AND a.asset_type="PREVIEW"').' LIMIT 1',[
             Uuid::toBinary($tenant),Uuid::toBinary($pageGuid)
         ]);
         if(!$asset||$asset['mime_type']!=='image/webp'){http_response_code(404);exit;}
@@ -250,6 +326,6 @@ HTML;
             Http::json(['ok'=>false,'code'=>$result,'message'=>'Refresh this page to continue editing.'],in_array($result,['NOT_FOUND'],true)?404:($result==='STALE_VERSION'?409:422));
         }
         Audit::log('ai.review.'.$result,'page',$pageGuid,'SUCCESS',['action'=>$result,'no_publish'=>true]);
-        Http::redirect('/admin/ai-review/'.rawurlencode($pageGuid).'?saved=1');
+        Http::redirect('/admin/article-review/'.rawurlencode($pageGuid).'?saved=1');
     }
 }
