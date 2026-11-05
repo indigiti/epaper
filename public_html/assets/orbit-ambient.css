@@ -1,0 +1,113 @@
+/*
+ * Orbital pastel clouds — per-tenant, opt-in decorative layer.
+ * No WebGL, JS, network assets or changes to newspaper page geometry.
+ * Reader documents/tiles, clipping overlays and controls remain untouched.
+ */
+body.epdi-orbit-enabled{isolation:isolate}
+.epdi-orbit-ambient{
+  position:fixed;
+  inset:0;
+  z-index:0;
+  pointer-events:none;
+  overflow:hidden;
+  isolation:isolate;
+  contain:layout paint;
+  background:#fbf8f7;
+}
+.epdi-orbit-cloud{
+  position:absolute;
+  display:block;
+  border-radius:50%;
+  background-repeat:no-repeat;
+  filter:blur(46px);
+  will-change:transform;
+  animation:epdi-cloud-orbit-cw var(--orbit-duration,32s) linear infinite;
+  transform:translateZ(0);
+}
+.epdi-orbit-cloud--pink{
+  left:14%;top:-31%;
+  width:66%;height:82%;
+  --orbit-radius:clamp(35px,8vw,145px);
+  --orbit-duration:31s;
+  background:radial-gradient(ellipse at center,rgba(223,92,167,.78) 0%,rgba(230,126,181,.55) 34%,rgba(228,167,205,.19) 64%,transparent 79%);
+}
+.epdi-orbit-cloud--peach{
+  left:5%;bottom:-28%;
+  width:72%;height:86%;
+  --orbit-radius:clamp(36px,7vw,120px);
+  --orbit-duration:35s;
+  animation-name:epdi-cloud-orbit-ccw;
+  animation-delay:-12s;
+  background:radial-gradient(ellipse at center,rgba(255,159,111,.82) 0%,rgba(255,190,153,.59) 39%,rgba(255,208,189,.16) 68%,transparent 82%);
+}
+.epdi-orbit-cloud--teal{
+  right:-13%;top:11%;
+  width:69%;height:88%;
+  --orbit-radius:clamp(32px,9vw,155px);
+  --orbit-duration:38s;
+  animation-delay:-17s;
+  background:radial-gradient(ellipse at center,rgba(94,210,203,.76) 0%,rgba(151,221,216,.53) 38%,rgba(177,229,228,.16) 65%,transparent 80%);
+}
+.epdi-orbit-cloud--lavender{
+  left:32%;top:12%;
+  width:51%;height:70%;
+  --orbit-radius:clamp(20px,5vw,85px);
+  --orbit-duration:42s;
+  animation-name:epdi-cloud-orbit-ccw;
+  animation-delay:-23s;
+  background:radial-gradient(ellipse at center,rgba(178,146,212,.32) 0%,rgba(202,175,228,.22) 44%,transparent 79%);
+}
+.epdi-orbit-ambient::after{
+  content:"";
+  position:absolute;
+  inset:0;
+  background:rgba(251,249,247,.14);
+  pointer-events:none;
+}
+@keyframes epdi-cloud-orbit-cw{
+  from{transform:rotate(0deg) translateX(var(--orbit-radius)) rotate(0deg)}
+  to{transform:rotate(360deg) translateX(var(--orbit-radius)) rotate(-360deg)}
+}
+@keyframes epdi-cloud-orbit-ccw{
+  from{transform:rotate(0deg) translateX(var(--orbit-radius)) rotate(0deg)}
+  to{transform:rotate(-360deg) translateX(var(--orbit-radius)) rotate(360deg)}
+}
+/* Keep all interactive/public content above the purely visual background. */
+body.public-shell.epdi-orbit-enabled > .main-container,
+body.public-shell.epdi-orbit-enabled > .site-footer,
+body.public-shell.epdi-orbit-enabled > .theme-preview-banner,
+body.public-shell.epdi-orbit-enabled > .public-focus-bar{
+  position:relative;
+  z-index:1;
+}
+body.reader-page.epdi-orbit-enabled > .reader-main{z-index:1}
+/* Native reader chrome stays intact; show atmosphere only in the empty gutters. */
+body.reader-page.epdi-orbit-enabled .epdi-orbit-ambient{opacity:.58}
+body.reader-page.epdi-orbit-enabled:not(.dark) .reader-shell,
+body.reader-page.epdi-orbit-enabled:not(.dark) .reader-stage-wrap,
+body.reader-page.epdi-orbit-enabled:not(.dark) .reader-stage{
+  background:transparent!important;
+}
+body.reader-page.epdi-orbit-enabled:not(.dark) .reader-continuous-layer{
+  background:rgba(249,249,250,.26)!important;
+}
+/* Dark reader or dark public theme always takes priority over decoration. */
+body.epdi-orbit-enabled.dark .epdi-orbit-ambient{display:none}
+@media(max-width:900px){
+  .epdi-orbit-cloud{
+    animation:none!important;
+    filter:blur(34px);
+    will-change:auto;
+    transform:none;
+  }
+  .epdi-orbit-cloud--pink{left:-8%;top:-19%;width:110%;height:68%}
+  .epdi-orbit-cloud--peach{left:-36%;bottom:-16%;width:115%;height:70%}
+  .epdi-orbit-cloud--teal{right:-51%;top:16%;width:117%;height:75%}
+  .epdi-orbit-cloud--lavender{left:9%;top:17%;width:90%;height:65%}
+}
+@media(prefers-reduced-motion:reduce),(prefers-reduced-data:reduce){
+  .epdi-orbit-cloud{animation:none!important;transform:none!important;will-change:auto}
+}
+@media print{
+  .epdi-orbit-ambient{display:none!important}
+}
