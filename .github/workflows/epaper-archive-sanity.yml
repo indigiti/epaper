@@ -36,7 +36,7 @@ jobs:
       - uses: shivammathur/setup-php@v2
         with:
           php-version: '8.3'
-          extensions: mbstring, pdo_mysql, json, sockets, openssl, fileinfo, zip
+          extensions: mbstring, pdo_mysql, json, sockets, openssl, fileinfo, zip, gd
           coverage: none
       - name: Verify relocated release files and original Git hashes
         run: php tests/legacy-archive-layout.php
@@ -99,5 +99,6 @@ jobs:
         run: |
           php tests/brand-identity-contract.php
           php tests/pwa-manifest-contract.php
+          php tests/pwa-brand-assets-contract.php
       - name: Existing complete source regressions
         run: php bin/release-check.php
