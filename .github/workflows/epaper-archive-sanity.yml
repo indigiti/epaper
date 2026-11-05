@@ -91,5 +91,9 @@ jobs:
           name: theme-browser-fixtures
           path: codebase/tests/theme-preview-artifacts/*.png
           if-no-files-found: ignore
+      - name: OCR editorial review and draft handoff regression
+        run: |
+          php tests/ai-review-static.php
+          php tests/article-review-drafts.php
       - name: Existing complete source regressions
         run: php bin/release-check.php

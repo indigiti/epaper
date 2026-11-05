@@ -38,7 +38,7 @@ final class EditorialActionCenter
         }
         if($editor){
             if(!$aiEnabled){
-                $groups[]=self::group('ai','AI clipping review','/admin/ai-clipping',null,[],'DISABLED',
+                $groups[]=self::group('ai','Article review','/admin/ai-clipping',null,[],'DISABLED',
                     'AI clipping is disabled in the current staging configuration.');
             }else{
                 try{
@@ -48,13 +48,13 @@ final class EditorialActionCenter
                         if(!self::guid($guid))continue;
                         $items[]=['title'=>self::name($row).' · Page '.(int)($row['page_number']??0),
                             'detail'=>'Pending human editorial review',
-                            'url'=>'/admin/ai-review/'.$guid];
+                            'url'=>'/admin/article-review/'.$guid];
                     }
-                    $groups[]=self::group('ai','AI clipping review','/admin/ai-review',
+                    $groups[]=self::group('ai','Article review','/admin/article-review',
                         max(0,(int)$result['total']),$items,'AVAILABLE',
                         'Candidate pages awaiting review; approval never publishes a clipping.');
                 }catch(\Throwable){
-                    $groups[]=self::group('ai','AI clipping review','/admin/ai-clipping',
+                    $groups[]=self::group('ai','Article review','/admin/ai-clipping',
                         null,[],'UNAVAILABLE','AI candidate records unavailable. Verify the optional migration.');
                 }
             }

@@ -28,7 +28,7 @@ final class AdminRoutePolicy
             '/admin/editions','/admin/navigation','/admin/publications',
             '/admin/highlights','/admin/articles','/admin/authors',
             '/admin/topics','/admin/entities','/admin/master-data',
-            '/admin/manual-clipping','/admin/ai-clipping','/admin/ai-review',
+            '/admin/manual-clipping','/admin/ai-clipping','/admin/ai-review','/admin/article-review',
         ]))return 'EDITOR';
 
         // Infrastructure routes continue to enforce their separate configurable

@@ -40,7 +40,7 @@ final class AdminFeatureCatalog
                 ['Highlights','/admin/highlights','Homepage promotions','bookmark'],
             ];
             if($aiEnabled)$groups['EDITORIAL'][]=
-                ['AI Editorial Review','/admin/ai-review','Review and correct AI candidates','bot'];
+                ['Article Review','/admin/article-review','Review OCR pages by edition and correct story regions','clipboard-check'];
             $groups['DISCOVERY']=[
                 ['Reader Navigation','/admin/navigation','Reader menus and scopes','book-open'],
                 ['Topics','/admin/topics','Curated discovery','tags'],
