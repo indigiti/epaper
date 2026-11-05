@@ -14,7 +14,7 @@ $operator=$catalog::groups('OPERATOR',false,false);
 $publisher=$catalog::groups('PUBLISHER_ADMIN',false,false);
 $noAi=$catalog::groups('OWNER',false,true);
 $customInfra=$catalog::groups('PUBLISHER_ADMIN',false,true);
-foreach(['/admin','/admin/editions','/admin/processing','/admin/ai-review',
+foreach(['/admin','/admin/editions','/admin/processing','/admin/article-review',
   '/admin/system/testing','/admin/system/infrastructure','/admin/access'] as $href){
  if(!in_array($href,$routes($owner),true))throw new RuntimeException('Owner navigation missing '.$href);
 }
@@ -29,7 +29,7 @@ if(in_array('/admin/audit',$routes($editor),true)||in_array('/admin/audit',$rout
 if(!in_array('/admin/manual-clipping',$routes($editor),true))throw new RuntimeException('Clip Marking must stay in primary navigation');
 if(!isset($owner['ADVANCED'])||!in_array('/admin/system/recovery',$routes($owner),true))
  throw new RuntimeException('Advanced recovery tools were removed instead of reorganized');
-if(in_array('/admin/ai-review',$routes($noAi),true))throw new RuntimeException('Disabled AI is still advertised');
+if(in_array('/admin/article-review',$routes($noAi),true))throw new RuntimeException('Disabled AI is still advertised');
 if(!in_array('/admin/ai-clipping',$routes($noAi),true))throw new RuntimeException('Readiness is hidden with AI disabled');
 if(in_array('/admin/ai-clipping',$routes($operator),true))throw new RuntimeException('Operator received editorial AI readiness');
 if(!in_array('/admin/system/testing',$routes($operator),true))throw new RuntimeException('Operator lost QA');
