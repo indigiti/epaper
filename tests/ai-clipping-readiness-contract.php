@@ -17,7 +17,7 @@ foreach(['OWNER','ADMIN','PUBLISHER_ADMIN','EDITOR'] as $role){
 if(in_array('/admin/ai-clipping',$paths($catalog::groups('OPERATOR',false,false)),true)){
     throw new RuntimeException('Operator received AI editorial diagnostic link');
 }
-if(in_array('/admin/ai-review',$paths($catalog::groups('OWNER',false,false)),true)){
+if(in_array('/admin/article-review',$paths($catalog::groups('OWNER',false,false)),true)){
     throw new RuntimeException('Disabled AI review was exposed');
 }
 $app=(string)file_get_contents($root.'/app/App.php');
@@ -43,7 +43,7 @@ $view=\EpaperSaas\Views\AiClippingReadinessView::render([
     'review_url'=>null,
 ]);
 if(str_contains($view,'<script>')||str_contains($view,'<img onerror=')||
-   str_contains($view,'href="/admin/ai-review"')||!str_contains($view,'AI Clipping')){
+   str_contains($view,'href="/admin/article-review"')||!str_contains($view,'AI Clipping')){
     throw new RuntimeException('Readiness view XSS/disabled-link regression');
 }
 echo "AI clipping multilayer route, role, tenant and safe presentation: OK\n";
