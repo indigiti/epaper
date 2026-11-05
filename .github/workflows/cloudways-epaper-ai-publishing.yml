@@ -182,6 +182,8 @@ jobs:
           php tests/frontend-cloudways-contract.php
           php -l app/Services/PublicHalo.php
           php tests/home-halo-contract.php
+          php tests/orbit-ambient-contract.php
+          php codebase/tests/orbit-ambient-contract.php
           php -l app/Services/BackgroundEffects.php
           php -l app/Services/BackgroundEffectsStudio.php
           php tests/background-effects-contract.php --fixtures
@@ -212,6 +214,7 @@ jobs:
           node --check public_html/assets/vendor/three.r134.min.js
           node tests/home-halo-browser.mjs
           node tests/home-halo-real-browser.mjs
+          node tests/orbit-ambient-browser.mjs
           node --check public_html/assets/vanta-config.js
           node --check public_html/assets/admin-effects.js
           node tests/background-effects-browser.mjs
@@ -236,6 +239,14 @@ jobs:
         with:
           name: cw-epaper-background-effects-studio
           path: tests/effects-studio-screenshots/*.png
+          if-no-files-found: warn
+          retention-days: 14
+      - name: Preserve orbital background desktop and mobile preview screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cw-epaper-orbit-background-previews
+          path: tests/orbit-ambient-previews/*.png
           if-no-files-found: warn
           retention-days: 14
       - name: Preserve HALO desktop and mobile fallback screenshots
