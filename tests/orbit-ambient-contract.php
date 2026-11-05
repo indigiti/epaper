@@ -19,5 +19,5 @@ foreach(['epdi-cloud-orbit-cw','epdi-cloud-orbit-ccw','prefers-reduced-motion:re
 if(!str_contains($css,'body.epdi-orbit-enabled.dark .epdi-orbit-ambient{display:none}'))$fail('Dark mode safeguard missing');
 if(!str_contains($app,"TenantData::setting('appearance.frontend_orbit','off')"))$fail('Existing Vanta effect precedence not preserved');
 if(str_contains($css,'url(')||str_contains($css,'@import'))$fail('No external assets are permitted');
-if(!str_contains($view,"if($orbitEnabled)echo"))$fail('Missing SSR opt-in layer');
+if(!str_contains($view,'if($orbitEnabled)echo'))$fail('Missing SSR opt-in layer');
 echo "PASS Opt-in orbital background contracts\n";
