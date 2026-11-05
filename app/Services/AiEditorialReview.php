@@ -26,6 +26,7 @@ final class AiEditorialReview
         Http::privateNoStore();
         if(in_array($path,['/admin/article-review','/admin/ai-review'],true)&&$method==='GET')self::index();
         if(preg_match('#^/admin/(?:article-review|ai-review)/([0-9a-f-]{36})/(preview|thumb)$#i',$path,$m)&&$method==='GET')self::preview($m[1],$m[2]==='thumb');
+        if(preg_match('#^/admin/(?:article-review|ai-review)/([0-9a-f-]{36})/draft$#i',$path,$m)&&$method==='POST')self::draft($m[1]);
         if(preg_match('#^/admin/(?:article-review|ai-review)/([0-9a-f-]{36})$#i',$path,$m)){
             if($method==='GET')self::detail($m[1]);
             if($method==='POST')self::mutate($m[1]);
@@ -157,6 +158,17 @@ HTML;
         $html='<style>.ai-review-grid{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(290px,.85fr);gap:18px;align-items:start}.ai-paper{position:relative;border:1px solid #64748b;border-radius:12px;overflow:hidden;background:#eceff1}.ai-paper img{width:100%;height:auto;display:block}.ai-box{position:absolute;border:2px solid #2563eb;background:rgba(37,99,235,.11);color:#fff;font-size:10px;text-shadow:0 1px 3px #000;overflow:hidden;cursor:pointer}.ai-box.image{border-color:#f97316;background:rgba(249,115,22,.12)}.ai-edit{padding:12px;border:1px solid #cbd5e1;border-radius:12px;margin-bottom:12px}.ai-fields{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:7px}.ai-fields label{font-size:11px}.ai-fields input{width:100%;min-width:0;padding:6px}.ai-edit textarea{width:100%;min-height:55px}.ai-forms{max-height:76vh;overflow:auto}.ai-actions{display:flex;flex-wrap:wrap;gap:10px;margin:12px 0}@media(max-width:850px){.ai-review-grid{grid-template-columns:1fr}.ai-forms{max-height:none}}</style>';
         $html.='<section class="admin-section"><p><a href="/admin/article-review">← Article Review queue</a></p><span class="eyebrow">PRIVATE EDITORIAL REVIEW</span><h1>'.View::e((string)$row['publication_name']).' · Page '.(int)$row['page_number'].'</h1><p class="muted">'.View::e(date('d M Y',strtotime((string)$row['edition_date']))).'</p><p class="muted">Edit classification, OCR text, or pixel boundary. The blue/orange boxes show machine suggestions; none are verified articles.</p><p>Status: <strong>'.View::e((string)$row['status']).'</strong> · revision '.$version.' · '.count($doc['regions']).' regions. Coordinates are in the original '.$w.' × '.$h.' pixel grid.</p>';
         $html.='<div class="ai-actions"><form method="post"><input type="hidden" name="_csrf" value="'.$csrf.'"><input type="hidden" name="version" value="'.$version.'"><input type="hidden" name="mode" value="approve"><label><input required type="checkbox" name="confirm" value="yes"> I reviewed the candidate regions</label> <button class="btn primary" type="submit">Approve reviewed regions (no publishing)</button></form><form method="post"><input type="hidden" name="_csrf" value="'.$csrf.'"><input type="hidden" name="version" value="'.$version.'"><input type="hidden" name="mode" value="reject"><button class="btn ghost" type="submit">Reject proposals</button></form></div>';
+        $stories=AiReviewDrafts::suggestions($doc,$ed);
+        $html.='<section class="panel" style="margin:20px 0;padding:19px;border-radius:15px"><h2 style="margin:0 0 9px">Create article drafts</h2><p class="muted">Assign the same Article group key to a corrected headline and body, then approve this page. Each explicit action creates or opens an unpublished draft in Articles. No automatic publication or clipping.</p>';
+        if(!$stories)$html.='<p class="muted">No manually grouped story regions yet. Edit and save a headline and body with the same Article group key.</p>';
+        foreach($stories as $story){
+            $html.='<div style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;border-top:1px solid var(--console-border,#dce5ee);padding:12px 0"><div><strong>'.View::e($story['title']?:'Story group '.$story['group']).'</strong><p class="muted" style="margin:4px 0">Group '.View::e($story['group']).' · '.$story['region_count'].' regions · '.mb_strlen($story['body'],'UTF-8').' body characters</p></div>';
+            if($row['status']==='REVIEWED'&&$story['ready']){
+                $html.='<form method="post" action="/admin/article-review/'.$page.'/draft"><input type="hidden" name="_csrf" value="'.$csrf.'"><input type="hidden" name="version" value="'.$version.'"><input type="hidden" name="article_group" value="'.View::e($story['group']).'"><label><input type="checkbox" name="confirm" value="yes" required> Confirm reviewed story</label> <button class="btn primary" type="submit">Create / open draft</button></form>';
+            }else $html.='<small class="muted">'.($row['status']!=='REVIEWED'?'Approve this page after corrections':'Requires a headline and at least 80 body characters').'</small>';
+            $html.='</div>';
+        }
+        $html.='</section>';
         $html.='<div class="ai-review-grid"><div><div class="ai-paper" data-page-width="'.$w.'" data-page-height="'.$h.'"><img src="/admin/ai-review/'.$page.'/preview" alt="Private newspaper page preview with candidate region overlay">';
         $count=0;
         foreach($doc['regions'] as$reg){
@@ -269,6 +281,32 @@ HTML;
             http_response_code(404);exit;
         }
         header('Content-Type: image/webp');header('Content-Length: '.filesize($file));readfile($file);exit;
+    }
+
+    private static function draft(string $pageGuid): never
+    {
+        $actor=(string)(Auth::user()['user_guid']??'');
+        $version=filter_var($_POST['version']??null,FILTER_VALIDATE_INT,['options'=>['min_range'=>1]]);
+        $group=trim((string)($_POST['article_group']??''));
+        if(!Uuid::isValid($actor))Http::json(['ok'=>false,'code'=>'EDITOR_IDENTITY_INVALID'],403);
+        if($version===false||$group===''||strlen($group)>40||!preg_match('/^[A-Za-z0-9_-]+$/D',$group)
+            ||($_POST['confirm']??'')!=='yes')Http::json(['ok'=>false,'code'=>'DRAFT_INPUT_INVALID'],422);
+        if(!RateLimiter::allow('ai-review-draft:'.RequestContext::tenantGuid().':'.$actor,15,60))
+            Http::json(['ok'=>false,'code'=>'REVIEW_RATE_LIMIT'],429);
+        $result=Store::tx(function()use($pageGuid,$version,$group,$actor){
+            $row=self::row($pageGuid,true);
+            if(!$row)return ['code'=>'NOT_FOUND'];
+            if((int)$row['version']!==$version)return ['code'=>'STALE_VERSION'];
+            if($row['status']!=='REVIEWED')return ['code'=>'REVIEW_REQUIRED'];
+            $stories=AiReviewDrafts::suggestions(self::candidates($row),self::editor($row));
+            if(empty($stories[$group]['ready']))return ['code'=>'STORY_NOT_READY'];
+            $id=AiReviewDrafts::storeDraft($row,$pageGuid,$group,$stories[$group],$actor);
+            return ['code'=>'OK','guid'=>$id];
+        });
+        if($result['code']!=='OK')Http::json(['ok'=>false,'code'=>$result['code'],'message'=>'Refresh this page and check the reviewed story.'],
+            $result['code']==='NOT_FOUND'?404:($result['code']==='STALE_VERSION'?409:422));
+        Audit::log('ai.review.draft_created_or_opened','article',$result['guid'],'SUCCESS',['page_guid'=>$pageGuid,'article_group'=>$group,'published'=>false]);
+        Http::redirect('/admin/articles?edit='.rawurlencode($result['guid']).'&draft_from_review=1');
     }
 
     private static function mutate(string $pageGuid): never
