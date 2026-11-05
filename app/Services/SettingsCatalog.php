@@ -37,6 +37,7 @@ final class SettingsCatalog
                     'brand.pwa_name' => ['App install name','text','',null],
                     'brand.pwa_short_name' => ['Home screen short name','text','',null],
                     'brand.pwa_description' => ['App description','text','',null],
+                    'brand.pwa_logo_path' => ['Managed PWA icon','fixed','Managed in Publisher PWA identity',null],
                     'brand.tagline' => ['Tagline','text','Digital newspaper',null],
                     'brand.logo_path' => ['Logo path / URL','text','',null],
                     'brand.favicon_path' => ['Favicon path / URL','text','',null],

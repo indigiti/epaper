@@ -16,6 +16,7 @@ body.admin-shell{--console-sidebar:238px}
   box-shadow:0 4px 12px rgba(106,100,213,.12)
 }
 .admin-shell .admin-sidebar-emblem svg{width:20px;height:20px}
+.admin-shell .admin-sidebar-emblem img{width:100%;height:100%;object-fit:contain;border-radius:inherit;background:var(--console-surface,#fff)}
 .admin-shell .admin-sidebar-brand-copy{display:grid;min-width:0;flex:1;gap:2px}
 .admin-shell .admin-sidebar-brand-copy strong{
   font-size:12px;font-weight:800;line-height:1.3;color:var(--console-text);

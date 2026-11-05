@@ -150,3 +150,10 @@ body.admin-shell.dark {
   .admin-shell .studio-content-grid .desk-editions,.admin-shell .studio-content-grid .desk-attention{padding:14px}
 }
 @media(prefers-reduced-motion:reduce){.admin-shell .studio-button,.admin-shell .desk-shortcuts a{transition:none}}
+
+/* Publisher PWA previews, scoped to admin branding. */
+.admin-shell .pwa-icon-previews{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:16px 0 20px}
+.admin-shell .pwa-icon-previews>div{display:flex;align-items:center;justify-content:center;flex-direction:column;gap:9px;padding:14px;min-width:0;border:1px solid var(--console-border);border-radius:14px;background:var(--console-surface-soft)}
+.admin-shell .pwa-icon-previews img{display:block;width:clamp(54px,7vw,88px);height:clamp(54px,7vw,88px);object-fit:contain;border-radius:18px;background:#fff}
+.admin-shell .pwa-icon-previews small{font-size:11px;color:var(--console-muted);text-align:center}
+@media(max-width:580px){.admin-shell .pwa-icon-previews{gap:7px}.admin-shell .pwa-icon-previews>div{padding:9px}.admin-shell .pwa-icon-previews small{font-size:10px}}

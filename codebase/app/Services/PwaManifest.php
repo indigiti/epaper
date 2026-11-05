@@ -13,20 +13,31 @@ final class PwaManifest
         if(function_exists('mb_substr'))return mb_substr($text,0,$max,'UTF-8');
         return implode('',array_slice(preg_split('//u',$text,-1,PREG_SPLIT_NO_EMPTY)?:[],0,$max));
     }
-    private static function generic(string $s):bool{return $s===''||strcasecmp($s,'ePaper SaaS')===0;}
     public static function name(array $settings,string $tenantName):string
     {
-        $name=self::clip($settings['brand.pwa_name']??'',60);
-        if(self::generic($name))$name=self::clip($settings['brand.site_name']??'',60);
-        if(self::generic($name))$name=self::clip($tenantName,60);
-        return self::generic($name)?'ePaper':$name;
+        $appName=self::clip($settings['brand.pwa_name']??'',60);
+        return BrandIdentity::generic($appName)
+            ? self::clip(BrandIdentity::websiteName($settings,$tenantName),60)
+            : $appName;
     }
-    private static function icon(array $s,string $key,string $tenant,string $file,string $fallback,string $webRoot):string
+    private static function markIcon(string $tenant,string $file,string $webRoot):string
     {
-        $url=trim((string)($s[$key]??''));
-        $expected='/uploads/branding/'.strtolower($tenant).'/'.$file;
-        if(!preg_match('~^'.preg_quote($expected,'~').'(?:\?v=[0-9]{1,12})?$~D',$url))return $fallback;
-        return is_file(rtrim($webRoot,'/').$expected)?$url:$fallback;
+        $url='/uploads/branding/'.strtolower($tenant).'/'.$file;
+        $path=rtrim($webRoot,'/').$url;
+        return is_file($path)?$url.'?v='.(string)(filemtime($path)?:0):'';
+    }
+    /** Identify which logo source actually serves valid tenant-owned PWA icons. */
+    public static function source(array $s,string $tenant,string $webRoot):string
+    {
+        $logo=trim((string)($s['brand.pwa_logo_path']??''));
+        $prefix=substr($logo,0,-strlen('512.png'));
+        if(PwaIconAssets::validate($logo,$tenant,'512',$webRoot)
+            && PwaIconAssets::validate($prefix.'192.png',$tenant,'192',$webRoot)
+            && $prefix.'192.png'===($s['brand.pwa_icon_192_path']??'')
+            && $logo===($s['brand.pwa_icon_512_path']??''))return 'CUSTOM';
+        if(self::markIcon($tenant,'pwa-192.png',$webRoot)!==''
+            &&self::markIcon($tenant,'pwa-512.png',$webRoot)!=='')return 'MARK';
+        return 'DEFAULT';
     }
     public static function build(array $s,string $tenantName,string $tenant,string $webRoot):array
     {
@@ -35,9 +46,19 @@ final class PwaManifest
         $description=self::clip($s['brand.pwa_description']??'',180)?:'Read the latest newspaper editions, browse the archive and save articles.';
         $accent=trim((string)($s['brand.accent']??'#2563eb'));
         if(!preg_match('/^#[0-9a-f]{6}$/iD',$accent))$accent='#2563eb';
-        $icon192=self::icon($s,'brand.pwa_icon_192_path',$tenant,'pwa-192.png','/assets/icon-192.png',$webRoot);
-        $icon512=self::icon($s,'brand.pwa_icon_512_path',$tenant,'pwa-512.png','/assets/icon-512.png',$webRoot);
-        $mask=self::icon($s,'brand.pwa_maskable_512_path',$tenant,'pwa-maskable-512.png','',$webRoot);
+        $source=self::source($s,$tenant,$webRoot);
+        $icon192='/assets/icon-192.png';$icon512='/assets/icon-512.png';$mask='';
+        if($source==='CUSTOM'){
+            $logo=(string)$s['brand.pwa_logo_path'];
+            $prefix=substr($logo,0,-strlen('512.png'));
+            $icon192=$prefix.'192.png';$icon512=$logo;
+            $mask=PwaIconAssets::validate($prefix.'maskable-512.png',$tenant,'maskable-512',$webRoot)
+                ?$prefix.'maskable-512.png':'';
+        }elseif($source==='MARK'){
+            $icon192=self::markIcon($tenant,'pwa-192.png',$webRoot);
+            $icon512=self::markIcon($tenant,'pwa-512.png',$webRoot);
+            $mask=self::markIcon($tenant,'pwa-maskable-512.png',$webRoot);
+        }
         $icons=[
             ['src'=>$icon192,'sizes'=>'192x192','type'=>'image/png','purpose'=>'any'],
             ['src'=>$icon512,'sizes'=>'512x512','type'=>'image/png','purpose'=>'any']
@@ -61,7 +82,7 @@ final class PwaManifest
     public static function revision(array $s,string $tenantName,string $tenant):string
     {
         $keys=['brand.site_name','brand.pwa_name','brand.pwa_short_name','brand.pwa_description',
-             'brand.accent','brand.pwa_icon_192_path','brand.pwa_icon_512_path','brand.pwa_maskable_512_path'];
+             'brand.accent','brand.pwa_logo_path','brand.pwa_icon_192_path','brand.pwa_icon_512_path','brand.pwa_maskable_512_path'];
         $values=[$tenant,$tenantName];
         foreach($keys as $key)$values[]=$s[$key]??null;
         return substr(hash('sha256',(string)json_encode($values,JSON_UNESCAPED_UNICODE)),0,16);
